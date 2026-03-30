@@ -1181,3 +1181,287 @@ body {
         font-size: 10px;
     }
 }
+/* ========== VIRTUAL CARD ========== */
+.virtual-card {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 20px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.3);
+}
+
+.virtual-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.card-chip {
+    margin-bottom: 30px;
+}
+
+.card-chip i {
+    font-size: 32px;
+    color: #ffd966;
+}
+
+.card-brand {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin-bottom: 30px;
+    opacity: 0.8;
+}
+
+.card-number {
+    display: flex;
+    gap: 20px;
+    font-family: monospace;
+    font-size: 18px;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+}
+
+.card-details {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.card-details .label {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-bottom: 4px;
+}
+
+.card-details .value {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.card-balance {
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 20px;
+    margin-top: 10px;
+}
+
+.balance-label {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-bottom: 8px;
+}
+
+.balance-value {
+    font-size: 28px;
+    font-weight: 800;
+}
+
+.balance-usd {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 4px;
+}
+
+.card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+.card-footer i {
+    font-size: 24px;
+}
+
+.card-actions {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.card-action-btn {
+    flex: 1;
+    background: white;
+    border: none;
+    padding: 12px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.card-action-btn i {
+    font-size: 20px;
+    color: var(--primary);
+}
+
+.card-action-btn span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.card-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.card-features {
+    display: flex;
+    justify-content: space-around;
+    background: white;
+    padding: 16px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.card-features .feature {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-features .feature i {
+    font-size: 20px;
+    color: var(--primary);
+}
+
+.card-features .feature span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* ========== ADMIN STATS ========== */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+}
+
+.stat-card {
+    background: white;
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.stat-card h3 {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.stat-card .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.admin-transaction-card {
+    background: white;
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.admin-tx-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+.admin-tx-type {
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.admin-tx-type.deposit {
+    background: #e6f7e6;
+    color: #10b981;
+}
+
+.admin-tx-type.withdraw {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.admin-tx-status {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.admin-tx-status.pending {
+    background: #fef3c7;
+    color: #f59e0b;
+}
+
+.admin-tx-status.approved {
+    background: #e6f7e6;
+    color: #10b981;
+}
+
+.admin-tx-status.rejected {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.admin-tx-details p {
+    margin: 8px 0;
+    font-size: 13px;
+}
+
+.admin-tx-details strong {
+    color: var(--text-secondary);
+}
+
+.admin-tx-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.admin-approve-btn {
+    flex: 1;
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.admin-reject-btn {
+    flex: 1;
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 30px;
+    font-weight: 600;
+    cursor: pointer;
+}
