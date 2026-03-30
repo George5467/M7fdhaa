@@ -6,8 +6,6 @@
     <title>Trust Wallet Lite</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -37,7 +35,10 @@
     <!-- ========== IMPORT WALLET MODAL ========== -->
     <div id="importModal" class="modal">
         <div class="modal-content">
-            <div class="modal-header"><h3>Import Wallet</h3><button class="close-modal" onclick="closeModal('importModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-header">
+                <h3>Import Wallet</h3>
+                <button class="close-modal" onclick="closeModal('importModal')"><i class="fas fa-times"></i></button>
+            </div>
             <div class="modal-body">
                 <p class="modal-desc">Enter your 12-word recovery phrase</p>
                 <textarea id="importPhrase" class="modal-input" rows="3" placeholder="apple banana cherry dragon eagle forest green happy island jungle king light"></textarea>
@@ -48,15 +49,15 @@
     </div>
 
     <!-- ========== MAIN APP CONTENT ========== -->
-    <div id="mainContent" class="main-content hidden">
+    <div id="mainContent" class="main-content" style="display: none;">
         <!-- Header -->
         <div class="app-header">
             <div class="header-top">
                 <div class="wallet-selector"><i class="fas fa-chevron-down"></i><span>Main Wallet 1</span></div>
                 <div class="header-actions">
                     <button id="notificationBtn" class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge hidden">0</span></button>
-                    <button id="adminCrownBtn" class="icon-btn hidden"><i class="fa-solid fa-crown" style="color:gold;"></i></button>
                     <button id="refreshPricesBtn" class="icon-btn" onclick="refreshPrices()"><i class="fa-solid fa-rotate-right"></i></button>
+                    <button id="adminCrownBtn" class="icon-btn hidden"><i class="fa-solid fa-crown" style="color:gold;"></i></button>
                 </div>
             </div>
             <div id="welcomeSticker" class="welcome-sticker"></div>
@@ -79,93 +80,174 @@
         </div>
     </div>
 
-    <!-- ========== MODALS (محسنة) ========== -->
+    <!-- ========== MODALS ========== -->
+    
     <!-- Send Modal -->
     <div id="sendModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Send</h3><button class="close-modal" onclick="closeModal('sendModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
-            <div class="currency-selector" onclick="showCurrencySelector('send')"><img id="sendCurrencyIcon"><span id="sendCurrencySymbol">TWT</span><i class="fas fa-chevron-down"></i></div>
-            <input type="number" id="sendAmount" class="modal-input" placeholder="0.00">
-            <input type="text" id="sendAddress" class="modal-input" placeholder="Recipient address">
-            <button id="confirmSendBtn" class="btn-primary">Send</button>
-        </div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Send</h3><button class="close-modal" onclick="closeModal('sendModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('send')">
+                    <img id="sendCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
+                    <span id="sendCurrencySymbol">TWT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <input type="number" id="sendAmount" class="modal-input" placeholder="0.00">
+                <input type="text" id="sendAddress" class="modal-input" placeholder="Recipient address">
+                <button id="confirmSendBtn" class="btn-primary">Send</button>
+            </div>
+        </div>
     </div>
 
     <!-- Receive Modal -->
     <div id="receiveModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Receive</h3><button class="close-modal" onclick="closeModal('receiveModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
-            <div class="currency-selector" onclick="showCurrencySelector('receive')"><img id="receiveCurrencyIcon"><span id="receiveCurrencySymbol">TWT</span><i class="fas fa-chevron-down"></i></div>
-            <div class="address-box"><code id="receiveAddress"></code><button class="copy-btn" onclick="copyAddress()"><i class="fas fa-copy"></i></button></div>
-            <div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR Code for {currency}</p></div>
-        </div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Receive</h3><button class="close-modal" onclick="closeModal('receiveModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('receive')">
+                    <img id="receiveCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
+                    <span id="receiveCurrencySymbol">TWT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="address-box">
+                    <code id="receiveAddress"></code>
+                    <button class="copy-btn" onclick="copyAddress()"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>QR Code for {currency}</p></div>
+            </div>
+        </div>
     </div>
 
-    <!-- Swap Modal (احترافي مثل الصورة) -->
+    <!-- Swap Modal -->
     <div id="swapModal" class="modal">
-        <div class="modal-content swap-modal-content"><div class="modal-header"><h3>Swap</h3><button class="close-modal" onclick="closeModal('swapModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
-            <div class="swap-box"><div class="swap-label">From</div>
-            <div class="swap-row"><input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()"><div class="currency-selector-small" onclick="showSwapCurrencySelector('from')"><img id="swapFromIcon"><span id="swapFromSymbol">TWT</span><i class="fas fa-chevron-down"></i></div></div>
-            <div class="balance-hint">Balance: <span id="swapFromBalance">0</span> <span class="percentage-buttons"><button onclick="setSwapPercentage(25)">25%</button><button onclick="setSwapPercentage(50)">50%</button><button onclick="setSwapPercentage(100)">Max</button></span></div></div>
-            <div class="swap-arrow"><i class="fas fa-arrow-down"></i></div>
-            <div class="swap-box"><div class="swap-label">To</div>
-            <div class="swap-row"><input type="number" id="swapToAmount" placeholder="0.00" readonly><div class="currency-selector-small" onclick="showSwapCurrencySelector('to')"><img id="swapToIcon"><span id="swapToSymbol">USDT</span><i class="fas fa-chevron-down"></i></div></div>
-            <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div></div>
-            <div class="swap-rate" id="swapRateDisplay">1 TWT ≈ $1.25</div>
-            <div class="swap-fee"><span>Swapper fee</span><span id="swapFee">$0.01</span></div>
-            <div class="swap-provider"><span>Provider</span><span>Rango</span></div>
-            <button id="confirmSwapBtn" class="btn-primary">Continue</button>
-        </div></div>
+        <div class="modal-content swap-modal-content">
+            <div class="modal-header"><h3>Swap</h3><button class="close-modal" onclick="closeModal('swapModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="swap-box">
+                    <div class="swap-label">From</div>
+                    <div class="swap-row">
+                        <input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()">
+                        <div class="currency-selector-small" onclick="showSwapCurrencySelector('from')">
+                            <img id="swapFromIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
+                            <span id="swapFromSymbol">TWT</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="balance-hint">
+                        Balance: <span id="swapFromBalance">0</span>
+                        <span class="percentage-buttons">
+                            <button onclick="setSwapPercentage(25)">25%</button>
+                            <button onclick="setSwapPercentage(50)">50%</button>
+                            <button onclick="setSwapPercentage(100)">Max</button>
+                        </span>
+                    </div>
+                </div>
+                <div class="swap-arrow"><i class="fas fa-arrow-down"></i></div>
+                <div class="swap-box">
+                    <div class="swap-label">To</div>
+                    <div class="swap-row">
+                        <input type="number" id="swapToAmount" placeholder="0.00" readonly>
+                        <div class="currency-selector-small" onclick="showSwapCurrencySelector('to')">
+                            <img id="swapToIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/825.png">
+                            <span id="swapToSymbol">USDT</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
+                </div>
+                <div class="swap-rate" id="swapRateDisplay">1 TWT ≈ $1.25</div>
+                <div class="swap-fee"><span>Swapper fee</span><span id="swapFee">$0.01</span></div>
+                <div class="swap-provider"><span>Provider</span><span>Rango</span></div>
+                <button id="confirmSwapBtn" class="btn-primary">Continue</button>
+            </div>
+        </div>
     </div>
 
     <!-- Deposit Modal -->
     <div id="depositModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Deposit</h3><button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
-            <div class="currency-selector" onclick="showCurrencySelector('deposit')"><img id="depositCurrencyIcon"><span id="depositCurrencySymbol">TWT</span><i class="fas fa-chevron-down"></i></div>
-            <input type="number" id="depositAmount" class="modal-input" placeholder="Amount">
-            <input type="text" id="depositTxHash" class="modal-input" placeholder="Transaction Hash (optional for demo)">
-            <div class="address-box"><code id="depositAddress"></code><button class="copy-btn" onclick="copyDepositAddress()"><i class="fas fa-copy"></i></button></div>
-            <p class="min-deposit-hint">Min: <span id="depositMinAmount">10</span> TWT</p>
-            <button id="confirmDepositBtn" class="btn-primary">Submit Deposit</button>
-        </div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Deposit</h3><button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('deposit')">
+                    <img id="depositCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
+                    <span id="depositCurrencySymbol">TWT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <input type="number" id="depositAmount" class="modal-input" placeholder="Amount">
+                <input type="text" id="depositTxHash" class="modal-input" placeholder="Transaction Hash (optional)">
+                <div class="address-box">
+                    <code id="depositAddress"></code>
+                    <button class="copy-btn" onclick="copyDepositAddress()"><i class="fas fa-copy"></i></button>
+                </div>
+                <p class="min-deposit-hint">Min: <span id="depositMinAmount">10</span> TWT</p>
+                <button id="confirmDepositBtn" class="btn-primary">Submit Deposit</button>
+            </div>
+        </div>
     </div>
 
     <!-- Withdraw Modal -->
     <div id="withdrawModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Withdraw</h3><button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body">
-            <div class="currency-selector" onclick="showCurrencySelector('withdraw')"><img id="withdrawCurrencyIcon"><span id="withdrawCurrencySymbol">TWT</span><i class="fas fa-chevron-down"></i></div>
-            <input type="number" id="withdrawAmount" class="modal-input" placeholder="Amount">
-            <input type="text" id="withdrawAddress" class="modal-input" placeholder="Withdrawal address">
-            <p class="withdraw-fee-hint">Network fee: <span id="withdrawFee">1 TWT</span></p>
-            <p class="min-withdraw-hint">Min: <span id="withdrawMinAmount">10</span> TWT</p>
-            <button id="confirmWithdrawBtn" class="btn-primary">Submit Withdrawal</button>
-        </div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Withdraw</h3><button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('withdraw')">
+                    <img id="withdrawCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
+                    <span id="withdrawCurrencySymbol">TWT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <input type="number" id="withdrawAmount" class="modal-input" placeholder="Amount">
+                <input type="text" id="withdrawAddress" class="modal-input" placeholder="Withdrawal address">
+                <p class="withdraw-fee-hint">Network fee: <span id="withdrawFee">1 TWT</span></p>
+                <p class="min-withdraw-hint">Min: <span id="withdrawMinAmount">10</span> TWT</p>
+                <button id="confirmWithdrawBtn" class="btn-primary">Submit Withdrawal</button>
+            </div>
+        </div>
     </div>
 
     <!-- Currency Selector Modal -->
     <div id="currencySelectorModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Select Currency</h3><button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body"><input type="text" id="currencySearch" class="modal-input" placeholder="Search currency..." onkeyup="filterCurrencies()"><div id="currencyList" class="currency-list"></div></div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Select Currency</h3><button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body">
+                <input type="text" id="currencySearch" class="modal-input" placeholder="Search currency..." onkeyup="filterCurrencies()">
+                <div id="currencyList" class="currency-list"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Notifications Modal -->
     <div id="notificationsModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Notifications</h3><button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body"><div id="notificationsList"></div></div></div>
+        <div class="modal-content">
+            <div class="modal-header"><h3>Notifications</h3><button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button></div>
+            <div class="modal-body"><div id="notificationsList"></div></div>
+        </div>
     </div>
 
-    <!-- Transaction History Modal -->
+    <!-- History Modal -->
     <div id="historyModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3>Transaction History</h3><button class="close-modal" onclick="closeModal('historyModal')"><i class="fas fa-times"></i></button></div>
-        <div class="modal-body"><div id="historyList"></div></div></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Transaction History</h3>
+                <button class="close-modal" onclick="closeModal('historyModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="history-tabs">
+                    <button class="history-tab active" onclick="filterHistory('all')">All</button>
+                    <button class="history-tab" onclick="filterHistory('send')">Send</button>
+                    <button class="history-tab" onclick="filterHistory('swap')">Swap</button>
+                    <button class="history-tab" onclick="filterHistory('referral_reward')">Referral</button>
+                </div>
+                <div id="historyList"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Admin Panel -->
     <div id="adminPanel" class="admin-panel hidden">
-        <div class="admin-header"><h3><i class="fas fa-crown"></i> Admin Panel</h3><button onclick="closeAdminPanel()" class="close-admin"><i class="fas fa-times"></i></button></div>
+        <div class="admin-header">
+            <h3><i class="fas fa-crown"></i> Admin Panel</h3>
+            <button onclick="closeAdminPanel()" class="close-admin"><i class="fas fa-times"></i></button>
+        </div>
         <div class="admin-tabs">
             <button class="admin-tab active" onclick="showAdminTab('deposits')">Deposits</button>
             <button class="admin-tab" onclick="showAdminTab('withdrawals')">Withdrawals</button>
@@ -173,12 +255,21 @@
             <button class="admin-tab" onclick="showAdminTab('stats')">Stats</button>
         </div>
         <div id="adminContent" class="admin-content"></div>
-        <div style="padding: 16px;"><button onclick="refreshAdminPanel()" class="admin-approve-btn" style="width:100%;"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+        <div style="padding: 16px;">
+            <button onclick="refreshAdminPanel()" class="admin-approve-btn" style="width:100%;"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="toast hidden"><i class="fa-regular fa-circle-check"></i><span id="toastMessage"></span></div>
-    <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()"><i class="fas fa-arrow-up"></i></button>
+    <div id="toast" class="toast hidden">
+        <i class="fa-regular fa-circle-check"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
 
     <script src="app.js"></script>
 </body>
