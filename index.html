@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>TWT Pay - Trust Wallet Style</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+    <!-- ========== SPLASH SCREEN ========== -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-logo">
+            <div class="logo-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>TWT Pay</h1>
+            <div class="splash-loader"></div>
+        </div>
+    </div>
+
+    <!-- ========== ONBOARDING SCREEN (Create / Import Wallet) ========== -->
+    <div id="onboardingScreen" class="onboarding-screen">
+        <div class="onboarding-container">
+            <div class="onboarding-logo">
+                <div class="logo-icon-large">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>TWT Pay</h1>
+                <p>The most trusted & secure crypto wallet</p>
+            </div>
+
+            <div class="onboarding-buttons">
+                <button id="createWalletBtn" class="btn-primary">
+                    <i class="fas fa-plus-circle"></i>
+                    Create a new wallet
+                </button>
+                <button id="importWalletBtn" class="btn-secondary">
+                    <i class="fas fa-arrow-right-to-bracket"></i>
+                    Import existing wallet
+                </button>
+            </div>
+
+            <div class="onboarding-footer">
+                <i class="fas fa-shield-alt"></i>
+                <span>Secure & Decentralized</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== IMPORT WALLET MODAL ========== -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Wallet</h3>
+                <button class="close-modal" onclick="closeImportModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Enter your referral code or backup phrase to restore your wallet</p>
+                <input type="text" id="importCode" class="import-input" placeholder="Enter referral code or wallet ID">
+                <button id="confirmImportBtn" class="btn-primary" style="margin-top: 20px;">
+                    <i class="fas fa-arrow-right"></i> Import Wallet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MAIN APP CONTENT ========== -->
+    <div id="mainContent" class="main-content hidden">
+        
+        <!-- Header -->
+        <div class="app-header">
+            <div class="header-top">
+                <div class="wallet-selector">
+                    <i class="fas fa-chevron-down"></i>
+                    <span>Main Wallet 1</span>
+                </div>
+                <div class="header-actions">
+                    <button id="notificationBtn" class="icon-btn">
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="badge hidden">0</span>
+                    </button>
+                    <button id="adminCrownBtn" class="icon-btn hidden">
+                        <i class="fa-solid fa-crown" style="color: gold;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Content (Tabs) -->
+        <div id="walletSection" class="tab-content active">
+            <!-- Wallet content will be rendered here -->
+            <div id="walletContainer"></div>
+        </div>
+
+        <div id="referralSection" class="tab-content hidden">
+            <div id="referralContainer"></div>
+        </div>
+
+        <div id="twtpaySection" class="tab-content hidden">
+            <div id="twtpayContainer"></div>
+        </div>
+
+        <div id="settingsSection" class="tab-content hidden">
+            <div id="settingsContainer"></div>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <div class="bottom-nav">
+            <button class="nav-item active" data-tab="wallet">
+                <i class="fas fa-wallet"></i>
+                <span>Wallet</span>
+            </button>
+            <button class="nav-item" data-tab="referral">
+                <i class="fas fa-users"></i>
+                <span>Referral</span>
+            </button>
+            <button class="nav-item" data-tab="twtpay">
+                <i class="fas fa-credit-card"></i>
+                <span>TWT Pay</span>
+            </button>
+            <button class="nav-item" data-tab="settings">
+                <i class="fas fa-sliders-h"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ========== MODALS ========== -->
+    
+    <!-- Send Modal -->
+    <div id="sendModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Send</h3>
+                <button class="close-modal" onclick="closeModal('sendModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('send')">
+                    <img id="sendCurrencyIcon" src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="">
+                    <span id="sendCurrencySymbol">USDT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <input type="number" id="sendAmount" class="modal-input" placeholder="0.00" step="any">
+                <input type="text" id="sendAddress" class="modal-input" placeholder="Recipient address or username">
+                <button id="confirmSendBtn" class="btn-primary">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receive Modal -->
+    <div id="receiveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Receive</h3>
+                <button class="close-modal" onclick="closeModal('receiveModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="currency-selector" onclick="showCurrencySelector('receive')">
+                    <img id="receiveCurrencyIcon" src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="">
+                    <span id="receiveCurrencySymbol">USDT</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="receive-address-container">
+                    <p class="address-label">Your address:</p>
+                    <div class="address-box">
+                        <code id="receiveAddress">0xbf70420f57342c6Bd4267430D4D3b7E946f09450</code>
+                        <button class="copy-btn" onclick="copyAddress()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="qr-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                    <p>QR Code for {currency}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Swap Modal -->
+    <div id="swapModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Swap</h3>
+                <button class="close-modal" onclick="closeModal('swapModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="swap-container">
+                    <div class="swap-box">
+                        <label>From</label>
+                        <div class="swap-row">
+                            <input type="number" id="swapFromAmount" placeholder="0.00" step="any">
+                            <div class="currency-selector-small" onclick="showSwapCurrencySelector('from')">
+                                <img id="swapFromIcon" src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="">
+                                <span id="swapFromSymbol">USDT</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="balance-hint">Balance: <span id="swapFromBalance">0</span></div>
+                    </div>
+                    <div class="swap-arrow">
+                        <i class="fas fa-arrow-down"></i>
+                    </div>
+                    <div class="swap-box">
+                        <label>To</label>
+                        <div class="swap-row">
+                            <input type="number" id="swapToAmount" placeholder="0.00" readonly>
+                            <div class="currency-selector-small" onclick="showSwapCurrencySelector('to')">
+                                <img id="swapToIcon" src="https://cryptologos.cc/logos/refi-network-refi-logo.png" alt="">
+                                <span id="swapToSymbol">REFI</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
+                    </div>
+                    <div class="swap-rate" id="swapRateDisplay">1 USDT = 500,000 REFI</div>
+                    <button id="confirmSwapBtn" class="btn-primary">Swap Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buy Modal -->
+    <div id="buyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Buy Crypto</h3>
+                <button class="close-modal" onclick="closeModal('buyModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="coming-soon-text">
+                    <i class="fas fa-rocket"></i>
+                    Coming Soon! We're working hard to bring you the best buying experience.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Currency Selector Modal -->
+    <div id="currencySelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Currency</h3>
+                <button class="close-modal" onclick="closeModal('currencySelectorModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="currencySearch" class="modal-input" placeholder="Search currency..." onkeyup="filterCurrencies()">
+                <div id="currencyList" class="currency-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Notifications</h3>
+                <button class="close-modal" onclick="closeModal('notificationsModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="notificationsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-panel hidden">
+        <div class="admin-header">
+            <h3><i class="fas fa-crown"></i> Admin Panel</h3>
+            <button onclick="closeAdminPanel()" class="close-admin">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="showAdminTab('deposits')">Pending</button>
+            <button class="admin-tab" onclick="showAdminTab('users')">Users</button>
+            <button class="admin-tab" onclick="showAdminTab('stats')">Stats</button>
+        </div>
+        <div id="adminContent" class="admin-content"></div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <i class="fa-regular fa-circle-check"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <script src="app.js"></script>
+</body>
+</html>
