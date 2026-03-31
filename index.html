@@ -80,9 +80,7 @@
         </div>
     </div>
 
-    <!-- ========== MODALS ========== -->
-    
-    <!-- Send Modal -->
+    <!-- ========== SEND MODAL ========== -->
     <div id="sendModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Send</h3><button class="close-modal" onclick="closeModal('sendModal')"><i class="fas fa-times"></i></button></div>
@@ -99,7 +97,7 @@
         </div>
     </div>
 
-    <!-- Receive Modal -->
+    <!-- ========== RECEIVE MODAL ========== -->
     <div id="receiveModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Receive</h3><button class="close-modal" onclick="closeModal('receiveModal')"><i class="fas fa-times"></i></button></div>
@@ -118,7 +116,7 @@
         </div>
     </div>
 
-    <!-- Swap Modal -->
+    <!-- ========== SWAP MODAL (DEX Professional) ========== -->
     <div id="swapModal" class="modal">
         <div class="modal-content swap-modal-content">
             <div class="modal-header"><h3>Swap</h3><button class="close-modal" onclick="closeModal('swapModal')"><i class="fas fa-times"></i></button></div>
@@ -163,7 +161,7 @@
         </div>
     </div>
 
-    <!-- Deposit Modal -->
+    <!-- ========== DEPOSIT MODAL ========== -->
     <div id="depositModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Deposit</h3><button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button></div>
@@ -185,7 +183,7 @@
         </div>
     </div>
 
-    <!-- Withdraw Modal -->
+    <!-- ========== WITHDRAW MODAL ========== -->
     <div id="withdrawModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Withdraw</h3><button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button></div>
@@ -204,7 +202,7 @@
         </div>
     </div>
 
-    <!-- Currency Selector Modal -->
+    <!-- ========== CURRENCY SELECTOR MODAL ========== -->
     <div id="currencySelectorModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Select Currency</h3><button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button></div>
@@ -215,7 +213,7 @@
         </div>
     </div>
 
-    <!-- Notifications Modal -->
+    <!-- ========== NOTIFICATIONS MODAL ========== -->
     <div id="notificationsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header"><h3>Notifications</h3><button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button></div>
@@ -223,7 +221,7 @@
         </div>
     </div>
 
-    <!-- History Modal -->
+    <!-- ========== HISTORY MODAL ========== -->
     <div id="historyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -236,13 +234,15 @@
                     <button class="history-tab" onclick="filterHistory('send')">Send</button>
                     <button class="history-tab" onclick="filterHistory('swap')">Swap</button>
                     <button class="history-tab" onclick="filterHistory('referral_reward')">Referral</button>
+                    <button class="history-tab" onclick="filterHistory('deposit')">Deposit</button>
+                    <button class="history-tab" onclick="filterHistory('withdraw')">Withdraw</button>
                 </div>
                 <div id="historyList"></div>
             </div>
         </div>
     </div>
 
-    <!-- Admin Panel -->
+    <!-- ========== ADMIN PANEL ========== -->
     <div id="adminPanel" class="admin-panel hidden">
         <div class="admin-header">
             <h3><i class="fas fa-crown"></i> Admin Panel</h3>
@@ -260,13 +260,13 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- ========== TOAST NOTIFICATION ========== -->
     <div id="toast" class="toast hidden">
         <i class="fa-regular fa-circle-check"></i>
         <span id="toastMessage"></span>
     </div>
 
-    <!-- Scroll to Top Button -->
+    <!-- ========== SCROLL TO TOP BUTTON ========== -->
     <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()">
         <i class="fas fa-arrow-up"></i>
     </button>
