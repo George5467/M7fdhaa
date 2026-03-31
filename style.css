@@ -1,6 +1,6 @@
 /* ============================================================================
-   TRUST WALLET LITE - MODERN PROFESSIONAL STYLESHEET
-   Version 2.0 | Dark/Light Mode | RTL Support | Modern Design
+   TRUST WALLET LITE - PROFESSIONAL STYLESHEET v3.0
+   Modern Design | Dark/Light Mode | RTL Support | Smooth Animations
    ============================================================================ */
 
 /* ============================================================================
@@ -13,6 +13,7 @@
     --primary-dark: #0b3bbf;
     --primary-light: #7c4dff;
     --primary-gradient: linear-gradient(135deg, #2962FF, #7c4dff);
+    --primary-gradient-hover: linear-gradient(135deg, #1a4fcc, #6a3de0);
     
     --bg-primary: #FFFFFF;
     --bg-secondary: #F8F9FC;
@@ -41,6 +42,7 @@
     --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
     --shadow-xl: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+    --shadow-glow: 0 0 20px rgba(41, 98, 255, 0.3);
     
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -55,8 +57,11 @@
     --transition-slow: 0.4s ease;
 }
 
-/* Dark Mode */
 [data-theme="dark"] {
+    --primary: #3B82F6;
+    --primary-dark: #2563EB;
+    --primary-light: #60A5FA;
+    
     --bg-primary: #0A0C12;
     --bg-secondary: #0F1117;
     --bg-card: #1A1D26;
@@ -74,6 +79,10 @@
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
+/* ============================================================================
+   SECTION 2: RESET & BASE STYLES
+   ============================================================================ */
+
 * {
     margin: 0;
     padding: 0;
@@ -87,33 +96,7 @@ body {
     color: var(--text-primary);
     line-height: 1.5;
     transition: background var(--transition-normal), color var(--transition-normal);
-}
-
-/* ============================================================================
-   SECTION 2: DARK MODE TOGGLE
-   ============================================================================ */
-
-.theme-toggle {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-full);
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    color: var(--text-secondary);
-}
-
-.theme-toggle:hover {
-    background: var(--bg-hover);
-    transform: scale(1.05);
-}
-
-.theme-toggle i {
-    font-size: 18px;
+    overflow-x: hidden;
 }
 
 /* ============================================================================
@@ -139,12 +122,12 @@ body {
     pointer-events: none;
 }
 
-.splash-logo {
+.splash-content {
     text-align: center;
     animation: fadeInUp 0.6s ease;
 }
 
-.logo-icon {
+.splash-logo {
     width: 80px;
     height: 80px;
     background: rgba(255, 255, 255, 0.2);
@@ -157,12 +140,12 @@ body {
     animation: pulse 1.5s infinite;
 }
 
-.logo-icon i {
+.splash-logo i {
     font-size: 48px;
     color: white;
 }
 
-.splash-logo h1 {
+.splash-content h1 {
     color: white;
     font-size: 28px;
     font-weight: 800;
@@ -170,7 +153,7 @@ body {
     margin-bottom: 20px;
 }
 
-.splash-loader {
+.splash-spinner {
     width: 40px;
     height: 40px;
     border: 3px solid rgba(255, 255, 255, 0.3);
@@ -178,6 +161,12 @@ body {
     border-radius: 50%;
     margin: 0 auto;
     animation: spin 1s linear infinite;
+}
+
+.splash-version {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    margin-top: 16px;
 }
 
 /* ============================================================================
@@ -195,10 +184,6 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 900;
-}
-
-.onboarding-screen.hidden {
-    display: none;
 }
 
 .onboarding-container {
@@ -348,10 +333,6 @@ body {
     background: rgba(255, 255, 255, 0.25);
 }
 
-.wallet-selector i {
-    font-size: 12px;
-}
-
 .header-actions {
     display: flex;
     gap: 12px;
@@ -417,15 +398,15 @@ body {
 .tab-content {
     display: none;
     padding: 24px;
+    animation: fadeIn 0.3s ease;
 }
 
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.3s ease;
 }
 
 /* ============================================================================
-   SECTION 7: WALLET SECTION (Modern)
+   SECTION 7: WALLET SECTION
    ============================================================================ */
 
 .balance-card {
@@ -434,9 +415,8 @@ body {
     padding: 24px;
     text-align: center;
     margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-normal);
     border: 1px solid var(--border);
+    transition: all var(--transition-normal);
 }
 
 .balance-card:hover {
@@ -461,10 +441,6 @@ body {
     color: var(--success);
 }
 
-.balance-change.negative {
-    color: var(--danger);
-}
-
 .action-buttons {
     display: flex;
     justify-content: space-around;
@@ -472,7 +448,6 @@ body {
     border-radius: var(--radius-3xl);
     padding: 16px;
     margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
     border: 1px solid var(--border);
 }
 
@@ -504,10 +479,6 @@ body {
     background: var(--bg-hover);
     color: var(--primary);
     transform: translateY(-2px);
-}
-
-.action-btn:hover i {
-    color: var(--primary);
 }
 
 .section-tabs {
@@ -623,7 +594,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 8: SWAP SECTION (DEX Modern)
+   SECTION 8: SWAP SECTION
    ============================================================================ */
 
 .swap-container {
@@ -631,7 +602,6 @@ body {
     border-radius: var(--radius-3xl);
     padding: 24px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
 }
 
 .swap-box {
@@ -681,9 +651,8 @@ body {
     padding: 8px 16px;
     border-radius: var(--radius-full);
     cursor: pointer;
-    box-shadow: var(--shadow-sm);
-    transition: all var(--transition-fast);
     border: 1px solid var(--border);
+    transition: all var(--transition-fast);
 }
 
 .currency-selector-small:hover {
@@ -695,12 +664,6 @@ body {
     width: 24px;
     height: 24px;
     border-radius: 50%;
-}
-
-.currency-selector-small span {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-primary);
 }
 
 .balance-hint {
@@ -744,10 +707,9 @@ body {
     justify-content: center;
     margin-left: auto;
     margin-right: auto;
-    box-shadow: var(--shadow-md);
     cursor: pointer;
-    transition: all var(--transition-fast);
     border: 1px solid var(--border);
+    transition: all var(--transition-fast);
 }
 
 .swap-arrow:hover {
@@ -777,11 +739,6 @@ body {
     font-size: 13px;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border-light);
-}
-
-.swap-fee span:last-child, .swap-provider span:last-child {
-    font-weight: 600;
-    color: var(--text-primary);
 }
 
 /* ============================================================================
@@ -816,7 +773,6 @@ body {
     padding: 20px;
     margin-bottom: 24px;
     border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
 }
 
 .link-container {
@@ -843,12 +799,7 @@ body {
     cursor: pointer;
     color: var(--primary);
     font-size: 18px;
-    padding: 4px 8px;
     transition: all var(--transition-fast);
-}
-
-.copy-btn:hover, .share-btn:hover {
-    transform: scale(1.1);
 }
 
 .milestones-list {
@@ -930,7 +881,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 10: TWT PAY VIRTUAL CARD (Premium Design)
+   SECTION 10: TWT PAY CARD
    ============================================================================ */
 
 .virtual-card {
@@ -947,7 +898,6 @@ body {
 
 .virtual-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.3);
 }
 
 .virtual-card::before {
@@ -1005,7 +955,6 @@ body {
 .card-balance {
     border-top: 1px solid rgba(255, 255, 255, 0.2);
     padding-top: 20px;
-    margin-top: 8px;
 }
 
 .balance-label {
@@ -1032,10 +981,6 @@ body {
     margin-top: 20px;
     font-size: 12px;
     opacity: 0.6;
-}
-
-.card-footer i {
-    font-size: 28px;
 }
 
 .card-actions {
@@ -1072,7 +1017,6 @@ body {
 .card-action-btn:hover {
     transform: translateY(-2px);
     border-color: var(--primary);
-    box-shadow: var(--shadow-md);
 }
 
 .card-features {
@@ -1103,7 +1047,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 11: SETTINGS SECTION
+   SECTION 11: SETTINGS
    ============================================================================ */
 
 .settings-list {
@@ -1251,8 +1195,8 @@ body {
     border-radius: var(--radius-xl);
     margin-bottom: 20px;
     cursor: pointer;
-    transition: all var(--transition-fast);
     border: 1px solid var(--border);
+    transition: all var(--transition-fast);
 }
 
 .currency-selector:hover {
@@ -1264,12 +1208,6 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-}
-
-.currency-selector span {
-    flex: 1;
-    font-weight: 600;
-    color: var(--text-primary);
 }
 
 .address-box {
@@ -1304,7 +1242,63 @@ body {
 }
 
 /* ============================================================================
-   SECTION 13: HISTORY SECTION
+   SECTION 13: IMPORT MODAL (12 Words Grid)
+   ============================================================================ */
+
+.import-modal-content {
+    max-width: 500px !important;
+}
+
+.words-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.word-field {
+    text-align: center;
+}
+
+.word-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.word-input {
+    width: 100%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 6px;
+    font-size: 12px;
+    text-align: center;
+    color: var(--text-primary);
+    transition: all var(--transition-fast);
+}
+
+.word-input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.2);
+}
+
+.warning-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin: 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--danger);
+}
+
+/* ============================================================================
+   SECTION 14: HISTORY SECTION
    ============================================================================ */
 
 .history-tabs {
@@ -1414,7 +1408,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 14: ADMIN PANEL
+   SECTION 15: ADMIN PANEL
    ============================================================================ */
 
 .admin-panel {
@@ -1456,10 +1450,6 @@ body {
     font-size: 24px;
     cursor: pointer;
     transition: all var(--transition-fast);
-}
-
-.close-admin:hover {
-    transform: scale(1.1);
 }
 
 .admin-tabs {
@@ -1540,18 +1530,13 @@ body {
     color: var(--warning);
 }
 
-.admin-tx-status.approved {
-    background: var(--success-light);
-    color: var(--success);
-}
-
 .admin-tx-actions {
     display: flex;
     gap: 12px;
     margin-top: 12px;
 }
 
-.admin-approve-btn {
+.admin-approve-btn, .admin-refresh-btn {
     flex: 1;
     background: var(--success);
     color: white;
@@ -1602,7 +1587,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 15: BOTTOM NAVIGATION
+   SECTION 16: BOTTOM NAVIGATION
    ============================================================================ */
 
 .bottom-nav {
@@ -1652,7 +1637,7 @@ body {
 }
 
 /* ============================================================================
-   SECTION 16: TOAST & UTILITIES
+   SECTION 17: TOAST & UTILITIES
    ============================================================================ */
 
 .toast {
@@ -1708,6 +1693,10 @@ body {
     display: none !important;
 }
 
+/* ============================================================================
+   SECTION 18: RTL SUPPORT
+   ============================================================================ */
+
 .rtl {
     direction: rtl;
     text-align: right;
@@ -1725,12 +1714,29 @@ body {
     flex-direction: row-reverse;
 }
 
+.rtl .progress-text {
+    text-align: left;
+}
+
 .rtl .history-item-header {
     flex-direction: row-reverse;
 }
 
+.rtl .percentage-buttons {
+    margin-left: 0;
+    margin-right: 12px;
+}
+
+.rtl .words-grid {
+    direction: ltr;
+}
+
+.rtl .word-input {
+    direction: ltr;
+}
+
 /* ============================================================================
-   SECTION 17: ANIMATIONS
+   SECTION 19: ANIMATIONS
    ============================================================================ */
 
 @keyframes spin {
@@ -1743,14 +1749,8 @@ body {
 }
 
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeIn {
@@ -1759,14 +1759,8 @@ body {
 }
 
 @keyframes slideUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes stickerPop {
@@ -1782,57 +1776,23 @@ body {
 }
 
 /* ============================================================================
-   SECTION 18: RESPONSIVE DESIGN
+   SECTION 20: RESPONSIVE DESIGN
    ============================================================================ */
 
 @media (max-width: 480px) {
-    .total-balance {
-        font-size: 32px;
-    }
-    
-    .action-btn i {
-        font-size: 20px;
-    }
-    
-    .action-btn span {
-        font-size: 10px;
-    }
-    
-    .swap-row input {
-        font-size: 20px;
-    }
-    
-    .card-number {
-        gap: 12px;
-        font-size: 14px;
-    }
-    
-    .balance-value {
-        font-size: 24px;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .toast {
-        white-space: normal;
-        max-width: 90%;
-        text-align: center;
-    }
+    .total-balance { font-size: 32px; }
+    .action-btn i { font-size: 20px; }
+    .action-btn span { font-size: 10px; }
+    .swap-row input { font-size: 20px; }
+    .card-number { gap: 12px; font-size: 14px; }
+    .balance-value { font-size: 24px; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .words-grid { grid-template-columns: repeat(2, 1fr); }
+    .toast { white-space: normal; max-width: 90%; text-align: center; }
 }
 
 @media (max-width: 360px) {
-    .action-buttons {
-        gap: 4px;
-    }
-    
-    .action-btn {
-        padding: 6px 8px;
-    }
-    
-    .card-number {
-        gap: 8px;
-        font-size: 12px;
-    }
+    .action-buttons { gap: 4px; }
+    .action-btn { padding: 6px 8px; }
+    .card-number { gap: 8px; font-size: 12px; }
 }
