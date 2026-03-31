@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - PROFESSIONAL VERSION 1.0
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 1.0
 // ============================================================================
 
 // ============================================================================
@@ -7,7 +7,6 @@
 // ============================================================================
 
 const tg = window.Telegram?.WebApp;
-
 if (tg) {
     tg.ready();
     tg.expand();
@@ -16,7 +15,7 @@ if (tg) {
 }
 
 // ============================================================================
-// SECTION 2: FIREBASE CONFIGURATION
+// SECTION 2: FIREBASE CONFIGURATION (Environment Variables)
 // ============================================================================
 
 const firebaseConfig = {
@@ -82,7 +81,7 @@ const translations = {
         'referral.usdtEarned': 'USDT EARNED',
         'referral.yourLink': 'Your Referral Link',
         'referral.description': 'Share your link and get',
-        'referral.description2': 'TWT for every friend who joins.',
+        'referral.description2': 'TWT for every friend who joins. Complete milestones to earn massive TWT rewards!',
         'referral.milestones': 'Referral Milestones',
         'deposit.title': 'Deposit Funds',
         'deposit.selectCurrency': 'Select Currency',
@@ -168,7 +167,7 @@ const translations = {
         'referral.usdtEarned': 'USDT المُكتسبة',
         'referral.yourLink': 'رابط الإحالة الخاص بك',
         'referral.description': 'شارك رابطك واحصل على',
-        'referral.description2': 'TWT لكل صديق ينضم.',
+        'referral.description2': 'TWT لكل صديق ينضم. أكمل المراحل لتربح مكافآت TWT ضخمة!',
         'referral.milestones': 'مراحل الإحالة',
         'deposit.title': 'إيداع الأموال',
         'deposit.selectCurrency': 'اختر العملة',
@@ -270,7 +269,7 @@ const CMC_ICONS = {
 };
 
 // ============================================================================
-// SECTION 5: CONSTANTS
+// SECTION 5: CONSTANTS & CONFIGURATION
 // ============================================================================
 
 const BOT_LINK = "https://t.me/YourBot/TrustWalletLite";
@@ -480,7 +479,7 @@ function addTransaction(transaction) {
 }
 
 // ============================================================================
-// SECTION 14: PRICE FETCHING
+// SECTION 14: PRICE FETCHING (CoinGecko)
 // ============================================================================
 
 async function fetchLivePrices(force = false) {
@@ -797,7 +796,7 @@ function claimReferralMilestone(referrals) {
 }
 
 // ============================================================================
-// SECTION 21: RENDER SWAP
+// SECTION 21: RENDER SWAP (DEX Professional)
 // ============================================================================
 
 function renderSwap() {
