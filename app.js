@@ -1,10 +1,10 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 2.0
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 3.0
 // ============================================================================
 // Features: 12 Cryptocurrencies | 8 Referral Milestones | TWT Pay Card
 //           Swap DEX (0.3% fee) | Deposit/Withdraw | Admin Panel
 //           Zero Waste Architecture | Dark/Light Mode | RTL Support
-//           Unique Deposit Addresses per User | CoinPayments API Ready
+//           12-Word Recovery Phrase Import | Professional UI
 // ============================================================================
 
 // ============================================================================
@@ -48,21 +48,12 @@ try {
 }
 
 // ============================================================================
-// SECTION 3: COINPAYMENTS API CONFIGURATION
-// ============================================================================
-
-const COINPAYMENTS_API_KEY = "{{COINPAYMENTS_API_KEY}}";
-const COINPAYMENTS_API_SECRET = "{{COINPAYMENTS_API_SECRET}}";
-const COINPAYMENTS_IPN_URL = "https://your-app.onrender.com/api/ipn";
-
-// ============================================================================
-// SECTION 4: TRANSLATION SYSTEM (i18n) - Full English & Arabic
+// SECTION 3: TRANSLATION SYSTEM (i18n) - Full English & Arabic
 // ============================================================================
 
 const translations = {
     en: {
         'app.name': 'Trust Wallet Lite',
-        'welcome.title': 'Welcome back,',
         'nav.wallet': 'Wallet',
         'nav.swap': 'Swap',
         'nav.referral': 'Referral',
@@ -71,44 +62,25 @@ const translations = {
         'actions.send': 'Send',
         'actions.receive': 'Receive',
         'actions.swap': 'Swap',
-        'actions.buy': 'Buy',
         'actions.deposit': 'Deposit',
         'actions.withdraw': 'Withdraw',
         'actions.history': 'History',
         'actions.copy': 'Copy',
         'actions.confirmSwap': 'Confirm Swap',
-        'actions.stake': 'Stake',
-        'actions.gotIt': 'Got it!',
         'wallet.totalBalance': 'Total Balance',
-        'wallet.myAssets': 'My Assets',
-        'wallet.topCryptos': 'Top Cryptocurrencies',
         'swap.from': 'From',
         'swap.to': 'To',
         'swap.exchangeRate': 'Exchange Rate',
-        'swap.networkFee': 'Network Fee',
         'swap.swapperFee': 'Swapper fee',
         'swap.provider': 'Provider',
-        'referral.title': 'EARN TWT',
         'referral.totalReferrals': 'TOTAL REFERRALS',
         'referral.twtEarned': 'TWT EARNED',
         'referral.usdtEarned': 'USDT EARNED',
         'referral.yourLink': 'Your Referral Link',
-        'referral.description': 'Share your link and get',
-        'referral.description2': 'TWT for every friend who joins',
         'referral.milestones': 'Referral Milestones',
         'deposit.title': 'Deposit Funds',
-        'deposit.selectCurrency': 'Select Currency',
-        'deposit.amount': 'Amount',
-        'deposit.transactionId': 'Transaction ID',
-        'deposit.sendTo': 'Send to this address:',
-        'deposit.confirmation': '✓ Blockchain confirmation 1-15 minutes',
         'deposit.submit': 'Submit Deposit',
         'withdraw.title': 'Withdraw Funds',
-        'withdraw.selectCurrency': 'Select Currency',
-        'withdraw.amount': 'Amount',
-        'withdraw.address': 'Wallet Address',
-        'withdraw.youReceive': 'You will receive:',
-        'withdraw.networkFee': 'Network fee:',
         'withdraw.submit': 'Submit Withdrawal',
         'history.title': 'Transaction History',
         'history.all': 'All',
@@ -122,32 +94,16 @@ const translations = {
         'settings.theme': 'Theme',
         'settings.recovery': 'Recovery Phrase',
         'settings.logout': 'Logout',
-        'messages.loading': 'Loading...',
         'messages.success': 'Success',
         'messages.error': 'Error',
-        'messages.warning': 'Warning',
-        'notif.referralBonus': '🎉 Someone joined with your link! You got {amount} TWT!',
         'notif.welcomeBonus': '🎉 Welcome! You got 10 TWT bonus!',
-        'notif.depositApproved': '✅ Your deposit of {amount} {currency} has been approved!',
-        'notif.depositRejected': '❌ Your deposit was rejected. Reason: {reason}',
-        'notif.withdrawApproved': '✅ Your withdrawal of {amount} {currency} has been approved!',
-        'notif.withdrawRejected': '❌ Your withdrawal was rejected. Reason: {reason}',
-        'error.minDeposit': 'Minimum deposit is {min} {currency}',
-        'error.insufficientBalance': 'Insufficient {currency} balance',
-        'error.minSwap': 'Minimum swap is {min} {currency}',
         'error.enterAmount': 'Please enter a valid amount',
-        'success.depositSubmitted': '✅ Deposit request submitted! Amount: {amount} {currency}',
-        'success.withdrawSubmitted': '✅ Withdrawal request submitted for {amount} {currency}',
-        'success.swapCompleted': '✅ Swapped {fromAmount} {fromCurrency} to {toAmount} {toCurrency}',
+        'error.insufficientBalance': 'Insufficient {currency} balance',
         'success.referralCopied': '✅ Referral link copied!',
-        'success.addressCopied': '✅ Address copied!',
-        'notifications.clear_read': 'Clear Read',
-        'notifications.clear_all': 'Clear All',
-        'notifications.no_notifications': 'No notifications'
+        'success.addressCopied': '✅ Address copied!'
     },
     ar: {
         'app.name': 'Trust Wallet Lite',
-        'welcome.title': 'أهلاً بعودتك،',
         'nav.wallet': 'المحفظة',
         'nav.swap': 'تحويل',
         'nav.referral': 'إحالة',
@@ -156,44 +112,25 @@ const translations = {
         'actions.send': 'إرسال',
         'actions.receive': 'استلام',
         'actions.swap': 'تحويل',
-        'actions.buy': 'شراء',
         'actions.deposit': 'إيداع',
         'actions.withdraw': 'سحب',
         'actions.history': 'السجل',
         'actions.copy': 'نسخ',
         'actions.confirmSwap': 'تأكيد التحويل',
-        'actions.stake': 'تجميد',
-        'actions.gotIt': 'حسناً!',
         'wallet.totalBalance': 'الرصيد الإجمالي',
-        'wallet.myAssets': 'أصولي',
-        'wallet.topCryptos': 'أفضل العملات',
         'swap.from': 'من',
         'swap.to': 'إلى',
         'swap.exchangeRate': 'سعر الصرف',
-        'swap.networkFee': 'رسوم الشبكة',
         'swap.swapperFee': 'رسوم التحويل',
         'swap.provider': 'المزود',
-        'referral.title': 'اربح TWT',
         'referral.totalReferrals': 'إجمالي الإحالات',
         'referral.twtEarned': 'TWT المكتسبة',
         'referral.usdtEarned': 'USDT المكتسبة',
         'referral.yourLink': 'رابط الإحالة الخاص بك',
-        'referral.description': 'شارك رابطك واحصل على',
-        'referral.description2': 'TWT لكل صديق ينضم',
         'referral.milestones': 'مراحل الإحالة',
         'deposit.title': 'إيداع الأموال',
-        'deposit.selectCurrency': 'اختر العملة',
-        'deposit.amount': 'المبلغ',
-        'deposit.transactionId': 'رقم المعاملة',
-        'deposit.sendTo': 'أرسل إلى هذا العنوان:',
-        'deposit.confirmation': '✓ تأكيد البلوكشين 1-15 دقيقة',
         'deposit.submit': 'تقديم الإيداع',
         'withdraw.title': 'سحب الأموال',
-        'withdraw.selectCurrency': 'اختر العملة',
-        'withdraw.amount': 'المبلغ',
-        'withdraw.address': 'عنوان المحفظة',
-        'withdraw.youReceive': 'سوف تستلم:',
-        'withdraw.networkFee': 'رسوم الشبكة:',
         'withdraw.submit': 'تقديم السحب',
         'history.title': 'سجل المعاملات',
         'history.all': 'الكل',
@@ -207,28 +144,13 @@ const translations = {
         'settings.theme': 'المظهر',
         'settings.recovery': 'عبارة الاسترداد',
         'settings.logout': 'تسجيل الخروج',
-        'messages.loading': 'جاري التحميل...',
         'messages.success': 'نجاح',
         'messages.error': 'خطأ',
-        'messages.warning': 'تحذير',
-        'notif.referralBonus': '🎉 شخص ما انضم عبر رابطك! حصلت على {amount} TWT!',
         'notif.welcomeBonus': '🎉 مرحباً! حصلت على 10 TWT كمكافأة!',
-        'notif.depositApproved': '✅ تمت الموافقة على إيداعك {amount} {currency}!',
-        'notif.depositRejected': '❌ تم رفض إيداعك. السبب: {reason}',
-        'notif.withdrawApproved': '✅ تمت الموافقة على سحبك {amount} {currency}!',
-        'notif.withdrawRejected': '❌ تم رفض سحبك. السبب: {reason}',
-        'error.minDeposit': 'الحد الأدنى للإيداع هو {min} {currency}',
-        'error.insufficientBalance': 'رصيد {currency} غير كافٍ',
-        'error.minSwap': 'الحد الأدنى للتحويل هو {min} {currency}',
         'error.enterAmount': 'الرجاء إدخال مبلغ صحيح',
-        'success.depositSubmitted': '✅ تم تقديم طلب الإيداع! المبلغ: {amount} {currency}',
-        'success.withdrawSubmitted': '✅ تم تقديم طلب السحب بمبلغ {amount} {currency}',
-        'success.swapCompleted': '✅ تم تحويل {fromAmount} {fromCurrency} إلى {toAmount} {toCurrency}',
+        'error.insufficientBalance': 'رصيد {currency} غير كافٍ',
         'success.referralCopied': '✅ تم نسخ رابط الإحالة!',
-        'success.addressCopied': '✅ تم نسخ العنوان!',
-        'notifications.clear_read': 'حذف المقروء',
-        'notifications.clear_all': 'حذف الكل',
-        'notifications.no_notifications': 'لا توجد إشعارات'
+        'success.addressCopied': '✅ تم نسخ العنوان!'
     }
 };
 
@@ -265,7 +187,7 @@ function updateAllTexts() {
 }
 
 // ============================================================================
-// SECTION 5: DARK/LIGHT MODE SYSTEM
+// SECTION 4: DARK/LIGHT MODE SYSTEM
 // ============================================================================
 
 let currentTheme = localStorage.getItem('theme') || 'light';
@@ -274,15 +196,23 @@ function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', currentTheme);
     document.documentElement.setAttribute('data-theme', currentTheme);
-    showToast(`${currentTheme === 'dark' ? '🌙 Dark' : '☀️ Light'} mode activated`, 'success');
+    const themeIcon = document.querySelector('#themeBtn i');
+    if (themeIcon) {
+        themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    showToast(`${currentTheme === 'dark' ? '🌙 Dark' : '☀️ Light'} mode`, 'success');
 }
 
 function initTheme() {
     document.documentElement.setAttribute('data-theme', currentTheme);
+    const themeIcon = document.querySelector('#themeBtn i');
+    if (themeIcon) {
+        themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
 }
 
 // ============================================================================
-// SECTION 6: COINMARKETCAP ICONS (12 Cryptocurrencies)
+// SECTION 5: COINMARKETCAP ICONS (12 Cryptocurrencies)
 // ============================================================================
 
 const CMC_ICONS = {
@@ -301,7 +231,7 @@ const CMC_ICONS = {
 };
 
 // ============================================================================
-// SECTION 7: CONSTANTS & CONFIGURATION
+// SECTION 6: CONSTANTS & CONFIGURATION
 // ============================================================================
 
 const BOT_LINK = "https://t.me/YourBot/TrustWalletLite";
@@ -342,7 +272,7 @@ const CRYPTO_IDS = {
 };
 
 // ============================================================================
-// SECTION 8: DEPOSIT ADDRESSES & LIMITS (Unique per user via CoinPayments)
+// SECTION 7: DEPOSIT & WITHDRAW CONFIGURATION
 // ============================================================================
 
 const DEPOSIT_MINIMUMS = {
@@ -361,59 +291,20 @@ const WITHDRAW_MINIMUMS = {
 };
 
 // ============================================================================
-// SECTION 9: UNIQUE DEPOSIT ADDRESS GENERATION (CoinPayments API)
+// SECTION 8: UNIQUE DEPOSIT ADDRESS GENERATION (Demo Mode)
 // ============================================================================
 
 async function generateDepositAddress(userId, currency) {
     const cacheKey = `address_${userId}_${currency}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) return cached;
-    
-    // Demo mode - generate unique address based on userId
     const mockAddress = `0x${userId.slice(-40).padStart(40, '0')}`;
     localStorage.setItem(cacheKey, mockAddress);
     return mockAddress;
-    
-    // Real CoinPayments API (enable when API keys are set)
-    /*
-    try {
-        const response = await fetch('https://www.coinpayments.net/api.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                cmd: 'get_callback_address',
-                key: COINPAYMENTS_API_KEY,
-                currency: currency,
-                ipn_url: `${COINPAYMENTS_IPN_URL}/${userId}`,
-                label: `twt_${userId}_${currency}`
-            })
-        });
-        const data = await response.json();
-        if (data.error === 'ok') {
-            const address = data.result.address;
-            localStorage.setItem(cacheKey, address);
-            return address;
-        }
-    } catch (error) {
-        console.error("CoinPayments error:", error);
-    }
-    return null;
-    */
 }
 
 // ============================================================================
-// SECTION 10: WALLET GENERATION (Public/Private Keys)
-// ============================================================================
-
-function generateWalletKeys() {
-    const userId = localStorage.getItem('twt_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
-    const publicKey = `0x${userId.slice(-40).padStart(40, '0')}`;
-    const privateKey = `0x${Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('')}`;
-    return { publicKey, privateKey };
-}
-
-// ============================================================================
-// SECTION 11: 8 REFERRAL MILESTONES
+// SECTION 9: 8 REFERRAL MILESTONES
 // ============================================================================
 
 const REFERRAL_MILESTONES = [
@@ -428,11 +319,10 @@ const REFERRAL_MILESTONES = [
 ];
 
 // ============================================================================
-// SECTION 12: STATE MANAGEMENT
+// SECTION 10: STATE MANAGEMENT
 // ============================================================================
 
 let userData = null;
-let currentUser = null;
 let currentTab = 'wallet';
 let isAdmin = false;
 let livePrices = {};
@@ -442,15 +332,11 @@ let currentSwapContext = null;
 let currentHistoryFilter = 'all';
 let appInitialized = false;
 
-let lastUserLoadTime = 0;
 let lastPricesLoadTime = 0;
-let lastHistoryCheckTime = 0;
-const USER_CACHE_TIME = 300000;
 const PRICES_CACHE_TIME = 10800000;
-const HISTORY_CACHE_TIME = 600000;
 
 // ============================================================================
-// SECTION 13: STICKER SYSTEM
+// SECTION 11: STICKER SYSTEM
 // ============================================================================
 
 const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸', '💵', '🤪', '😱', '😤', '😎', '🤑', '💯', '💖', '✨', '🌟', '⭐', '🔥', '⚡', '💎', '🔔', '🎁', '🎈', '🎉', '🎊', '👑', '🚀', '💫', '⭐'];
@@ -476,7 +362,7 @@ function showRandomSticker() {
 }
 
 // ============================================================================
-// SECTION 14: USER IDENTIFICATION & REFERRAL
+// SECTION 12: USER IDENTIFICATION & REFERRAL
 // ============================================================================
 
 const userId = localStorage.getItem('twt_user_id') || 'user_' + Math.random().toString(36).substr(2, 9);
@@ -497,7 +383,7 @@ function hasReferralCode() {
 }
 
 // ============================================================================
-// SECTION 15: ADMIN SYSTEM
+// SECTION 13: ADMIN SYSTEM
 // ============================================================================
 
 isAdmin = userId === ADMIN_ID;
@@ -509,7 +395,7 @@ function checkAdminAndAddCrown() {
 }
 
 // ============================================================================
-// SECTION 16: TRANSACTIONS STORAGE
+// SECTION 14: TRANSACTIONS STORAGE
 // ============================================================================
 
 const TRANSACTIONS_KEY = `transactions_${userId}`;
@@ -548,7 +434,7 @@ function addTransaction(transaction) {
 }
 
 // ============================================================================
-// SECTION 17: PRICE FETCHING (CoinGecko - Zero Waste: 3 hours cache)
+// SECTION 15: PRICE FETCHING (CoinGecko - Zero Waste: 3 hours cache)
 // ============================================================================
 
 async function fetchLivePrices(force = false) {
@@ -590,7 +476,7 @@ function refreshPrices() {
 }
 
 // ============================================================================
-// SECTION 18: UTILITY FUNCTIONS
+// SECTION 16: UTILITY FUNCTIONS
 // ============================================================================
 
 function getCurrencyIcon(symbol) {
@@ -663,7 +549,7 @@ function copyToClipboard(text) {
 }
 
 // ============================================================================
-// SECTION 19: NOTIFICATION SYSTEM
+// SECTION 17: NOTIFICATION SYSTEM
 // ============================================================================
 
 function addNotification(message, type = 'info') {
@@ -695,15 +581,15 @@ function renderNotifications() {
     const container = document.getElementById('notificationsList');
     if (!container || !userData) return;
     const notifications = userData.notifications || [];
-    const controls = `<div style="display:flex;gap:10px;margin-bottom:15px;"><button onclick="clearReadNotifications()" class="btn-secondary" style="flex:1;padding:8px;"><i class="fas fa-trash"></i> ${t('notifications.clear_read')}</button><button onclick="clearAllNotifications()" class="btn-secondary" style="flex:1;padding:8px;border-color:var(--danger);color:var(--danger);"><i class="fas fa-bell-slash"></i> ${t('notifications.clear_all')}</button></div>`;
+    const controls = `<div style="display:flex;gap:10px;margin-bottom:15px;"><button onclick="clearReadNotifications()" class="btn-secondary" style="flex:1;padding:8px;"><i class="fas fa-trash"></i> Clear Read</button><button onclick="clearAllNotifications()" class="btn-secondary" style="flex:1;padding:8px;border-color:var(--danger);color:var(--danger);"><i class="fas fa-bell-slash"></i> Clear All</button></div>`;
     if (notifications.length === 0) {
-        container.innerHTML = controls + '<div class="empty-state"><i class="fas fa-bell-slash"></i><p>' + t('notifications.no_notifications') + '</p></div>';
+        container.innerHTML = controls + '<div class="empty-state"><i class="fas fa-bell-slash"></i><p>No notifications</p></div>';
         return;
     }
     container.innerHTML = controls + notifications.map(n => {
         const d = new Date(n.timestamp);
         const fd = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        return `<div onclick="markNotificationRead('${n.id}')" class="notification-item ${n.read ? '' : 'unread'}" style="background:${n.read ? 'transparent' : 'rgba(41,98,255,0.05)'};padding:12px;border-radius:12px;margin-bottom:8px;cursor:pointer;"><div style="display:flex;justify-content:space-between;"><span><i class="fas ${n.type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${n.type.toUpperCase()}</span><span>${fd}</span></div><div style="margin-top:8px;">${n.message}</div></div>`;
+        return `<div onclick="markNotificationRead('${n.id}')" style="background:${n.read ? 'transparent' : 'rgba(41,98,255,0.05)'};padding:12px;border-radius:12px;margin-bottom:8px;cursor:pointer;"><div style="display:flex;justify-content:space-between;"><span><i class="fas ${n.type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${n.type.toUpperCase()}</span><span>${fd}</span></div><div style="margin-top:8px;">${n.message}</div></div>`;
     }).join('');
 }
 
@@ -724,17 +610,17 @@ function clearReadNotifications() {
         saveUserData();
         updateNotificationBadge();
         renderNotifications();
-        showToast(t('notifications.cleared'), 'success');
+        showToast('Cleared read notifications', 'success');
     }
 }
 
 function clearAllNotifications() {
-    if (userData && confirm(t('notifications.confirm_clear_all'))) {
+    if (userData && confirm('Delete all notifications?')) {
         userData.notifications = [];
         saveUserData();
         updateNotificationBadge();
         renderNotifications();
-        showToast(t('notifications.cleared'), 'success');
+        showToast('All cleared', 'success');
     }
 }
 
@@ -747,15 +633,14 @@ function showNotifications() {
 }
 
 // ============================================================================
-// SECTION 20: USER DATA MANAGEMENT
+// SECTION 18: USER DATA MANAGEMENT
 // ============================================================================
 
 function loadUserData() {
     const stored = localStorage.getItem(`twt_user_${userId}`);
     if (stored) {
         userData = JSON.parse(stored);
-        currentUser = userData.userId;
-        isAdmin = currentUser === ADMIN_ID;
+        isAdmin = userData.userId === ADMIN_ID;
         return true;
     }
     return false;
@@ -766,7 +651,7 @@ function saveUserData() {
 }
 
 // ============================================================================
-// SECTION 21: REFERRAL SYSTEM
+// SECTION 19: REFERRAL SYSTEM
 // ============================================================================
 
 function processReferral() {
@@ -795,7 +680,7 @@ function shareReferral() {
 }
 
 // ============================================================================
-// SECTION 22: RENDER WALLET (12 Cryptocurrencies)
+// SECTION 20: RENDER WALLET (12 Cryptocurrencies)
 // ============================================================================
 
 function renderWallet() {
@@ -855,7 +740,7 @@ function showAssetDetails(symbol) {
 }
 
 // ============================================================================
-// SECTION 23: RENDER REFERRAL (8 Milestones)
+// SECTION 21: RENDER REFERRAL (8 Milestones)
 // ============================================================================
 
 function renderReferral() {
@@ -877,7 +762,7 @@ function renderReferral() {
                 <button class="copy-btn" onclick="copyReferralLink()"><i class="fas fa-copy"></i></button>
                 <button class="share-btn" onclick="shareReferral()"><i class="fas fa-share-alt"></i></button>
             </div>
-            <p>${t('referral.description')} ${REFERRAL_BONUS} ${t('referral.description2')}</p>
+            <p>Share your link and get ${REFERRAL_BONUS} TWT for every friend who joins!</p>
         </div>
         <div id="milestonesList" class="milestones-list"></div>
     `;
@@ -930,7 +815,7 @@ function claimReferralMilestone(referrals) {
 }
 
 // ============================================================================
-// SECTION 24: SWAP FUNCTIONS (DEX with 0.3% fee)
+// SECTION 22: SWAP FUNCTIONS (DEX with 0.3% fee)
 // ============================================================================
 
 function renderSwap() {
@@ -1045,13 +930,13 @@ function confirmSwap() {
     addTransaction({ type: 'swap', fromAmount: finalFromAmount, fromCurrency: fromSym, toAmount, toCurrency: toSym, fee });
     saveUserData();
     updateUI();
-    showToast(t('success.swapCompleted', { fromAmount: formatBalance(finalFromAmount, fromSym), fromCurrency: fromSym, toAmount: formatBalance(toAmount, toSym), toCurrency: toSym }), 'success');
+    showToast(`✅ Swapped ${formatBalance(finalFromAmount, fromSym)} to ${formatBalance(toAmount, toSym)}`, 'success');
     closeModal('swapModal');
     document.getElementById('swapFromAmount').value = '';
 }
 
 // ============================================================================
-// SECTION 25: SEND & RECEIVE FUNCTIONS
+// SECTION 23: SEND & RECEIVE FUNCTIONS
 // ============================================================================
 
 function showSendModal() {
@@ -1102,7 +987,7 @@ function copyAddress() {
 }
 
 // ============================================================================
-// SECTION 26: DEPOSIT FUNCTIONS (Unique addresses per user)
+// SECTION 24: DEPOSIT FUNCTIONS (Unique addresses per user)
 // ============================================================================
 
 async function showDepositModal() {
@@ -1132,7 +1017,7 @@ function submitDeposit() {
     }
     const min = DEPOSIT_MINIMUMS[currency] || 10;
     if (amount < min) {
-        showToast(t('error.minDeposit', { min, currency }), 'error');
+        showToast(`Minimum deposit is ${min} ${currency}`, 'error');
         return;
     }
     const req = { id: 'dep_' + Date.now(), userId, currency, amount, txHash, status: 'pending', timestamp: new Date().toISOString() };
@@ -1141,14 +1026,14 @@ function submitDeposit() {
     addTransaction({ ...req, type: 'deposit' });
     saveUserData();
     addNotification(`💰 Deposit request: ${amount} ${currency} submitted. Waiting for admin approval.`, 'info');
-    showToast(t('success.depositSubmitted', { amount, currency }), 'success');
+    showToast(`✅ Deposit request submitted for ${amount} ${currency}!`, 'success');
     closeModal('depositModal');
     document.getElementById('depositAmount').value = '';
     document.getElementById('depositTxHash').value = '';
 }
 
 // ============================================================================
-// SECTION 27: WITHDRAW FUNCTIONS
+// SECTION 25: WITHDRAW FUNCTIONS
 // ============================================================================
 
 function showWithdrawModal() {
@@ -1192,7 +1077,7 @@ function submitWithdrawal() {
     addTransaction({ ...req, type: 'withdraw' });
     saveUserData();
     addNotification(`💸 Withdrawal request: ${amount} ${currency} submitted. Waiting for admin approval.`, 'info');
-    showToast(t('success.withdrawSubmitted', { amount, currency }), 'success');
+    showToast(`✅ Withdrawal request submitted for ${amount} ${currency}!`, 'success');
     closeModal('withdrawModal');
     updateUI();
     document.getElementById('withdrawAmount').value = '';
@@ -1200,7 +1085,7 @@ function submitWithdrawal() {
 }
 
 // ============================================================================
-// SECTION 28: TWT PAY VIRTUAL CARD
+// SECTION 26: TWT PAY VIRTUAL CARD
 // ============================================================================
 
 function renderTWTPay() {
@@ -1256,7 +1141,7 @@ function showCardTransactions() {
 }
 
 // ============================================================================
-// SECTION 29: SETTINGS
+// SECTION 27: SETTINGS
 // ============================================================================
 
 function renderSettings() {
@@ -1267,7 +1152,7 @@ function renderSettings() {
             <div class="settings-item" onclick="showNotifications()">
                 <i class="fas fa-bell"></i><div class="info"><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div><i class="fas fa-chevron-right"></i>
             </div>
-            <div class="settings-item" onclick="showTransactionHistory()">
+            <div class="settings-item" onclick="showHistory()">
                 <i class="fas fa-history"></i><div class="info"><div class="label">${t('history.title')}</div><div class="desc">View all transactions</div></div><i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item" onclick="showRecoveryPhrase()">
@@ -1283,7 +1168,7 @@ function renderSettings() {
                 <i class="fas fa-sign-out-alt"></i><div class="info"><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div>
             </div>
         </div>
-        <div style="text-align:center;margin-top:24px;"><span style="font-size:10px;">Trust Wallet Lite v2.0</span></div>
+        <div style="text-align:center;margin-top:24px;"><span style="font-size:10px;">Trust Wallet Lite v3.0</span></div>
     `;
 }
 
@@ -1295,16 +1180,12 @@ function showRecoveryPhrase() {
         userData.recoveryPhrase = selected.join(' ');
         saveUserData();
     }
-    document.getElementById('recoveryPhraseDisplay').innerHTML = `<div class="recovery-phrase-box" style="background:var(--bg-secondary);padding:20px;border-radius:16px;font-family:monospace;word-break:break-all;margin-bottom:16px;">${userData.recoveryPhrase}</div>`;
+    document.getElementById('recoveryPhraseDisplay').innerHTML = `<div style="background:var(--bg-secondary);padding:20px;border-radius:16px;font-family:monospace;word-break:break-all;margin-bottom:16px;">${userData.recoveryPhrase}</div>`;
     document.getElementById('recoveryModal').classList.add('show');
 }
 
 function copyRecoveryPhrase() {
     if (userData.recoveryPhrase) copyToClipboard(userData.recoveryPhrase);
-}
-
-function showTransactionHistory() {
-    showHistory();
 }
 
 function logout() {
@@ -1316,7 +1197,7 @@ function logout() {
 }
 
 // ============================================================================
-// SECTION 30: HISTORY
+// SECTION 28: HISTORY
 // ============================================================================
 
 function renderHistory(filter = 'all') {
@@ -1357,7 +1238,7 @@ function filterHistory(filter) {
 }
 
 // ============================================================================
-// SECTION 31: ADMIN PANEL
+// SECTION 29: ADMIN PANEL
 // ============================================================================
 
 function showAdminPanel() {
@@ -1400,7 +1281,7 @@ function approveDeposit(id) {
     if (d) {
         d.status = 'approved';
         userData.balances[d.currency] = (userData.balances[d.currency] || 0) + d.amount;
-        addNotification(t('notif.depositApproved', { amount: d.amount, currency: d.currency }), 'success');
+        addNotification(`✅ Deposit of ${d.amount} ${d.currency} approved!`, 'success');
         saveUserData();
         updateUI();
         refreshAdminPanel();
@@ -1412,7 +1293,7 @@ function rejectDeposit(id) {
     const d = userData.depositRequests?.find(x => x.id === id);
     if (d) {
         d.status = 'rejected';
-        addNotification(t('notif.depositRejected', { reason: 'Admin rejected' }), 'error');
+        addNotification(`❌ Deposit of ${d.amount} ${d.currency} rejected.`, 'error');
         saveUserData();
         refreshAdminPanel();
         showToast('Deposit rejected', 'warning');
@@ -1423,7 +1304,7 @@ function approveWithdrawal(id) {
     const w = userData.withdrawalRequests?.find(x => x.id === id);
     if (w) {
         w.status = 'approved';
-        addNotification(t('notif.withdrawApproved', { amount: w.amount, currency: w.currency }), 'success');
+        addNotification(`✅ Withdrawal of ${w.amount} ${w.currency} approved!`, 'success');
         saveUserData();
         refreshAdminPanel();
         showToast('Withdrawal approved', 'success');
@@ -1435,7 +1316,7 @@ function rejectWithdrawal(id) {
     if (w) {
         w.status = 'rejected';
         userData.balances[w.currency] = (userData.balances[w.currency] || 0) + w.amount + (w.fee || 0);
-        addNotification(t('notif.withdrawRejected', { reason: 'Admin rejected' }), 'error');
+        addNotification(`❌ Withdrawal of ${w.amount} ${w.currency} rejected.`, 'error');
         saveUserData();
         updateUI();
         refreshAdminPanel();
@@ -1488,7 +1369,7 @@ function adminBlockUser() {
 }
 
 // ============================================================================
-// SECTION 32: CURRENCY SELECTOR
+// SECTION 30: CURRENCY SELECTOR
 // ============================================================================
 
 function showCurrencySelector(context) {
@@ -1550,7 +1431,7 @@ function filterCurrencies() {
 }
 
 // ============================================================================
-// SECTION 33: NAVIGATION & UI
+// SECTION 31: NAVIGATION & UI
 // ============================================================================
 
 function setupNavbar() {
@@ -1584,7 +1465,7 @@ function updateUI() {
 }
 
 // ============================================================================
-// SECTION 34: ONBOARDING
+// SECTION 32: ONBOARDING & WALLET CREATION
 // ============================================================================
 
 function showOnboarding() {
@@ -1598,19 +1479,32 @@ function showMainApp() {
     switchTab('wallet');
 }
 
+function showImportModal() {
+    const wordsGrid = document.getElementById('wordsGrid');
+    if (wordsGrid) {
+        wordsGrid.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            wordsGrid.innerHTML += `
+                <div class="word-field">
+                    <div class="word-label">${i}</div>
+                    <input type="text" id="word_${i}" class="word-input" placeholder="word ${i}" autocomplete="off">
+                </div>
+            `;
+        }
+    }
+    document.getElementById('importModal').classList.add('show');
+}
+
 function createNewWallet() {
     const btn = document.getElementById('createWalletBtn');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     btn.disabled = true;
     setTimeout(() => {
-        const newUserId = 'user_' + Math.random().toString(36).substr(2, 9);
-        const { publicKey, privateKey } = generateWalletKeys();
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         userData = {
             userId: newUserId,
             userName: 'User',
-            publicKey: publicKey,
-            privateKey: privateKey,
             referralCode: generateReferralCode(),
             balances: { TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0, SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0 },
             referralCount: 0,
@@ -1624,8 +1518,7 @@ function createNewWallet() {
             withdrawBlocked: false,
             createdAt: new Date().toISOString()
         };
-        currentUser = newUserId;
-        isAdmin = currentUser === ADMIN_ID;
+        isAdmin = userData.userId === ADMIN_ID;
         saveUserData();
         showMainApp();
         updateUI();
@@ -1637,31 +1530,29 @@ function createNewWallet() {
     }, 500);
 }
 
-function showImportModal() {
-    document.getElementById('importModal').classList.add('show');
-}
-
-function closeImportModal() {
-    document.getElementById('importModal').classList.remove('show');
-    document.getElementById('importPhrase').value = '';
-}
-
 function importWallet() {
-    const phrase = document.getElementById('importPhrase').value.trim();
-    if (!phrase) { showToast('Enter recovery phrase', 'error'); return; }
+    const words = [];
+    for (let i = 1; i <= 12; i++) {
+        const word = document.getElementById(`word_${i}`)?.value.trim();
+        if (!word) {
+            showToast(`Please enter word ${i}`, 'error');
+            return;
+        }
+        words.push(word);
+    }
+    const recoveryPhrase = words.join(' ');
+    
     const btn = document.getElementById('confirmImportBtn');
     const originalText = btn.innerHTML;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
     btn.disabled = true;
+    
     setTimeout(() => {
-        const newUserId = 'user_' + Math.random().toString(36).substr(2, 9);
-        const { publicKey, privateKey } = generateWalletKeys();
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         userData = {
             userId: newUserId,
             userName: 'User',
-            publicKey: publicKey,
-            privateKey: privateKey,
-            recoveryPhrase: phrase,
+            recoveryPhrase: recoveryPhrase,
             referralCode: generateReferralCode(),
             balances: { TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0, SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0 },
             referralCount: 0,
@@ -1675,10 +1566,9 @@ function importWallet() {
             withdrawBlocked: false,
             createdAt: new Date().toISOString()
         };
-        currentUser = newUserId;
-        isAdmin = currentUser === ADMIN_ID;
+        isAdmin = userData.userId === ADMIN_ID;
         saveUserData();
-        closeImportModal();
+        closeModal('importModal');
         showMainApp();
         updateUI();
         checkAdminAndAddCrown();
@@ -1690,7 +1580,7 @@ function importWallet() {
 }
 
 // ============================================================================
-// SECTION 35: INITIALIZATION
+// SECTION 33: INITIALIZATION
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1726,7 +1616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // ============================================================================
-// SECTION 36: EXPORT FUNCTIONS
+// SECTION 34: EXPORT FUNCTIONS
 // ============================================================================
 
 window.showWallet = () => switchTab('wallet');
@@ -1790,9 +1680,8 @@ window.showAssetDetails = showAssetDetails;
 window.createNewWallet = createNewWallet;
 window.showImportModal = showImportModal;
 window.importWallet = importWallet;
-window.closeImportModal = closeImportModal;
 
-console.log("✅ Trust Wallet Lite v2.0 - Fully Loaded!");
+console.log("✅ Trust Wallet Lite v3.0 - Fully Loaded!");
 console.log("✅ 12 Cryptocurrencies | 8 Referral Milestones | TWT Pay Card");
-console.log("✅ Unique Deposit Addresses per User | CoinPayments API Ready");
+console.log("✅ Unique Deposit Addresses per User | 12-Word Recovery Phrase Import");
 console.log("✅ Zero Waste Architecture | Dark/Light Mode | RTL Support");
