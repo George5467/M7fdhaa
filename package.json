@@ -1,0 +1,12 @@
+{
+  "name": "trust-wallet-lite",
+  "version": "3.0.0",
+  "description": "Trust Wallet Lite - Secure Crypto Wallet",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
