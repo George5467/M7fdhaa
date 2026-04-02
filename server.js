@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 
-// Firebase Admin (من متغيرات البيئة في Render)
+// Firebase Admin - Uses Render Environment Variables
 let db = null;
 try {
     if (process.env.FIREBASE_PROJECT_ID) {
@@ -29,7 +29,7 @@ try {
 
 // ====== API ENDPOINTS ======
 
-// Config
+// Config - sends admin ID to frontend
 app.get('/api/config', (req, res) => {
     res.json({
         status: 'ok',
@@ -83,17 +83,67 @@ app.post('/api/update-user', async (req, res) => {
     }
 });
 
-// Create deposit address
+// Create deposit address (stores in Firebase)
 app.post('/api/create-deposit-address', async (req, res) => {
     try {
         const { userId, currency } = req.body;
         const mockAddress = `0x${userId.slice(-40).padStart(40, '0')}`;
+        
         if (db) {
             await db.collection('users').doc(userId).update({
                 [`depositAddresses.${currency}`]: mockAddress
             });
         }
         res.json({ success: true, address: mockAddress });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
+
+// Get user by deposit address
+app.post('/api/get-user-by-address', async (req, res) => {
+    try {
+        const { address, currency } = req.body;
+        if (!db) {
+            res.json({ success: false, error: "Firebase not available" });
+            return;
+        }
+        
+        const usersSnapshot = await db.collection('users').get();
+        let foundUser = null;
+        
+        usersSnapshot.forEach(doc => {
+            const userData = doc.data();
+            const depositAddresses = userData.depositAddresses || {};
+            if (depositAddresses[currency] === address) {
+                foundUser = { userId: doc.id, ...userData };
+            }
+        });
+        
+        if (foundUser) {
+            res.json({ success: true, user: foundUser });
+        } else {
+            res.json({ success: false, error: "No user found with this address" });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get user by Telegram ID
+app.get('/api/get-user-by-id/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (db) {
+            const doc = await db.collection('users').doc(userId).get();
+            if (doc.exists) {
+                res.json({ success: true, user: { userId: doc.id, ...doc.data() } });
+            } else {
+                res.json({ success: false });
+            }
+        } else {
+            res.json({ success: false });
+        }
     } catch (error) {
         res.status(500).json({ success: false });
     }
@@ -107,10 +157,10 @@ app.post('/api/process-invite', async (req, res) => {
             const inviterRef = db.collection('users').doc(inviterId);
             const inviter = await inviterRef.get();
             if (inviter.exists) {
-                const invites = inviter.data()?.invites || [];
-                if (!invites.includes(newUserId)) {
+                const referrals = inviter.data()?.referrals || [];
+                if (!referrals.includes(newUserId)) {
                     await inviterRef.update({
-                        invites: [...invites, newUserId],
+                        referrals: [...referrals, newUserId],
                         inviteCount: (inviter.data()?.inviteCount || 0) + 1,
                         'balances.USDT': (inviter.data()?.balances?.USDT || 0) + 25,
                         totalUsdtEarned: (inviter.data()?.totalUsdtEarned || 0) + 25
@@ -124,9 +174,34 @@ app.post('/api/process-invite', async (req, res) => {
     }
 });
 
+// Add notification
+app.post('/api/add-notification', async (req, res) => {
+    try {
+        const { userId, message, type } = req.body;
+        if (db && userId) {
+            const notification = {
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                message: message,
+                type: type || 'info',
+                read: false,
+                timestamp: new Date().toISOString()
+            };
+            
+            const userRef = db.collection('users').doc(userId);
+            const userDoc = await userRef.get();
+            const notifications = userDoc.data()?.notifications || [];
+            notifications.push(notification);
+            await userRef.update({ notifications: notifications });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false });
+    }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'online', version: '4.0.0' });
+    res.json({ status: 'online', version: '5.0.0' });
 });
 
 // Serve index.html
