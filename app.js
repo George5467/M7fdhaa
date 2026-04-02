@@ -1947,6 +1947,10 @@ window.showTopUpModal = showTopUpModal;
 window.showCardSettings = showCardSettings;
 window.showCardTransactions = showCardTransactions;
 window.claimReferralMilestone = claimReferralMilestone;
+// Force expose onboarding functions
+window.createNewWallet = createNewWallet;
+window.showImportModal = showImportModal;
+window.importWallet = importWallet;
 
 console.log("✅ Trust Wallet Lite v3.2 - ULTIMATE PROFESSIONAL VERSION");
 console.log("✅ 12 Cryptocurrencies | 8 Referral Milestones | TWT Pay Card");
