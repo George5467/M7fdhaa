@@ -47,7 +47,6 @@ try {
 
 // ====== 3. COINPAYMENTS API CONFIGURATION ======
 const COINPAYMENTS_API_KEY = "{{COINPAYMENTS_API_KEY}}";
-const COINPAYMENTS_API_SECRET = "{{COINPAYMENTS_API_SECRET}}";
 const COINPAYMENTS_IPN_URL = "https://your-app.onrender.com/api/ipn";
 
 async function coinPaymentsRequest(cmd, req = {}) {
@@ -365,6 +364,7 @@ function generateReferralCode() {
 }
 
 function getReferralLink() {
+    if (!userData) return '';
     return `${BOT_LINK}?startapp=${userData.referralCode}`;
 }
 
@@ -378,23 +378,8 @@ let isAdmin = userId === ADMIN_ID;
 
 function checkAdminAndAddCrown() {
     if (!isAdmin) return;
-    const addCrown = () => {
-        const header = document.querySelector('.header-actions');
-        if (!header) return false;
-        const existingCrown = document.getElementById('adminCrownBtn');
-        if (existingCrown) existingCrown.remove();
-        const adminBtn = document.createElement('button');
-        adminBtn.id = 'adminCrownBtn';
-        adminBtn.className = 'icon-btn';
-        adminBtn.innerHTML = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
-        adminBtn.onclick = showAdminPanel;
-        adminBtn.title = 'Admin Panel';
-        const notifBtn = document.getElementById('notificationBtn');
-        if (notifBtn) header.insertBefore(adminBtn, notifBtn);
-        else header.appendChild(adminBtn);
-        return true;
-    };
-    if (!addCrown()) setTimeout(addCrown, 500);
+    const crownBtn = document.getElementById('adminCrownBtn');
+    if (crownBtn) crownBtn.classList.remove('hidden');
 }
 
 // ====== 13. TRANSACTIONS STORAGE ======
@@ -1829,7 +1814,161 @@ function showAssetDetails(symbol) {
 }
 function showStakingDetails(type) { showToast('Staking coming soon!', 'info'); }
 
-// ====== 34. INITIALIZATION ======
+// ====== 34. ONBOARDING & WALLET CREATION ======
+function showOnboarding() {
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'flex';
+    if (main) main.style.display = 'none';
+}
+
+function showMainApp() {
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'none';
+    if (main) main.style.display = 'block';
+    switchTab('wallet');
+}
+
+function showImportModal() {
+    const grid = document.getElementById('wordsGrid');
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            grid.innerHTML += `
+                <div class="word-field">
+                    <div class="word-label">${i}</div>
+                    <input type="text" id="word_${i}" class="word-input" placeholder="word ${i}" autocomplete="off">
+                </div>
+            `;
+        }
+    }
+    document.getElementById('importModal').classList.add('show');
+}
+
+async function createNewWallet() {
+    const btn = document.getElementById('createWalletBtn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    btn.disabled = true;
+    
+    try {
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        const newUserData = {
+            userId: newUserId,
+            userName: 'User',
+            referralCode: newUserId.slice(-8).toUpperCase(),
+            balances: {
+                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+            },
+            referralCount: 0,
+            referredBy: null,
+            totalTwtEarned: WELCOME_BONUS,
+            totalUsdtEarned: 0,
+            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            notifications: [],
+            withdrawalRequests: [],
+            transactions: [],
+            depositAddresses: {},
+            withdrawBlocked: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (db) {
+            await db.collection('users').doc(newUserId).set(newUserData);
+        }
+        
+        userData = newUserData;
+        saveUserData();
+        
+        showMainApp();
+        updateUI();
+        checkAdminAndAddCrown();
+        
+        if (startParam) await processReferral();
+        
+        showToast(t('notif.welcomeBonus'), 'success');
+    } catch (error) {
+        console.error("Error creating wallet:", error);
+        showToast('Failed to create wallet', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function importWallet() {
+    const words = [];
+    for (let i = 1; i <= 12; i++) {
+        const word = document.getElementById(`word_${i}`)?.value.trim();
+        if (!word) {
+            showToast(`Please enter word ${i}`, 'error');
+            return;
+        }
+        words.push(word);
+    }
+    const recoveryPhrase = words.join(' ');
+    const btn = document.getElementById('confirmImportBtn');
+    if (!btn) return;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    btn.disabled = true;
+    
+    try {
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        const newUserData = {
+            userId: newUserId,
+            userName: 'User',
+            recoveryPhrase: recoveryPhrase,
+            referralCode: newUserId.slice(-8).toUpperCase(),
+            balances: {
+                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+            },
+            referralCount: 0,
+            referredBy: null,
+            totalTwtEarned: WELCOME_BONUS,
+            totalUsdtEarned: 0,
+            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            notifications: [],
+            withdrawalRequests: [],
+            transactions: [],
+            depositAddresses: {},
+            withdrawBlocked: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (db) {
+            await db.collection('users').doc(newUserId).set(newUserData);
+        }
+        
+        userData = newUserData;
+        saveUserData();
+        
+        closeModal('importModal');
+        showMainApp();
+        updateUI();
+        checkAdminAndAddCrown();
+        
+        if (startParam) await processReferral();
+        
+        showToast(`🎉 Wallet imported! You received ${WELCOME_BONUS} TWT!`, 'success');
+    } catch (error) {
+        console.error("Error importing wallet:", error);
+        showToast('Failed to import wallet', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// ====== 35. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     if (currentLanguage === 'ar') { document.body.classList.add('rtl'); document.documentElement.dir = 'rtl'; document.getElementById('currentLanguageFlag').textContent = '🇸🇦'; }
     else { document.getElementById('currentLanguageFlag').textContent = '🇬🇧'; }
@@ -1855,7 +1994,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("✅ Admin can search by wallet address and add balance manually");
 });
 
-// ====== 35. EXPORT FUNCTIONS ======
+// ====== 36. EXPORT FUNCTIONS ======
 window.showWallet = showWallet;
 window.showSwap = showSwap;
 window.showReferral = showReferral;
@@ -1911,6 +2050,11 @@ window.adminAddBalance = adminAddBalance;
 window.adminRemoveBalance = adminRemoveBalance;
 window.adminRefreshUserData = adminRefreshUserData;
 window.blockUserWithdrawals = blockUserWithdrawals;
+
+// Force expose onboarding functions
+window.createNewWallet = createNewWallet;
+window.showImportModal = showImportModal;
+window.importWallet = importWallet;
 
 console.log("✅ Trust Wallet Lite v3.2 - ULTIMATE PROFESSIONAL VERSION");
 console.log("✅ 12 Cryptocurrencies | 8 Referral Milestones | TWT Pay Card");
