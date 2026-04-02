@@ -365,6 +365,169 @@ function hasReferralCode() {
 // ====== 12. ADMIN SYSTEM ======
 let isAdmin = userId === ADMIN_ID;
 
+// ==========================================================================
+// ONBOARDING & WALLET CREATION FUNCTIONS
+// ==========================================================================
+
+function showOnboarding() {
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'flex';
+    if (main) main.style.display = 'none';
+}
+
+function showMainApp() {
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'none';
+    if (main) main.style.display = 'block';
+    if (typeof switchTab === 'function') switchTab('wallet');
+}
+
+function showImportModal() {
+    const grid = document.getElementById('wordsGrid');
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            grid.innerHTML += `
+                <div class="word-field">
+                    <div class="word-label">${i}</div>
+                    <input type="text" id="word_${i}" class="word-input" placeholder="word ${i}" autocomplete="off">
+                </div>
+            `;
+        }
+    }
+    const modal = document.getElementById('importModal');
+    if (modal) modal.classList.add('show');
+}
+
+async function createNewWallet() {
+    const btn = document.getElementById('createWalletBtn');
+    if (!btn) return;
+    
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    btn.disabled = true;
+    
+    try {
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        
+        const newUserData = {
+            userId: newUserId,
+            userName: 'User',
+            referralCode: newUserId.slice(-8).toUpperCase(),
+            balances: {
+                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+            },
+            referralCount: 0,
+            referredBy: null,
+            totalTwtEarned: WELCOME_BONUS,
+            totalUsdtEarned: 0,
+            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            notifications: [],
+            withdrawalRequests: [],
+            transactions: [],
+            depositAddresses: {},
+            withdrawBlocked: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (db) {
+            await db.collection('users').doc(newUserId).set(newUserData);
+        }
+        
+        localStorage.setItem(`user_${newUserId}`, JSON.stringify(newUserData));
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        await loadUserData(true);
+        showMainApp();
+        updateUI();
+        checkAdminAndAddCrown();
+        
+        if (startParam) await processReferral();
+        
+        showToast(t('notif.welcomeBonus'), 'success');
+        
+    } catch (error) {
+        console.error("Error creating wallet:", error);
+        showToast('Failed to create wallet', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+async function importWallet() {
+    const words = [];
+    for (let i = 1; i <= 12; i++) {
+        const word = document.getElementById(`word_${i}`)?.value.trim();
+        if (!word) {
+            showToast(`Please enter word ${i}`, 'error');
+            return;
+        }
+        words.push(word);
+    }
+    
+    const recoveryPhrase = words.join(' ');
+    const btn = document.getElementById('confirmImportBtn');
+    if (!btn) return;
+    
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+    btn.disabled = true;
+    
+    try {
+        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+        
+        const newUserData = {
+            userId: newUserId,
+            userName: 'User',
+            recoveryPhrase: recoveryPhrase,
+            referralCode: newUserId.slice(-8).toUpperCase(),
+            balances: {
+                TWT: WELCOME_BONUS, USDT: 0, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+            },
+            referralCount: 0,
+            referredBy: null,
+            totalTwtEarned: WELCOME_BONUS,
+            totalUsdtEarned: 0,
+            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            notifications: [],
+            withdrawalRequests: [],
+            transactions: [],
+            depositAddresses: {},
+            withdrawBlocked: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        if (db) {
+            await db.collection('users').doc(newUserId).set(newUserData);
+        }
+        
+        localStorage.setItem(`user_${newUserId}`, JSON.stringify(newUserData));
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        await loadUserData(true);
+        closeModal('importModal');
+        showMainApp();
+        updateUI();
+        checkAdminAndAddCrown();
+        
+        if (startParam) await processReferral();
+        
+        showToast(`🎉 Wallet imported! You received ${WELCOME_BONUS} TWT!`, 'success');
+        
+    } catch (error) {
+        console.error("Error importing wallet:", error);
+        showToast('Failed to import wallet', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
 function checkAdminAndAddCrown() {
     if (!isAdmin) return;
     const addCrown = () => {
@@ -385,7 +548,6 @@ function checkAdminAndAddCrown() {
     };
     if (!addCrown()) setTimeout(addCrown, 500);
 }
-
 // ====== 13. TRANSACTIONS STORAGE ======
 const TRANSACTIONS_KEY = `transactions_${userId}`;
 
