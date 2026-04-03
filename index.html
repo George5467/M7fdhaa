@@ -6,7 +6,6 @@
     <title>Trust Wallet Lite • Secure Crypto Wallet</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- ✅ No Firebase Client SDK here! All Firebase operations go through backend API -->
 </head>
 <body>
 
@@ -34,7 +33,7 @@
         </div>
     </div>
 
-    <!-- ========== IMPORT WALLET MODAL (12 Words Grid) ========== -->
+    <!-- ========== IMPORT WALLET MODAL (12 Words) ========== -->
     <div id="importModal" class="modal">
         <div class="modal-content import-modal-content">
             <div class="modal-header">
@@ -52,7 +51,7 @@
 
     <!-- ========== MAIN APP CONTENT ========== -->
     <div id="mainContent" class="main-content" style="display: none;">
-        <!-- Header with Gradient Background -->
+        <!-- Header -->
         <div class="app-header">
             <div class="header-top">
                 <div class="wallet-selector">
@@ -81,7 +80,7 @@
             <div id="welcomeSticker" class="welcome-sticker"></div>
         </div>
 
-        <!-- Tab Contents - All 5 Sections -->
+        <!-- Tab Contents -->
         <div id="walletSection" class="tab-content active">
             <div id="walletContainer"></div>
         </div>
@@ -107,10 +106,6 @@
             <button class="nav-item active" data-tab="wallet">
                 <i class="fas fa-wallet"></i>
                 <span>Wallet</span>
-            </button>
-            <button class="nav-item" data-tab="swap">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Swap</span>
             </button>
             <button class="nav-item" data-tab="referral">
                 <i class="fas fa-users"></i>
@@ -176,6 +171,30 @@
         </div>
     </div>
 
+    <!-- ========== SWAP MODAL ========== -->
+    <div id="swapModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exchange-alt"></i> Swap</h3>
+                <button class="close-modal" onclick="closeModal('swapModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" id="swapModalContent"></div>
+        </div>
+    </div>
+
+    <!-- ========== CURRENCY SELECTOR MODAL ========== -->
+    <div id="currencySelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-coins"></i> Select Currency</h3>
+                <button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="currencyList" class="currency-list"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== DEPOSIT MODAL ========== -->
     <div id="depositModal" class="modal">
         <div class="modal-content">
@@ -184,7 +203,7 @@
                 <button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <select id="depositCurrency" class="modal-input" onchange="updateDepositInfo()">
+                <select id="depositCurrency" class="modal-input">
                     <option value="TWT">TWT</option>
                     <option value="USDT">USDT</option>
                     <option value="BNB">BNB</option>
@@ -205,7 +224,7 @@
                 <p class="min-hint">Min: <span id="depositMinAmount">10</span> TWT</p>
                 <div class="deposit-note">
                     <i class="fas fa-info-circle"></i>
-                    <span>✓ Send funds to this address. Admin will add balance manually after verification.</span>
+                    <span>✓ Send funds to this unique address. Admin will add balance manually after verification.</span>
                 </div>
                 <button class="btn-primary" onclick="copyDepositAddress()"><i class="fas fa-copy"></i> Copy Address</button>
             </div>
@@ -220,7 +239,7 @@
                 <button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <select id="withdrawCurrency" class="modal-input" onchange="updateWithdrawInfo()">
+                <select id="withdrawCurrency" class="modal-input">
                     <option value="TWT">TWT</option>
                     <option value="USDT">USDT</option>
                     <option value="BNB">BNB</option>
@@ -243,32 +262,6 @@
         </div>
     </div>
 
-    <!-- ========== CURRENCY SELECTOR MODAL ========== -->
-    <div id="currencySelectorModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-coins"></i> Select Currency</h3>
-                <button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div id="currencyList" class="currency-list"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== NOTIFICATIONS MODAL ========== -->
-    <div id="notificationsModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-bell"></i> Notifications</h3>
-                <button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div id="notificationsList"></div>
-            </div>
-        </div>
-    </div>
-
     <!-- ========== HISTORY MODAL ========== -->
     <div id="historyModal" class="modal">
         <div class="modal-content history-modal-content">
@@ -282,17 +275,15 @@
         </div>
     </div>
 
-    <!-- ========== RECOVERY PHRASE MODAL ========== -->
-    <div id="recoveryModal" class="modal">
+    <!-- ========== NOTIFICATIONS MODAL ========== -->
+    <div id="notificationsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-key"></i> Recovery Phrase</h3>
-                <button class="close-modal" onclick="closeModal('recoveryModal')"><i class="fas fa-times"></i></button>
+                <h3><i class="fas fa-bell"></i> Notifications</h3>
+                <button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <p class="warning-text">⚠️ Write this down and keep it safe!</p>
-                <div id="recoveryPhraseDisplay" class="recovery-phrase-box"></div>
-                <button class="btn-primary" onclick="copyRecoveryPhrase()"><i class="fas fa-copy"></i> Copy</button>
+                <div id="notificationsList"></div>
             </div>
         </div>
     </div>
