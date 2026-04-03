@@ -217,6 +217,7 @@ function toggleLanguage() {
     }
     updateUITexts();
     if (currentPage === 'settings') renderSettings();
+    if (currentPage === 'airdrop') renderAirdrop();
     showToast('Language changed', 'success');
 }
 
@@ -524,8 +525,9 @@ async function createNewWallet() {
             userName: 'User',
             referralCode: newUserId.slice(-8).toUpperCase(),
             balances: {
-                TWT: 0, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0.5, BTC: 0.01, ETH: 0.1,
+                SOL: 5, TRX: 100, ADA: 50, DOGE: 200, SHIB: 1000000,
+                PEPE: 5000000, TON: 2
             },
             inviteCount: 0,
             invitedBy: null,
@@ -590,8 +592,9 @@ async function importWallet() {
             recoveryPhrase: words.join(' '),
             referralCode: newUserId.slice(-8).toUpperCase(),
             balances: {
-                TWT: 0, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
+                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0.5, BTC: 0.01, ETH: 0.1,
+                SOL: 5, TRX: 100, ADA: 50, DOGE: 200, SHIB: 1000000,
+                PEPE: 5000000, TON: 2
             },
             inviteCount: 0,
             invitedBy: null,
@@ -636,7 +639,13 @@ function checkAdminAndAddCrown() {
 // ====== 13. RENDER WALLET ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
-    if (!container || !userData) return;
+    if (!container) return;
+    
+    // إذا لم يكن userData موجوداً، عرض رسالة
+    if (!userData) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;">Loading assets...</div>';
+        return;
+    }
     
     container.innerHTML = ALL_ASSETS.map(asset => {
         const balance = userData.balances[asset.symbol] || 0;
@@ -666,6 +675,8 @@ function renderAssets() {
 
 function renderWallet() {
     const container = document.getElementById('walletContainer');
+    if (!container) return;
+    
     container.innerHTML = `
         <div class="balance-card">
             <div class="total-balance" id="totalBalance">$0</div>
@@ -688,17 +699,23 @@ function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container) return;
     
-    const inviteLink = userData ? `${BOT_LINK}?startapp=${userData.referralCode}` : '';
+    // إذا لم يكن userData موجوداً، عرض رسالة
+    if (!userData) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;">Loading airdrop data...</div>';
+        return;
+    }
+    
+    const inviteLink = `${BOT_LINK}?startapp=${userData.referralCode}`;
     
     container.innerHTML = `
         <div class="referral-stats">
             <div class="stat-card">
                 <span class="stat-label">${t('airdrop.totalInvites')}</span>
-                <span class="stat-value" id="totalInvites">${userData?.inviteCount || 0}</span>
+                <span class="stat-value" id="totalInvites">${userData.inviteCount || 0}</span>
             </div>
             <div class="stat-card">
                 <span class="stat-label">${t('airdrop.earned')}</span>
-                <span class="stat-value" id="usdtEarned">${(userData?.totalUsdtEarned || 0).toFixed(2)}</span>
+                <span class="stat-value" id="usdtEarned">${(userData.totalUsdtEarned || 0).toFixed(2)}</span>
             </div>
         </div>
         <div class="referral-link-card">
@@ -717,19 +734,7 @@ function renderAirdrop() {
         <div class="milestones-list" id="milestonesList"></div>
     `;
     
-    updateAirdropStats();
     renderAirdropMilestones();
-}
-
-function updateAirdropStats() {
-    if (!userData) return;
-    const totalInvitesEl = document.getElementById('totalInvites');
-    const usdtEarnedEl = document.getElementById('usdtEarned');
-    const inviteLinkEl = document.getElementById('inviteLink');
-    
-    if (totalInvitesEl) totalInvitesEl.innerText = userData.inviteCount || 0;
-    if (usdtEarnedEl) usdtEarnedEl.innerText = (userData.totalUsdtEarned || 0).toFixed(2);
-    if (inviteLinkEl) inviteLinkEl.value = `${BOT_LINK}?startapp=${userData.referralCode}`;
 }
 
 function renderAirdropMilestones() {
@@ -773,8 +778,6 @@ async function claimMilestone(invites) {
     addTransaction({ type: 'milestone', amount: reward, currency: 'USDT', details: `Milestone: ${invites} invites` });
     saveUserData();
     updateUI();
-    updateAirdropStats();
-    renderAirdropMilestones();
     showToast(`Claimed ${reward} USDT!`);
 }
 
@@ -790,11 +793,12 @@ function shareInvite() {
     showToast('Link copied!');
 }
 
-// ====== 15. RENDER TWT PAY (بطاقة بنكية حقيقية) ======
+// ====== 15. RENDER TWT PAY ======
 function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
     
+    // إذا لم يكن userData موجوداً، عرض بطاقة تجريبية
     const twtBalance = userData?.balances?.TWT || 0;
     const twtValue = twtBalance * TWT_PRICE;
     const cardNumber = userData?.userId?.slice(-4) || '8888';
