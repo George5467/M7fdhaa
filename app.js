@@ -1,6 +1,22 @@
 // ============================================================================
 // TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0 (FULLY WORKING)
 // ============================================================================
+// Features:
+// - Zero Waste Architecture
+// - 12 Cryptocurrencies with Live Prices
+// - Professional Wallet with Send/Receive/Swap/History
+// - Airdrop Referral System with Milestones (مثل REFI)
+// - TWT Pay Virtual Visa Card
+// - Dark/Light Mode + RTL Support
+// - Professional Modals with Animations
+// - Sticker System | Floating Notifications
+// - ✅ Admin Panel with User Management (مثل REFI)
+// - ✅ Search by Wallet Address
+// - ✅ Generate Unique Deposit Address per User (CoinPayments)
+// - ✅ Add/Remove Balance
+// - ✅ Approve/Reject Withdrawals
+// - ✅ Block User from Withdrawals
+// ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
 const tg = window.Telegram?.WebApp;
@@ -18,13 +34,14 @@ const startParam = tg?.initDataUnsafe?.start_param ||
 // ====== 2. STATE MANAGEMENT ======
 let userData = null;
 let isAdmin = false;
+let adminId = null;
 let currentLanguage = localStorage.getItem('language') || 'en';
 let currentTheme = localStorage.getItem('theme') || 'light';
 let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
 let unreadNotifications = 0;
-let appInitialized = false;
+let currentManageUserId = null;
 
 // Cache timers
 let lastUserLoadTime = 0;
@@ -306,6 +323,24 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
+async function loadConfig() {
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        adminId = config.adminId;
+        console.log("✅ Admin ID loaded from server:", adminId);
+        const userId = getUserId();
+        if (userId && adminId) {
+            isAdmin = (userId === adminId);
+            checkAdminAndAddCrown();
+        }
+        return config;
+    } catch (error) {
+        console.error("Failed to load config:", error);
+        return null;
+    }
+}
+
 async function createUser(userId, userData) {
     return apiCall('/users', 'POST', { userId, userData });
 }
@@ -388,11 +423,12 @@ async function loadUserData(force = false) {
             return;
         }
         
-        if (db && getUserId()) {
-            const result = await getUser(getUserId());
+        const userId = getUserId();
+        if (userId) {
+            const result = await getUser(userId);
             if (result.success && result.data) {
                 userData = result.data;
-                localStorage.setItem(`user_${getUserId()}`, JSON.stringify(userData));
+                localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
                 lastUserLoadTime = now;
             }
         }
@@ -437,11 +473,14 @@ function updateUI() {
         updateTotalBalance();
     }
     if (currentPage === 'airdrop') {
-        updateAirdropStats();
-        renderAirdropMilestones();
+        renderAirdrop();
     }
-    if (currentPage === 'twtpay') renderTWTPay();
-    if (currentPage === 'settings') renderSettings();
+    if (currentPage === 'twtpay') {
+        renderTWTPay();
+    }
+    if (currentPage === 'settings') {
+        renderSettings();
+    }
     updateNotificationBadge();
 }
 
@@ -545,6 +584,8 @@ async function createNewWallet() {
         userData = newUserData;
         saveUserData();
         
+        isAdmin = (newUserId === adminId);
+        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
@@ -611,6 +652,8 @@ async function importWallet() {
         userData = newUserData;
         saveUserData();
         
+        isAdmin = (newUserId === adminId);
+        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
@@ -631,8 +674,12 @@ async function importWallet() {
 function checkAdminAndAddCrown() {
     const crownBtn = document.getElementById('adminCrownBtn');
     if (crownBtn) {
-        if (isAdmin) crownBtn.classList.remove('hidden');
-        else crownBtn.classList.add('hidden');
+        if (isAdmin) {
+            crownBtn.classList.remove('hidden');
+            console.log("👑 Admin crown displayed");
+        } else {
+            crownBtn.classList.add('hidden');
+        }
     }
 }
 
@@ -641,7 +688,6 @@ function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container) return;
     
-    // إذا لم يكن userData موجوداً، عرض رسالة
     if (!userData) {
         container.innerHTML = '<div style="text-align:center;padding:40px;">Loading assets...</div>';
         return;
@@ -694,12 +740,11 @@ function renderWallet() {
     updateTotalBalance();
 }
 
-// ====== 14. RENDER AIRDROP (محتوى فعلي) ======
+// ====== 14. RENDER AIRDROP (مثل REFI) ======
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container) return;
     
-    // إذا لم يكن userData موجوداً، عرض رسالة
     if (!userData) {
         container.innerHTML = '<div style="text-align:center;padding:40px;">Loading airdrop data...</div>';
         return;
@@ -798,7 +843,6 @@ function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
     
-    // إذا لم يكن userData موجوداً، عرض بطاقة تجريبية
     const twtBalance = userData?.balances?.TWT || 0;
     const twtValue = twtBalance * TWT_PRICE;
     const cardNumber = userData?.userId?.slice(-4) || '8888';
@@ -1005,8 +1049,10 @@ function renderSwapModal() {
 
 function updateSwapBalances() {
     if (!userData) return;
-    document.getElementById('swapFromBalance').innerText = userData.balances[swapFromCurrency] || 0;
-    document.getElementById('swapToBalance').innerText = userData.balances[swapToCurrency] || 0;
+    const fromEl = document.getElementById('swapFromBalance');
+    const toEl = document.getElementById('swapToBalance');
+    if (fromEl) fromEl.innerText = userData.balances[swapFromCurrency] || 0;
+    if (toEl) toEl.innerText = userData.balances[swapToCurrency] || 0;
 }
 
 function showSwapCurrencySelector(type) {
@@ -1026,12 +1072,16 @@ function showSwapCurrencySelector(type) {
 function selectSwapCurrency(symbol) {
     if (currentCurrencySelector === 'from') {
         swapFromCurrency = symbol;
-        document.getElementById('swapFromIcon').src = getCurrencyIcon(symbol);
-        document.getElementById('swapFromSymbol').textContent = symbol;
+        const iconEl = document.getElementById('swapFromIcon');
+        const symbolEl = document.getElementById('swapFromSymbol');
+        if (iconEl) iconEl.src = getCurrencyIcon(symbol);
+        if (symbolEl) symbolEl.textContent = symbol;
     } else {
         swapToCurrency = symbol;
-        document.getElementById('swapToIcon').src = getCurrencyIcon(symbol);
-        document.getElementById('swapToSymbol').textContent = symbol;
+        const iconEl = document.getElementById('swapToIcon');
+        const symbolEl = document.getElementById('swapToSymbol');
+        if (iconEl) iconEl.src = getCurrencyIcon(symbol);
+        if (symbolEl) symbolEl.textContent = symbol;
     }
     closeModal('currencySelectorModal');
     updateSwapBalances();
@@ -1045,16 +1095,19 @@ function calculateSwap() {
     
     if (fromPrice > 0 && toPrice > 0) {
         const toAmount = (fromAmount * fromPrice) / toPrice;
-        document.getElementById('swapToAmount').value = toAmount.toFixed(6);
-        const fee = fromAmount * fromPrice * SWAP_FEE_PERCENT;
-        document.getElementById('swapFee').textContent = `$${fee.toFixed(4)}`;
-        document.getElementById('swapRateDisplay').textContent = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
+        const toEl = document.getElementById('swapToAmount');
+        const feeEl = document.getElementById('swapFee');
+        const rateEl = document.getElementById('swapRateDisplay');
+        if (toEl) toEl.value = toAmount.toFixed(6);
+        if (feeEl) feeEl.textContent = `$${(fromAmount * fromPrice * SWAP_FEE_PERCENT).toFixed(4)}`;
+        if (rateEl) rateEl.textContent = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
     }
 }
 
 function setSwapPercentage(percent) {
     const balance = userData.balances[swapFromCurrency] || 0;
-    document.getElementById('swapFromAmount').value = balance * (percent / 100);
+    const amountEl = document.getElementById('swapFromAmount');
+    if (amountEl) amountEl.value = balance * (percent / 100);
     calculateSwap();
 }
 
@@ -1062,10 +1115,14 @@ function swapDirection() {
     const temp = swapFromCurrency;
     swapFromCurrency = swapToCurrency;
     swapToCurrency = temp;
-    document.getElementById('swapFromIcon').src = getCurrencyIcon(swapFromCurrency);
-    document.getElementById('swapFromSymbol').textContent = swapFromCurrency;
-    document.getElementById('swapToIcon').src = getCurrencyIcon(swapToCurrency);
-    document.getElementById('swapToSymbol').textContent = swapToCurrency;
+    const fromIcon = document.getElementById('swapFromIcon');
+    const fromSymbol = document.getElementById('swapFromSymbol');
+    const toIcon = document.getElementById('swapToIcon');
+    const toSymbol = document.getElementById('swapToSymbol');
+    if (fromIcon) fromIcon.src = getCurrencyIcon(swapFromCurrency);
+    if (fromSymbol) fromSymbol.textContent = swapFromCurrency;
+    if (toIcon) toIcon.src = getCurrencyIcon(swapToCurrency);
+    if (toSymbol) toSymbol.textContent = swapToCurrency;
     updateSwapBalances();
     calculateSwap();
 }
@@ -1084,7 +1141,8 @@ async function confirmSwap() {
     saveUserData();
     updateUI();
     updateSwapBalances();
-    document.getElementById('swapFromAmount').value = '';
+    const amountEl = document.getElementById('swapFromAmount');
+    if (amountEl) amountEl.value = '';
     calculateSwap();
     closeModal('swapModal');
     showToast('Swap completed!');
@@ -1108,18 +1166,22 @@ async function sendTransaction() {
     saveUserData();
     updateUI();
     closeModal('sendModal');
-    document.getElementById('sendAmount').value = '';
-    document.getElementById('sendAddress').value = '';
+    const amountEl = document.getElementById('sendAmount');
+    const addressEl = document.getElementById('sendAddress');
+    if (amountEl) amountEl.value = '';
+    if (addressEl) addressEl.value = '';
     showToast(`Sent ${amount} ${currency}`);
 }
 
 function showReceiveModal() {
     document.getElementById('receiveModal').classList.add('show');
-    document.getElementById('receiveAddress').innerText = userData.userId;
+    const addressEl = document.getElementById('receiveAddress');
+    if (addressEl) addressEl.innerText = userData.userId;
 }
 
 function copyAddress() {
-    copyToClipboard(document.getElementById('receiveAddress').innerText);
+    const addressEl = document.getElementById('receiveAddress');
+    if (addressEl) copyToClipboard(addressEl.innerText);
 }
 
 function showHistory() {
@@ -1133,26 +1195,43 @@ function showHistory() {
     } else {
         list.innerHTML = txs.slice(0, 50).map(tx => `
             <div class="history-item">
-                <div class="history-item-header"><span>${tx.type}</span><span>${new Date(tx.timestamp).toLocaleDateString()}</span></div>
-                <div class="history-details">${tx.amount || tx.fromAmount} ${tx.currency || tx.fromCurrency}</div>
+                <div class="history-item-header">
+                    <span>${tx.type}</span>
+                    <span>${new Date(tx.timestamp).toLocaleDateString()}</span>
+                </div>
+                <div class="history-details">
+                    ${tx.amount || tx.fromAmount} ${tx.currency || tx.fromCurrency}
+                </div>
             </div>
         `).join('');
     }
     modal.classList.add('show');
 }
 
-// ====== 19. DEPOSIT/WITHDRAW ======
+// ====== 19. DEPOSIT (مع عنوان فريد لكل مستخدم) ======
 async function showDepositModal() {
     const modal = document.getElementById('depositModal');
     modal.classList.add('show');
     const currency = document.getElementById('depositCurrency').value;
+    
+    // ✅ توليد عنوان إيداع فريد لكل مستخدم عبر API
     const result = await createDepositAddress(userData.userId, currency);
-    document.getElementById('depositAddress').innerText = result.address || `0x${userData.userId.slice(-40)}`;
-    document.getElementById('depositMinAmount').innerText = WITHDRAW_MINIMUMS[currency] || 10;
+    const addressEl = document.getElementById('depositAddress');
+    const minEl = document.getElementById('depositMinAmount');
+    
+    if (addressEl) {
+        addressEl.innerText = result.address || `0x${userData.userId.slice(-40)}`;
+    }
+    if (minEl) {
+        minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
+    }
+    
+    console.log(`✅ Deposit address generated for ${userData.userId} - ${currency}: ${addressEl?.innerText}`);
 }
 
 function copyDepositAddress() {
-    copyToClipboard(document.getElementById('depositAddress').innerText);
+    const addressEl = document.getElementById('depositAddress');
+    if (addressEl) copyToClipboard(addressEl.innerText);
 }
 
 function showWithdrawModal() {
@@ -1162,8 +1241,10 @@ function showWithdrawModal() {
 
 function updateWithdrawInfo() {
     const currency = document.getElementById('withdrawCurrency').value;
-    document.getElementById('withdrawMinAmount').innerText = WITHDRAW_MINIMUMS[currency] || 10;
-    document.getElementById('withdrawFee').innerText = (WITHDRAW_FEES[currency] || 1) + ' ' + currency;
+    const minEl = document.getElementById('withdrawMinAmount');
+    const feeEl = document.getElementById('withdrawFee');
+    if (minEl) minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
+    if (feeEl) feeEl.innerText = (WITHDRAW_FEES[currency] || 1) + ' ' + currency;
 }
 
 async function submitWithdraw() {
@@ -1179,8 +1260,10 @@ async function submitWithdraw() {
     saveUserData();
     updateUI();
     closeModal('withdrawModal');
-    document.getElementById('withdrawAmount').value = '';
-    document.getElementById('withdrawAddress').value = '';
+    const amountEl = document.getElementById('withdrawAmount');
+    const addressEl = document.getElementById('withdrawAddress');
+    if (amountEl) amountEl.value = '';
+    if (addressEl) addressEl.value = '';
     showToast(`Withdrawal request submitted for ${amount} ${currency}`);
 }
 
@@ -1190,72 +1273,316 @@ function addTransaction(tx) {
     saveUserData();
 }
 
-// ====== 20. ADMIN PANEL ======
+// ====== 20. ADMIN PANEL (احترافي مثل REFI) ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
-    document.getElementById('adminContent').innerHTML = '<div style="padding:20px;text-align:center;">Admin panel ready<br><button onclick="refreshAdminPanel()" class="btn-primary" style="margin-top:10px;">Refresh</button></div>';
+    renderAdminPanel();
 }
 
 function closeAdminPanel() {
     document.getElementById('adminPanel').classList.add('hidden');
 }
 
-async function refreshAdminPanel() {
-    if (!isAdmin) return;
+function renderAdminPanel() {
     const content = document.getElementById('adminContent');
-    content.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    content.innerHTML = '<div style="padding:20px;"><h4>Admin Dashboard</h4><p>Search users by ID or wallet address</p><input type="text" id="adminSearch" placeholder="User ID or Address" style="width:100%;padding:10px;margin:10px 0;border-radius:8px;"><button onclick="searchUser()" class="btn-primary">Search</button><div id="adminResult"></div></div>';
+    if (!content) return;
+    
+    content.innerHTML = `
+        <div style="padding:20px;">
+            <div style="margin-bottom:20px;">
+                <h4>🔍 Search by Wallet Address</h4>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                    <input type="text" id="adminAddressSearch" placeholder="Enter deposit address (0x...)" 
+                           style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);">
+                    <button onclick="adminSearchByAddress()" class="btn-primary" style="padding:0 20px;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+            <div style="margin-bottom:20px;">
+                <h4>🔍 Search by User ID</h4>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                    <input type="text" id="adminUserIdInput" placeholder="Enter User ID" 
+                           style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);">
+                    <button onclick="adminSearchByUserId()" class="btn-primary" style="padding:0 20px;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </div>
+            <div id="adminResult" style="margin-top:20px;"></div>
+            <div style="margin-top:20px;text-align:center;">
+                <button onclick="refreshAdminStats()" class="btn-secondary">
+                    <i class="fas fa-sync-alt"></i> Refresh Stats
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function adminSearchByAddress() {
+    const address = document.getElementById('adminAddressSearch')?.value.trim();
+    if (!address) { showToast('Enter wallet address', 'error'); return; }
+    
+    const resultDiv = document.getElementById('adminResult');
+    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+    
+    try {
+        // البحث عن مستخدم بعنوان المحفظة
+        const response = await fetch('/api/admin/search-by-address', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success && result.user) {
+            displayUserManagement(result.user, result.userId);
+        } else {
+            resultDiv.innerHTML = `<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:20px;text-align:center;color:var(--danger);">
+                <i class="fas fa-user-slash"></i> No user found with this wallet address
+            </div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div style="color:var(--danger);text-align:center;">Error searching user</div>`;
+    }
+}
+
+async function adminSearchByUserId() {
+    const userId = document.getElementById('adminUserIdInput')?.value.trim();
+    if (!userId) { showToast('Enter User ID', 'error'); return; }
+    
+    const resultDiv = document.getElementById('adminResult');
+    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    try {
+        const result = await getUser(userId);
+        if (result.success && result.data) {
+            displayUserManagement(result.data, userId);
+        } else {
+            resultDiv.innerHTML = `<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:20px;text-align:center;color:var(--danger);">
+                <i class="fas fa-user-slash"></i> User not found
+            </div>`;
+        }
+    } catch (error) {
+        resultDiv.innerHTML = `<div style="color:var(--danger);text-align:center;">Error loading user</div>`;
+    }
+}
+
+function displayUserManagement(user, userId) {
+    const resultDiv = document.getElementById('adminResult');
+    currentManageUserId = userId;
+    
+    const balancesHtml = Object.entries(user.balances || {})
+        .filter(([_, v]) => v > 0)
+        .map(([c, v]) => `<span style="display:inline-block;margin:4px;padding:4px 10px;background:var(--bg-secondary);border-radius:20px;font-size:12px;"><strong>${c}</strong>: ${c === 'USDT' ? v.toFixed(2) : v.toLocaleString()}</span>`)
+        .join('') || '<span>No balances</span>';
+    
+    resultDiv.innerHTML = `
+        <div style="background:var(--bg-card);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+                <h4>👤 ${user.userName || 'User'}</h4>
+                <div><span style="font-size:12px;color:var(--text-muted);">🆔 ${userId}</span></div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <strong>💰 Balances:</strong>
+                <div style="display:flex;flex-wrap:wrap;margin-top:8px;">${balancesHtml}</div>
+            </div>
+            <div style="margin-bottom:15px;">
+                <strong>👥 Referrals:</strong> ${user.inviteCount || 0}
+            </div>
+            <div style="display:flex;gap:10px;margin-top:15px;">
+                <button onclick="adminAddBalance('${userId}')" style="flex:1;background:#10b981;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
+                    ➕ Add Balance
+                </button>
+                <button onclick="adminRemoveBalance('${userId}')" style="flex:1;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
+                    ➖ Remove Balance
+                </button>
+            </div>
+            <div style="margin-top:10px;">
+                ${user.withdrawBlocked ? 
+                    `<div style="background:rgba(239,68,68,0.2);border-radius:12px;padding:10px;text-align:center;">
+                        <i class="fas fa-ban"></i> ⚠️ USER IS PERMANENTLY BLOCKED FROM WITHDRAWALS
+                    </div>` : 
+                    `<button onclick="adminBlockUser('${userId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
+                        <i class="fas fa-ban"></i> 🔒 PERMANENTLY BLOCK FROM WITHDRAWALS
+                    </button>`
+                }
+            </div>
+        </div>
+    `;
+}
+
+async function adminAddBalance(userId) {
+    const currency = prompt('Currency (TWT, USDT, BNB, etc.):', 'USDT');
+    if (!currency) return;
+    const amount = parseFloat(prompt(`Amount to ADD (${currency}):`, '0'));
+    if (isNaN(amount) || amount <= 0) return;
+    
+    try {
+        const response = await fetch('/api/admin/add-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, currency, amount, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`✅ Added ${amount} ${currency}`, 'success');
+            if (userId === userData?.userId) {
+                userData.balances[currency] = (userData.balances[currency] || 0) + amount;
+                saveUserData();
+                updateUI();
+            }
+            adminSearchByUserId();
+        } else {
+            showToast('Error adding balance', 'error');
+        }
+    } catch (error) {
+        showToast('Error adding balance', 'error');
+    }
+}
+
+async function adminRemoveBalance(userId) {
+    const currency = prompt('Currency (TWT, USDT, BNB, etc.):', 'USDT');
+    if (!currency) return;
+    const amount = parseFloat(prompt(`Amount to REMOVE (${currency}):`, '0'));
+    if (isNaN(amount) || amount <= 0) return;
+    
+    try {
+        const response = await fetch('/api/admin/remove-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, currency, amount, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`✅ Removed ${amount} ${currency}`, 'success');
+            if (userId === userData?.userId) {
+                userData.balances[currency] = Math.max(0, (userData.balances[currency] || 0) - amount);
+                saveUserData();
+                updateUI();
+            }
+            adminSearchByUserId();
+        } else {
+            showToast('Error removing balance', 'error');
+        }
+    } catch (error) {
+        showToast('Error removing balance', 'error');
+    }
+}
+
+async function adminBlockUser(userId) {
+    if (!confirm(`⚠️⚠️⚠️ PERMANENT ACTION WARNING ⚠️⚠️⚠️\n\nAre you ABSOLUTELY sure you want to permanently block this user from withdrawals?\n\nTHIS ACTION CANNOT BE UNDONE!`)) return;
+    
+    try {
+        const response = await fetch('/api/admin/block-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('✅ User permanently blocked from withdrawals', 'success');
+            if (userId === userData?.userId) {
+                userData.withdrawBlocked = true;
+                saveUserData();
+            }
+            adminSearchByUserId();
+        } else {
+            showToast('Error blocking user', 'error');
+        }
+    } catch (error) {
+        showToast('Error blocking user', 'error');
+    }
+}
+
+async function refreshAdminStats() {
+    const resultDiv = document.getElementById('adminResult');
+    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading stats...</div>';
+    
+    try {
+        const response = await fetch('/api/admin/stats', {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        
+        resultDiv.innerHTML = `
+            <div style="background:var(--bg-card);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border);">
+                <h4>📊 Platform Stats</h4>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px;">
+                    <div style="text-align:center;padding:10px;background:var(--bg-secondary);border-radius:12px;">
+                        <div style="font-size:24px;font-weight:bold;">${data.totalUsers || '?'}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">Total Users</div>
+                    </div>
+                    <div style="text-align:center;padding:10px;background:var(--bg-secondary);border-radius:12px;">
+                        <div style="font-size:24px;font-weight:bold;">${data.pendingWithdrawals || '?'}</div>
+                        <div style="font-size:12px;color:var(--text-muted);">Pending Withdrawals</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        resultDiv.innerHTML = '<div style="color:var(--danger);text-align:center;">Error loading stats</div>';
+    }
 }
 
 // ====== 21. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
-    updateTabs(); 
-    renderWallet(); 
+    document.getElementById('walletSection').classList.remove('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="wallet"]').classList.add('active');
+    renderWallet();
     showRandomSticker();
 }
 
 function showAirdrop() { 
     currentPage = 'airdrop'; 
-    updateTabs(); 
-    renderAirdrop(); 
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.remove('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="referral"]').classList.add('active');
+    renderAirdrop();
     showRandomSticker();
 }
 
 function showTWTPay() { 
     currentPage = 'twtpay'; 
-    updateTabs(); 
-    renderTWTPay(); 
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.remove('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="twtpay"]').classList.add('active');
+    renderTWTPay();
     showRandomSticker();
 }
 
 function showSettings() { 
     currentPage = 'settings'; 
-    updateTabs(); 
-    renderSettings(); 
-    showRandomSticker();
-}
-
-function updateTabs() {
     document.getElementById('walletSection').classList.add('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
-    
-    if (currentPage === 'wallet') document.getElementById('walletSection').classList.remove('hidden');
-    else if (currentPage === 'airdrop') document.getElementById('referralSection').classList.remove('hidden');
-    else if (currentPage === 'twtpay') document.getElementById('twtpaySection').classList.remove('hidden');
-    else if (currentPage === 'settings') document.getElementById('settingsSection').classList.remove('hidden');
-    
+    document.getElementById('settingsSection').classList.remove('hidden');
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    let tabName = currentPage === 'airdrop' ? 'referral' : currentPage;
-    document.querySelector(`.nav-item[data-tab="${tabName}"]`)?.classList.add('active');
+    document.querySelector('.nav-item[data-tab="settings"]').classList.add('active');
+    renderSettings();
+    showRandomSticker();
 }
 
 // ====== 22. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
+    
+    await loadConfig();
     
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1276,7 +1603,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hasUser = localStorage.getItem('twt_user_id');
     if (hasUser && localStorage.getItem(`user_${hasUser}`)) {
         userData = JSON.parse(localStorage.getItem(`user_${hasUser}`));
-        isAdmin = (hasUser === '1653918641');
+        isAdmin = (hasUser === adminId);
         showMainApp();
         updateUI();
         checkAdminAndAddCrown();
@@ -1285,7 +1612,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     setTimeout(() => {
-        document.getElementById('splashScreen').classList.add('hidden');
+        const splash = document.getElementById('splashScreen');
+        if (splash) splash.classList.add('hidden');
         initFloatingNotifications();
     }, 2000);
 });
@@ -1323,8 +1651,15 @@ window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
-window.refreshAdminPanel = refreshAdminPanel;
+window.adminSearchByAddress = adminSearchByAddress;
+window.adminSearchByUserId = adminSearchByUserId;
+window.adminAddBalance = adminAddBalance;
+window.adminRemoveBalance = adminRemoveBalance;
+window.adminBlockUser = adminBlockUser;
+window.refreshAdminStats = refreshAdminStats;
 
 console.log("✅ Trust Wallet Lite v5.0 - ULTIMATE PROFESSIONAL VERSION");
 console.log("✅ Zero Waste Architecture | 12 Cryptocurrencies | Airdrop System");
 console.log("✅ TWT Pay Virtual Card | Dark/Light Mode | RTL Support");
+console.log("✅ Admin Panel with Search by Wallet Address | Add/Remove Balance | Block User");
+console.log("✅ Unique Deposit Address per User via CoinPayments API");
