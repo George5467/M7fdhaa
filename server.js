@@ -113,7 +113,7 @@ try {
     console.error("❌ Firebase init error:", error.message);
 }
 
-// ====== إرسال إشعار عبر تيليجرام ======
+// ====== دالة إرسال إشعار تيليجرام ======
 async function sendTelegramMessage(chatId, message) {
     if (!BOT_TOKEN) {
         console.log("⚠️ Bot token not configured, cannot send message");
@@ -142,6 +142,18 @@ async function sendTelegramMessage(chatId, message) {
     } catch (error) {
         console.error("Error sending Telegram message:", error);
         return false;
+    }
+}
+
+// ====== دالة جلب عدد المستخدمين الكلي ======
+async function getTotalUsersCount() {
+    if (!db) return 0;
+    try {
+        const snapshot = await db.collection('users').get();
+        return snapshot.size;
+    } catch (error) {
+        console.error("Error getting users count:", error);
+        return 0;
     }
 }
 
@@ -215,7 +227,6 @@ app.post('/api/users', async (req, res) => {
             return res.status(500).json({ error: 'Database not available' });
         }
         
-        // التحقق من عدم وجود المستخدم
         const existing = await db.collection('users').doc(userId).get();
         if (existing.exists) {
             return res.status(409).json({ error: 'User already exists' });
@@ -229,10 +240,12 @@ app.post('/api/users', async (req, res) => {
         
         console.log(`✅ User created: ${userId}`);
         
-        // إرسال إشعار للمشرف
+        // إرسال إشعار للمشرف مع رقم المستخدم التسلسلي
         if (ADMIN_ID && BOT_TOKEN) {
+            const totalUsers = await getTotalUsersCount();
             await sendTelegramMessage(ADMIN_ID, 
                 `🆕 <b>New User Registered!</b>\n\n` +
+                `👤 <b>User #${totalUsers}</b>\n` +
                 `🆔 User ID: <code>${userId}</code>\n` +
                 `👤 Name: ${userData.userName || 'User'}\n` +
                 `📅 Time: ${new Date().toLocaleString()}`
@@ -261,7 +274,6 @@ app.get('/api/users/:userId', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
         
-        // تحديث آخر نشاط
         await db.collection('users').doc(userId).update({
             lastActive: admin.firestore.FieldValue.serverTimestamp()
         });
@@ -319,7 +331,6 @@ app.post('/api/referrals', async (req, res) => {
                 });
                 console.log(`✅ Referral: ${referrerId} invited ${newUserId}`);
                 
-                // إشعار للمشرف
                 if (ADMIN_ID && BOT_TOKEN) {
                     await sendTelegramMessage(ADMIN_ID,
                         `🔗 <b>New Referral!</b>\n\n` +
@@ -338,14 +349,13 @@ app.post('/api/referrals', async (req, res) => {
     }
 });
 
-// Create deposit address (مع CoinPayments API)
+// Create deposit address
 app.post('/api/deposit-address', async (req, res) => {
     try {
         const { userId, currency } = req.body;
         
         let address = null;
         
-        // محاولة إنشاء عنوان من CoinPayments
         if (COINPAYMENTS_PUBLIC_KEY && COINPAYMENTS_PRIVATE_KEY) {
             try {
                 const result = await callCoinPaymentsAPI('get_callback_address', {
@@ -362,7 +372,6 @@ app.post('/api/deposit-address', async (req, res) => {
             }
         }
         
-        // عنوان احتياطي
         if (!address) {
             address = `0x${userId.slice(-40).padStart(40, '0')}`;
             console.log(`⚠️ Using mock address for ${userId} - ${currency}`);
@@ -381,7 +390,7 @@ app.post('/api/deposit-address', async (req, res) => {
     }
 });
 
-// إرسال إشعار عبر البوت (للاستخدام من التطبيق)
+// Send notification via bot
 app.post('/api/send-notification', async (req, res) => {
     try {
         const { userId, message } = req.body;
@@ -398,8 +407,36 @@ app.post('/api/send-notification', async (req, res) => {
     }
 });
 
-// إضافة رصيد (للأدمن فقط)
-app.post('/api/add-balance', async (req, res) => {
+// ====== ADMIN ENDPOINTS ======
+
+// Get all users
+app.get('/api/admin/users', async (req, res) => {
+    try {
+        const { adminKey } = req.query;
+        
+        if (adminKey !== ADMIN_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+        
+        const snapshot = await db.collection('users').get();
+        const users = [];
+        snapshot.forEach(doc => {
+            users.push({ id: doc.id, ...doc.data() });
+        });
+        
+        res.json({ success: true, users, count: users.length });
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Add balance
+app.post('/api/admin/add-balance', async (req, res) => {
     try {
         const { userId, currency, amount, adminKey } = req.body;
         
@@ -415,21 +452,88 @@ app.post('/api/add-balance', async (req, res) => {
             [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
         });
         
-        // تسجيل المعاملة
-        await db.collection('transactions').add({
-            userId,
-            type: 'admin_add',
-            amount,
-            currency,
-            status: 'completed',
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-            details: `Admin added ${amount} ${currency}`
-        });
-        
         console.log(`✅ Admin added ${amount} ${currency} to ${userId}`);
         res.json({ success: true });
     } catch (error) {
         console.error('Add balance error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Remove balance
+app.post('/api/admin/remove-balance', async (req, res) => {
+    try {
+        const { userId, currency, amount, adminKey } = req.body;
+        
+        if (adminKey !== ADMIN_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+        
+        await db.collection('users').doc(userId).update({
+            [`balances.${currency}`]: admin.firestore.FieldValue.increment(-amount)
+        });
+        
+        console.log(`✅ Admin removed ${amount} ${currency} from ${userId}`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Remove balance error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Block user from withdrawals
+app.post('/api/admin/block-user', async (req, res) => {
+    try {
+        const { userId, adminKey } = req.body;
+        
+        if (adminKey !== ADMIN_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+        
+        await db.collection('users').doc(userId).update({
+            withdrawBlocked: true,
+            withdrawBlockedAt: admin.firestore.FieldValue.serverTimestamp(),
+            withdrawBlockedBy: ADMIN_ID
+        });
+        
+        console.log(`✅ User ${userId} blocked from withdrawals`);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Block user error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get admin stats
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const { adminKey } = req.query;
+        
+        if (adminKey !== ADMIN_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        
+        if (!db) {
+            return res.status(500).json({ error: 'Database not available' });
+        }
+        
+        const usersSnapshot = await db.collection('users').get();
+        const totalUsers = usersSnapshot.size;
+        
+        const withdrawalsSnapshot = await db.collection('withdrawals').where('status', '==', 'pending').get();
+        const pendingWithdrawals = withdrawalsSnapshot.size;
+        
+        res.json({ success: true, totalUsers, pendingWithdrawals });
+    } catch (error) {
+        console.error('Get stats error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -439,7 +543,7 @@ app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// بدء الخادم
+// Start server
 app.listen(PORT, () => {
     console.log(`🚀 Server on port ${PORT}`);
     console.log(`🔥 Firebase: ${db ? 'Connected' : 'Demo Mode'}`);
