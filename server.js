@@ -358,11 +358,9 @@ app.post('/api/deposit-address', async (req, res) => {
         
         if (COINPAYMENTS_PUBLIC_KEY && COINPAYMENTS_PRIVATE_KEY) {
             try {
-                const result = await callCoinPaymentsAPI('get_callback_address', {
-                    currency: currency,
-                    ipn_url: `https://trust-wallet-lite.onrender.com/api/ipn/${userId}`,
-                    label: `twt_${userId}_${currency}`
-                });
+                const result = await callCoinPaymentsAPI('get_deposit_address', {
+    currency: currency
+});
                 address = result?.address;
                 if (address) {
                     console.log(`✅ Generated CoinPayments address for ${userId} - ${currency}: ${address}`);
