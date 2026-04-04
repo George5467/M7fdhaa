@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - SIMPLIFIED WORKING VERSION
+// TRUST WALLET LITE - FULLY WORKING VERSION
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -214,7 +214,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-// ✅ أهم دالة: تحميل معرف المشرف من الخادم
+// ✅ الدالة الأساسية لتحميل معرف المشرف
 async function loadAdminId() {
     try {
         const response = await fetch('/api/config');
