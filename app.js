@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - FULLY WORKING VERSION 5.0
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -7,6 +7,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
     tg.expand();
+    tg.enableClosingConfirmation?.();
     console.log("✅ Telegram WebApp initialized");
 }
 
@@ -40,6 +41,7 @@ let unreadNotifications = 0;
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
+const SWAP_FEE_PERCENT = 0.003;
 
 const ALL_ASSETS = [
     { symbol: 'TWT', name: 'Trust Wallet Token' },
@@ -66,6 +68,16 @@ const AIRDROP_MILESTONES = [
     { invites: 500, reward: 2500, unit: 'USDT', icon: 'fa-gem' },
     { invites: 1000, reward: 5000, unit: 'USDT', icon: 'fa-diamond' }
 ];
+
+const WITHDRAW_FEES = {
+    TWT: 1, USDT: 0.16, BNB: 0.0005, BTC: 0.0002, ETH: 0.001,
+    SOL: 0.005, TRX: 1, ADA: 0.5, DOGE: 1, SHIB: 50000, PEPE: 500000, TON: 0.1
+};
+
+const WITHDRAW_MINIMUMS = {
+    TWT: 10, USDT: 10, BNB: 0.02, BTC: 0.0005, ETH: 0.005,
+    SOL: 0.12, TRX: 40, ADA: 10, DOGE: 50, SHIB: 500000, PEPE: 5000000, TON: 1
+};
 
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
@@ -299,7 +311,6 @@ function refreshPrices() {
 
 // ====== 10. USER DATA MANAGEMENT ======
 function getUserId() {
-    // ✅ استخدام معرف تيليجرام الحقيقي أولاً
     if (REAL_USER_ID) return REAL_USER_ID;
     return localStorage.getItem('twt_user_id') || null;
 }
@@ -414,7 +425,6 @@ async function createNewWallet() {
     btn.disabled = true;
     
     try {
-        // ✅ استخدام معرف تيليجرام الحقيقي
         if (!REAL_USER_ID) {
             showToast('Could not get Telegram ID', 'error');
             return;
@@ -450,7 +460,6 @@ async function createNewWallet() {
         userData = newUserData;
         saveUserData();
         
-        // ✅ تحديث صلاحيات المشرف
         isAdmin = (newUserId === adminId);
         console.log("👑 New user isAdmin:", isAdmin);
         
@@ -615,7 +624,7 @@ function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container || !userData) return;
     
-    const inviteLink = `${BOT_LINK}?startapp=${userData.referralCode}`;
+    const inviteLink = `${BOT_LINK}?startapp=${userData.userId}`;
     
     container.innerHTML = `
         <div class="referral-stats">
@@ -677,12 +686,12 @@ async function claimMilestone(invites) {
 }
 
 function copyInviteLink() {
-    copyToClipboard(`${BOT_LINK}?startapp=${userData?.referralCode}`);
+    copyToClipboard(`${BOT_LINK}?startapp=${userData?.userId}`);
     showToast('Referral link copied!');
 }
 
 function shareInvite() {
-    const text = `🚀 Join Trust Wallet Lite and get ${AIRDROP_BONUS} USDT Airdrop! Use my link: ${BOT_LINK}?startapp=${userData?.referralCode}`;
+    const text = `🚀 Join Trust Wallet Lite and get ${AIRDROP_BONUS} USDT Airdrop! Use my link: ${BOT_LINK}?startapp=${userData?.userId}`;
     if (tg?.shareToStory) tg.shareToStory(text);
     else copyToClipboard(text);
     showToast('Link copied!');
@@ -934,7 +943,7 @@ function renderAdminPanel() {
     `;
 }
 
-// ====== 19. NAVIGATION (المصححة) ======
+// ====== 19. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
     updateTabs(); 
@@ -964,13 +973,12 @@ function showSettings() {
 }
 
 function updateTabs() {
-    // إخفاء الكل
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('referralSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
+    const sections = ['walletSection', 'referralSection', 'twtpaySection', 'settingsSection'];
+    sections.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
     
-    // إظهار القسم المطلوب
     if (currentPage === 'wallet') {
         document.getElementById('walletSection').classList.remove('hidden');
     } else if (currentPage === 'airdrop') {
@@ -981,7 +989,6 @@ function updateTabs() {
         document.getElementById('settingsSection').classList.remove('hidden');
     }
     
-    // تحديث التبويب النشط
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     const tabName = currentPage === 'airdrop' ? 'referral' : currentPage;
     const activeBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
@@ -992,10 +999,8 @@ function updateTabs() {
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
-    // ✅ تحميل معرف المشرف أولاً
     await loadAdminId();
     
-    // ✅ إعداد أزرار التبويب
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -1006,7 +1011,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // ✅ إعداد أزرار الإنشاء
     const createBtn = document.getElementById('createWalletBtn');
     const importBtn = document.getElementById('importWalletBtn');
     const confirmImportBtn = document.getElementById('confirmImportBtn');
