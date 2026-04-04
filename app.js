@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0 (FULLY WORKING)
+// TRUST WALLET LITE - SIMPLIFIED WORKING VERSION
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -7,7 +7,6 @@ const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
     tg.expand();
-    tg.enableClosingConfirmation?.();
     console.log("✅ Telegram WebApp initialized");
 }
 
@@ -24,19 +23,11 @@ let currentTheme = localStorage.getItem('theme') || 'light';
 let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
-let unreadNotifications = 0;
-
-// Cache timers
-let lastUserLoadTime = 0;
-let lastPricesLoadTime = 0;
-const USER_CACHE_TIME = 300000;
-const PRICES_CACHE_TIME = 10800000;
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
-const SWAP_FEE_PERCENT = 0.003;
 
 const ALL_ASSETS = [
     { symbol: 'TWT', name: 'Trust Wallet Token' },
@@ -63,16 +54,6 @@ const AIRDROP_MILESTONES = [
     { invites: 500, reward: 2500, unit: 'USDT', icon: 'fa-gem' },
     { invites: 1000, reward: 5000, unit: 'USDT', icon: 'fa-diamond' }
 ];
-
-const WITHDRAW_FEES = {
-    TWT: 1, USDT: 0.16, BNB: 0.0005, BTC: 0.0002, ETH: 0.001,
-    SOL: 0.005, TRX: 1, ADA: 0.5, DOGE: 1, SHIB: 50000, PEPE: 500000, TON: 0.1
-};
-
-const WITHDRAW_MINIMUMS = {
-    TWT: 10, USDT: 10, BNB: 0.02, BTC: 0.0005, ETH: 0.005,
-    SOL: 0.12, TRX: 40, ADA: 10, DOGE: 50, SHIB: 500000, PEPE: 5000000, TON: 1
-};
 
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
@@ -110,11 +91,8 @@ const translations = {
         'swap.from': 'From', 'swap.to': 'To', 'swap.confirm': 'Confirm Swap',
         'airdrop.totalInvites': 'Total Invites', 'airdrop.earned': 'USDT Earned',
         'airdrop.yourLink': 'Your Invite Link', 'airdrop.milestones': 'Airdrop Milestones',
-        'airdrop.inviteBonus': 'Get 25 USDT for each friend who joins!',
         'card.balance': 'Card Balance', 'settings.language': 'Language',
-        'settings.theme': 'Theme', 'settings.logout': 'Logout',
-        'settings.backup': 'Backup Wallet', 'coming.soon': 'Coming Soon',
-        'notifications.title': 'Notifications'
+        'settings.theme': 'Theme', 'settings.logout': 'Logout'
     },
     ar: {
         'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
@@ -126,21 +104,14 @@ const translations = {
         'swap.from': 'من', 'swap.to': 'إلى', 'swap.confirm': 'تأكيد',
         'airdrop.totalInvites': 'إجمالي الدعوات', 'airdrop.earned': 'USDT المكتسبة',
         'airdrop.yourLink': 'رابط الدعوة', 'airdrop.milestones': 'مراحل الإسقاط',
-        'airdrop.inviteBonus': 'احصل على 25 USDT لكل صديق ينضم!',
         'card.balance': 'رصيد البطاقة', 'settings.language': 'اللغة',
-        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج',
-        'settings.backup': 'نسخ احتياطي', 'coming.soon': 'قريباً',
-        'notifications.title': 'الإشعارات'
+        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج'
     }
 };
 
 // ====== 5. UTILITY FUNCTIONS ======
-function t(key, params = {}) {
-    let text = translations[currentLanguage]?.[key] || translations.en[key] || key;
-    Object.keys(params).forEach(param => {
-        text = text.replace(`{${param}}`, params[param]);
-    });
-    return text;
+function t(key) {
+    return translations[currentLanguage]?.[key] || translations.en[key] || key;
 }
 
 function getCurrencyIcon(symbol) {
@@ -151,15 +122,12 @@ function formatBalance(balance, symbol) {
     if (symbol === 'TWT') return balance.toLocaleString() + ' TWT';
     if (symbol === 'USDT') return '$' + balance.toFixed(2);
     if (symbol === 'BTC') return balance.toFixed(6) + ' BTC';
-    if (['BNB', 'ETH', 'SOL', 'TRX', 'ADA', 'TON'].includes(symbol)) return balance.toFixed(4) + ' ' + symbol;
-    return balance.toLocaleString() + ' ' + symbol;
+    return balance.toFixed(4) + ' ' + symbol;
 }
 
 function formatNumber(num) {
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
-    if (num < 0.0001) return num.toFixed(8);
-    if (num < 0.01) return num.toFixed(6);
     return num.toFixed(2);
 }
 
@@ -169,12 +137,6 @@ function showToast(message, type = 'success') {
     if (!toast) return;
     toastMessage.textContent = message;
     toast.classList.remove('hidden');
-    const icon = toast.querySelector('i');
-    if (icon) {
-        if (type === 'success') icon.className = 'fa-regular fa-circle-check';
-        else if (type === 'error') icon.className = 'fa-regular fa-circle-xmark';
-        else icon.className = 'fa-regular fa-circle-info';
-    }
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
@@ -201,13 +163,11 @@ function toggleLanguage() {
         document.body.classList.remove('rtl');
         document.documentElement.dir = 'ltr';
     }
-    updateUITexts();
-    // إعادة تحميل الصفحات الحالية
     if (currentPage === 'settings') renderSettings();
     if (currentPage === 'airdrop') renderAirdrop();
     if (currentPage === 'wallet') renderWallet();
     if (currentPage === 'twtpay') renderTWTPay();
-    showToast('Language changed', 'success');
+    showToast('Language changed');
 }
 
 function toggleTheme() {
@@ -216,20 +176,12 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', currentTheme);
     const themeIcon = document.querySelector('#themeBtn i');
     if (themeIcon) themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    showToast(`${currentTheme === 'dark' ? 'Dark' : 'Light'} mode`, 'success');
 }
 
 function initTheme() {
     document.documentElement.setAttribute('data-theme', currentTheme);
     const themeIcon = document.querySelector('#themeBtn i');
     if (themeIcon) themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-}
-
-function updateUITexts() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        el.textContent = t(key);
-    });
 }
 
 // ====== 7. STICKER SYSTEM ======
@@ -262,15 +214,31 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-async function loadConfig() {
+// ✅ أهم دالة: تحميل معرف المشرف من الخادم
+async function loadAdminId() {
     try {
         const response = await fetch('/api/config');
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
+        
+        // تحديث صلاحيات المشرف فوراً
+        const userId = localStorage.getItem('twt_user_id');
+        if (userId && adminId) {
+            isAdmin = (userId === adminId);
+            console.log("👑 Is Admin:", isAdmin);
+        }
+        
+        // تحديث التاج
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
         return config;
     } catch (error) {
-        console.error("Failed to load config:", error);
+        console.error("Failed to load admin ID:", error);
         return null;
     }
 }
@@ -296,23 +264,11 @@ async function createDepositAddress(userId, currency) {
 }
 
 // ====== 9. PRICES ======
-async function fetchLivePrices(force = false) {
-    const now = Date.now();
-    const cachedPrices = localStorage.getItem('live_prices');
-    
-    if (!force && cachedPrices && (now - lastPricesLoadTime) < PRICES_CACHE_TIME) {
-        const { prices, timestamp } = JSON.parse(cachedPrices);
-        livePrices = prices;
-        lastPricesLoadTime = timestamp;
-        updatePrices();
-        return;
-    }
-    
+async function fetchLivePrices() {
     try {
         const ids = Object.values(CRYPTO_IDS).join(',');
         const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
         const data = await response.json();
-        
         for (const [symbol, id] of Object.entries(CRYPTO_IDS)) {
             if (data[id]) {
                 livePrices[symbol] = { price: data[id].usd, change: data[id].usd_24h_change || 0 };
@@ -320,23 +276,16 @@ async function fetchLivePrices(force = false) {
         }
         if (!livePrices.TWT) livePrices.TWT = { price: 1.25, change: 0 };
         TWT_PRICE = livePrices.TWT.price;
-        
-        lastPricesLoadTime = now;
-        localStorage.setItem('live_prices', JSON.stringify({ prices: livePrices, timestamp: now }));
-        updatePrices();
+        if (currentPage === 'wallet') renderAssets();
+        updateTotalBalance();
     } catch (error) {
         console.error("Price fetch error:", error);
     }
 }
 
-function updatePrices() {
-    if (currentPage === 'wallet') renderAssets();
-    updateTotalBalance();
-}
-
 function refreshPrices() {
-    fetchLivePrices(true);
-    showToast('Prices refreshed!', 'success');
+    fetchLivePrices();
+    showToast('Prices refreshed!');
 }
 
 // ====== 10. USER DATA MANAGEMENT ======
@@ -344,32 +293,28 @@ function getUserId() {
     return localStorage.getItem('twt_user_id') || null;
 }
 
-async function loadUserData(force = false) {
+async function loadUserData() {
     try {
-        const now = Date.now();
-        const localData = localStorage.getItem(`user_${getUserId()}`);
+        const userId = getUserId();
+        if (!userId) return false;
         
-        if (!force && localData && (now - lastUserLoadTime) < USER_CACHE_TIME) {
+        const localData = localStorage.getItem(`user_${userId}`);
+        if (localData) {
             userData = JSON.parse(localData);
-            updateUI();
-            updateNotificationBadge();
-            return;
         }
         
-        const userId = getUserId();
-        if (userId) {
-            const result = await getUser(userId);
-            if (result.success && result.data) {
-                userData = result.data;
-                localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
-                lastUserLoadTime = now;
-            }
+        const result = await getUser(userId);
+        if (result.success && result.data) {
+            userData = result.data;
+            localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
         }
         
         updateUI();
         updateNotificationBadge();
+        return true;
     } catch (error) {
         console.error("Error loading user data:", error);
+        return false;
     }
 }
 
@@ -384,19 +329,8 @@ function updateTotalBalance() {
     if (!userData) return;
     let total = userData.balances.USDT || 0;
     total += (userData.balances.TWT || 0) * TWT_PRICE;
-    total += (userData.balances.BNB || 0) * (livePrices.BNB?.price || 580);
-    total += (userData.balances.BTC || 0) * (livePrices.BTC?.price || 65000);
-    total += (userData.balances.ETH || 0) * (livePrices.ETH?.price || 3400);
-    total += (userData.balances.SOL || 0) * (livePrices.SOL?.price || 150);
-    total += (userData.balances.TRX || 0) * (livePrices.TRX?.price || 0.25);
-    total += (userData.balances.ADA || 0) * (livePrices.ADA?.price || 0.45);
-    total += (userData.balances.DOGE || 0) * (livePrices.DOGE?.price || 0.15);
-    total += (userData.balances.SHIB || 0) * (livePrices.SHIB?.price || 0.000025);
-    total += (userData.balances.PEPE || 0) * (livePrices.PEPE?.price || 0.000015);
-    total += (userData.balances.TON || 0) * (livePrices.TON?.price || 5.50);
-    
-    const totalElement = document.getElementById('totalBalance');
-    if (totalElement) totalElement.textContent = '$' + total.toFixed(2);
+    const totalEl = document.getElementById('totalBalance');
+    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
 }
 
 function updateUI() {
@@ -404,15 +338,9 @@ function updateUI() {
         renderAssets();
         updateTotalBalance();
     }
-    if (currentPage === 'airdrop') {
-        renderAirdrop();
-    }
-    if (currentPage === 'twtpay') {
-        renderTWTPay();
-    }
-    if (currentPage === 'settings') {
-        renderSettings();
-    }
+    if (currentPage === 'airdrop') renderAirdrop();
+    if (currentPage === 'twtpay') renderTWTPay();
+    if (currentPage === 'settings') renderSettings();
     updateNotificationBadge();
 }
 
@@ -425,17 +353,15 @@ function updateNotificationBadge() {
     }
 }
 
-function addNotification(message, type = 'info') {
+function addNotification(message) {
     if (!userData) return;
-    const notification = {
+    if (!userData.notifications) userData.notifications = [];
+    userData.notifications.unshift({
         id: Date.now().toString(),
         message: message,
-        type: type,
         read: false,
         timestamp: new Date().toISOString()
-    };
-    if (!userData.notifications) userData.notifications = [];
-    userData.notifications.unshift(notification);
+    });
     saveUserData();
     updateNotificationBadge();
 }
@@ -444,29 +370,18 @@ function showNotifications() {
     const modal = document.getElementById('notificationsModal');
     const list = document.getElementById('notificationsList');
     if (!modal || !list || !userData) return;
-    
     const notifications = userData.notifications || [];
     if (notifications.length === 0) {
         list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No notifications</div>';
     } else {
         list.innerHTML = notifications.map(n => `
-            <div class="notification-item" style="padding:12px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="markNotificationRead('${n.id}')">
-                <div class="notification-message" style="${n.read ? 'opacity:0.7;' : 'font-weight:bold;'}">${n.message}</div>
-                <div class="notification-time" style="font-size:10px;color:var(--text-muted);margin-top:4px;">${new Date(n.timestamp).toLocaleString()}</div>
+            <div class="notification-item" style="padding:12px;border-bottom:1px solid var(--border);">
+                <div>${n.message}</div>
+                <div style="font-size:10px;color:var(--text-muted);">${new Date(n.timestamp).toLocaleString()}</div>
             </div>
         `).join('');
     }
     modal.classList.add('show');
-}
-
-function markNotificationRead(id) {
-    const notif = userData.notifications.find(n => n.id === id);
-    if (notif && !notif.read) {
-        notif.read = true;
-        saveUserData();
-        updateNotificationBadge();
-        showNotifications();
-    }
 }
 
 // ====== 11. ONBOARDING & WALLET CREATION ======
@@ -496,15 +411,14 @@ async function createNewWallet() {
             userName: 'User',
             referralCode: newUserId.slice(-8).toUpperCase(),
             balances: {
-                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0.5, BTC: 0.01, ETH: 0.1,
-                SOL: 5, TRX: 100, ADA: 50, DOGE: 200, SHIB: 1000000,
-                PEPE: 5000000, TON: 2
+                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
             inviteCount: 0,
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
             airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [{ id: Date.now(), message: '🎉 Welcome! You got 10 USDT Airdrop!', read: false, timestamp: new Date() }],
+            notifications: [{ id: Date.now(), message: '🎉 Welcome! You got 10 USDT!', read: false, timestamp: new Date() }],
             transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date() }],
             depositAddresses: {},
             withdrawBlocked: false,
@@ -516,6 +430,16 @@ async function createNewWallet() {
         userData = newUserData;
         saveUserData();
         
+        // ✅ تحديث صلاحيات المشرف
+        isAdmin = (newUserId === adminId);
+        console.log("👑 New user isAdmin:", isAdmin);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
@@ -524,7 +448,7 @@ async function createNewWallet() {
         updateUI();
         showToast('✅ Wallet created! +10 USDT');
     } catch (error) {
-        console.error("Create wallet error:", error);
+        console.error(error);
         showToast('Failed to create wallet', 'error');
     } finally {
         btn.innerHTML = 'Create a new wallet';
@@ -563,9 +487,8 @@ async function importWallet() {
             recoveryPhrase: words.join(' '),
             referralCode: newUserId.slice(-8).toUpperCase(),
             balances: {
-                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0.5, BTC: 0.01, ETH: 0.1,
-                SOL: 5, TRX: 100, ADA: 50, DOGE: 200, SHIB: 1000000,
-                PEPE: 5000000, TON: 2
+                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
+                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
             inviteCount: 0,
             invitedBy: null,
@@ -582,6 +505,16 @@ async function importWallet() {
         userData = newUserData;
         saveUserData();
         
+        // ✅ تحديث صلاحيات المشرف
+        isAdmin = (newUserId === adminId);
+        console.log("👑 Imported user isAdmin:", isAdmin);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
         if (startParam) {
             await processReferral(startParam, newUserId);
         }
@@ -591,7 +524,7 @@ async function importWallet() {
         updateUI();
         showToast('✅ Wallet imported! +10 USDT');
     } catch (error) {
-        console.error("Import wallet error:", error);
+        console.error(error);
         showToast('Failed to import wallet', 'error');
     } finally {
         btn.innerHTML = 'Import Wallet';
@@ -599,36 +532,10 @@ async function importWallet() {
     }
 }
 
-// ✅ دالة التحقق من المشرف والتاج
-function checkAdminAndUpdate() {
-    const userId = getUserId();
-    const crownBtn = document.getElementById('adminCrownBtn');
-    
-    if (userId && adminId) {
-        isAdmin = (userId === adminId);
-        console.log("👑 checkAdminAndUpdate - isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
-        
-        if (crownBtn) {
-            if (isAdmin) {
-                crownBtn.classList.remove('hidden');
-            } else {
-                crownBtn.classList.add('hidden');
-            }
-        }
-    } else {
-        if (crownBtn) crownBtn.classList.add('hidden');
-    }
-}
-
 // ====== 12. RENDER WALLET ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
-    if (!container) return;
-    
-    if (!userData) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;">Loading assets...</div>';
-        return;
-    }
+    if (!container || !userData) return;
     
     container.innerHTML = ALL_ASSETS.map(asset => {
         const balance = userData.balances[asset.symbol] || 0;
@@ -639,7 +546,7 @@ function renderAssets() {
         const changeSymbol = change >= 0 ? '+' : '';
         
         return `
-            <div class="asset-item" onclick="showAssetDetails('${asset.symbol}')">
+            <div class="asset-item">
                 <div class="asset-left">
                     <img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img">
                     <div class="asset-info">
@@ -656,26 +563,18 @@ function renderAssets() {
     }).join('');
 }
 
-function showAssetDetails(symbol) {
-    const balance = userData.balances[symbol] || 0;
-    const price = symbol === 'TWT' ? TWT_PRICE : (livePrices[symbol]?.price || 0);
-    const value = symbol === 'USDT' ? balance : balance * price;
-    showToast(`${symbol}: ${formatBalance(balance, symbol)} ($${formatNumber(value)})`, 'info');
-}
-
 function renderWallet() {
     const container = document.getElementById('walletContainer');
-    if (!container) return;
-    
     container.innerHTML = `
         <div class="balance-card">
             <div class="total-balance" id="totalBalance">$0</div>
             <div class="balance-change"><i class="fas fa-arrow-up"></i><span>+2.5% from last week</span></div>
         </div>
         <div class="action-buttons">
+            <button class="action-btn" onclick="showDepositModal()"><i class="fas fa-plus-circle"></i><span>${t('actions.deposit')}</span></button>
+            <button class="action-btn" onclick="showWithdrawModal()"><i class="fas fa-minus-circle"></i><span>${t('actions.withdraw')}</span></button>
             <button class="action-btn" onclick="showSendModal()"><i class="fas fa-paper-plane"></i><span>${t('actions.send')}</span></button>
             <button class="action-btn" onclick="showReceiveModal()"><i class="fas fa-qrcode"></i><span>${t('actions.receive')}</span></button>
-            <button class="action-btn" onclick="showSwapModal()"><i class="fas fa-exchange-alt"></i><span>${t('actions.swap')}</span></button>
             <button class="action-btn" onclick="showHistory()"><i class="fas fa-history"></i><span>${t('actions.history')}</span></button>
         </div>
         <div id="assetsList" class="assets-list"></div>
@@ -687,40 +586,26 @@ function renderWallet() {
 // ====== 13. RENDER AIRDROP ======
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
-    if (!container) return;
-    
-    if (!userData) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;">Loading airdrop data...</div>';
-        return;
-    }
+    if (!container || !userData) return;
     
     const inviteLink = `${BOT_LINK}?startapp=${userData.referralCode}`;
     
     container.innerHTML = `
         <div class="referral-stats">
-            <div class="stat-card">
-                <span class="stat-label">${t('airdrop.totalInvites')}</span>
-                <span class="stat-value" id="totalInvites">${userData.inviteCount || 0}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">${t('airdrop.earned')}</span>
-                <span class="stat-value" id="usdtEarned">${(userData.totalUsdtEarned || 0).toFixed(2)}</span>
-            </div>
+            <div class="stat-card"><span>${t('airdrop.totalInvites')}</span><span id="totalInvites">${userData.inviteCount || 0}</span></div>
+            <div class="stat-card"><span>${t('airdrop.earned')}</span><span id="usdtEarned">${(userData.totalUsdtEarned || 0).toFixed(2)}</span></div>
         </div>
         <div class="referral-link-card">
             <div class="link-label">${t('airdrop.yourLink')}</div>
             <div class="link-container">
                 <input type="text" id="inviteLink" value="${inviteLink}" readonly>
-                <button class="copy-btn" onclick="copyInviteLink()"><i class="fa-regular fa-copy"></i></button>
-                <button class="share-btn" onclick="shareInvite()"><i class="fa-regular fa-share-from-square"></i></button>
+                <button class="copy-btn" onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
+                <button class="share-btn" onclick="shareInvite()"><i class="fas fa-share-alt"></i></button>
             </div>
         </div>
-        <div class="referral-description">
-            <i class="fa-regular fa-gift"></i>
-            <p>${t('airdrop.inviteBonus')}</p>
-        </div>
+        <div class="referral-description"><i class="fas fa-gift"></i><p>${t('airdrop.inviteBonus')}</p></div>
         <div class="section-header"><h3>${t('airdrop.milestones')}</h3></div>
-        <div class="milestones-list" id="milestonesList"></div>
+        <div id="milestonesList" class="milestones-list"></div>
     `;
     
     renderAirdropMilestones();
@@ -737,15 +622,10 @@ function renderAirdropMilestones() {
         
         return `
             <div class="milestone-item">
-                <div class="milestone-header">
-                    <span class="milestone-referrals"><i class="fa-regular ${m.icon}"></i> ${m.invites} Invites</span>
-                    <span class="milestone-reward">${m.reward} ${m.unit}</span>
-                </div>
-                <div class="milestone-progress">
-                    <div class="progress-bar"><div class="progress-fill" style="width: ${progress}%"></div></div>
-                    <span class="progress-text">${userData.inviteCount}/${m.invites}</span>
-                </div>
-                ${canClaim ? `<button class="claim-btn" onclick="claimMilestone(${m.invites})">Claim Reward</button>` : isClaimed ? '<p style="color: var(--success); text-align: center;">✓ Claimed</p>' : ''}
+                <div class="milestone-header"><span><i class="fas ${m.icon}"></i> ${m.invites} Invites</span><span>${m.reward} ${m.unit}</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                <div class="progress-text">${userData.inviteCount}/${m.invites}</div>
+                ${canClaim ? `<button class="claim-btn" onclick="claimMilestone(${m.invites})">Claim Reward</button>` : isClaimed ? '<p style="color:var(--success);text-align:center;">✓ Claimed</p>' : ''}
             </div>
         `;
     }).join('');
@@ -758,15 +638,14 @@ async function claimMilestone(invites) {
         showToast(`Need ${invites} invites`, 'error');
         return;
     }
-    
     const reward = AIRDROP_MILESTONES.find(x => x.invites === invites).reward;
     userData.balances.USDT = (userData.balances.USDT || 0) + reward;
     userData.totalUsdtEarned = (userData.totalUsdtEarned || 0) + reward;
     m.claimed = true;
-    
-    addTransaction({ type: 'milestone', amount: reward, currency: 'USDT', details: `Milestone: ${invites} invites` });
     saveUserData();
-    updateUI();
+    renderAirdrop();
+    renderWallet();
+    updateTotalBalance();
     showToast(`Claimed ${reward} USDT!`);
 }
 
@@ -786,41 +665,16 @@ function shareInvite() {
 function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
-    
     const twtBalance = userData?.balances?.TWT || 0;
-    const twtValue = twtBalance * TWT_PRICE;
     const cardNumber = userData?.userId?.slice(-4) || '8888';
-    const cardHolder = userData?.userName || 'TWT User';
-    
     container.innerHTML = `
         <div class="virtual-card">
             <div class="card-chip"><i class="fas fa-microchip"></i></div>
             <div class="card-brand">TWT Pay</div>
-            <div class="card-number">
-                <span>****</span>
-                <span>****</span>
-                <span>****</span>
-                <span>${cardNumber}</span>
-            </div>
-            <div class="card-details">
-                <div>
-                    <div class="label">Card Holder</div>
-                    <div class="value">${cardHolder}</div>
-                </div>
-                <div>
-                    <div class="label">Expires</div>
-                    <div class="value">12/28</div>
-                </div>
-            </div>
-            <div class="card-balance">
-                <div class="balance-label">${t('card.balance')}</div>
-                <div class="balance-value">${twtBalance.toLocaleString()} TWT</div>
-                <div class="balance-usd">≈ $${twtValue.toFixed(2)} USD</div>
-            </div>
-            <div class="card-footer">
-                <i class="fab fa-visa"></i>
-                <span>Virtual Card</span>
-            </div>
+            <div class="card-number"><span>****</span><span>****</span><span>****</span><span>${cardNumber}</span></div>
+            <div class="card-details"><div><div class="label">Card Holder</div><div class="value">${userData?.userName || 'User'}</div></div><div><div class="label">Expires</div><div class="value">12/28</div></div></div>
+            <div class="card-balance"><div class="balance-label">${t('card.balance')}</div><div class="balance-value">${twtBalance} TWT</div><div class="balance-usd">≈ $${(twtBalance * TWT_PRICE).toFixed(2)}</div></div>
+            <div class="card-footer"><i class="fab fa-visa"></i><span>Virtual Card</span></div>
         </div>
         <div class="card-actions">
             <button class="card-action-btn" onclick="showTopUp()"><i class="fas fa-plus-circle"></i><span>Top Up</span></button>
@@ -836,54 +690,41 @@ function renderTWTPay() {
     `;
 }
 
-function showTopUp() { showToast('Coming soon!', 'info'); }
-function showCardSettings() { showToast('Coming soon!', 'info'); }
+function showTopUp() { showToast('Coming soon!'); }
+function showCardSettings() { showToast('Coming soon!'); }
 function showCardTransactions() { showHistory(); }
 
 // ====== 15. RENDER SETTINGS ======
 function renderSettings() {
     const container = document.getElementById('settingsContainer');
-    if (!container) return;
-    
     container.innerHTML = `
         <div class="settings-list">
-            <div class="settings-item" onclick="showNotifications()">
-                <i class="fas fa-bell"></i>
-                <div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="showHistory()">
-                <i class="fas fa-history"></i>
-                <div><div class="label">${t('actions.history')}</div><div class="desc">View all transactions</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="toggleLanguage()">
-                <i class="fas fa-language"></i>
-                <div><div class="label">${t('settings.language')}</div><div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="toggleTheme()">
-                <i class="fas fa-moon"></i>
-                <div><div class="label">${t('settings.theme')}</div><div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="showBackupWallet()">
-                <i class="fas fa-database"></i>
-                <div><div class="label">${t('settings.backup')}</div><div class="desc">${t('coming.soon')}</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item logout-btn" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i>
-                <div><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div>
-            </div>
-        </div>
-        <div style="text-align:center;margin-top:24px;">
-            <span style="font-size:10px; color:var(--text-muted);">Trust Wallet Lite v5.0</span>
+            <div class="settings-item" onclick="showNotifications()"><i class="fas fa-bell"></i><div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="showHistory()"><i class="fas fa-history"></i><div><div class="label">${t('actions.history')}</div><div class="desc">View all transactions</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="toggleLanguage()"><i class="fas fa-language"></i><div><div class="label">${t('settings.language')}</div><div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="toggleTheme()"><i class="fas fa-moon"></i><div><div class="label">${t('settings.theme')}</div><div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i><div><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div></div>
         </div>
     `;
 }
 
-function showBackupWallet() { showToast('Coming soon!', 'info'); }
+function showHistory() {
+    const modal = document.getElementById('historyModal');
+    const list = document.getElementById('historyList');
+    if (!modal || !list) return;
+    const txs = userData?.transactions || [];
+    if (txs.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No transactions</div>';
+    } else {
+        list.innerHTML = txs.map(tx => `
+            <div class="history-item">
+                <div><span>${tx.type}</span> <span>${tx.amount} ${tx.currency}</span></div>
+                <div style="font-size:10px;">${new Date(tx.timestamp).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+    modal.classList.add('show');
+}
 
 function logout() {
     if (confirm('Logout?')) {
@@ -905,44 +746,13 @@ function showSwapModal() {
 
 function renderSwapModal() {
     const container = document.getElementById('swapModalContent');
-    if (!container) return;
-    
     container.innerHTML = `
-        <div class="swap-box">
-            <div class="swap-label">${t('swap.from')}</div>
-            <div class="swap-row">
-                <input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()">
-                <div class="currency-selector-small" onclick="showSwapCurrencySelector('from')">
-                    <img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}">
-                    <span id="swapFromSymbol">${swapFromCurrency}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="balance-hint">
-                Balance: <span id="swapFromBalance">0</span>
-                <span class="percentage-buttons">
-                    <button onclick="setSwapPercentage(25)">25%</button>
-                    <button onclick="setSwapPercentage(50)">50%</button>
-                    <button onclick="setSwapPercentage(100)">Max</button>
-                </span>
-            </div>
-        </div>
+        <div class="swap-box"><div class="swap-label">${t('swap.from')}</div><div class="swap-row"><input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()"><div class="currency-selector-small" onclick="showSwapCurrencySelector('from')"><img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}"><span id="swapFromSymbol">${swapFromCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapFromBalance">0</span><span class="percentage-buttons"><button onclick="setSwapPercentage(25)">25%</button><button onclick="setSwapPercentage(50)">50%</button><button onclick="setSwapPercentage(100)">Max</button></span></div></div>
         <div class="swap-arrow" onclick="swapDirection()"><i class="fas fa-arrow-down"></i></div>
-        <div class="swap-box">
-            <div class="swap-label">${t('swap.to')}</div>
-            <div class="swap-row">
-                <input type="number" id="swapToAmount" placeholder="0.00" readonly>
-                <div class="currency-selector-small" onclick="showSwapCurrencySelector('to')">
-                    <img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}">
-                    <span id="swapToSymbol">${swapToCurrency}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
-        </div>
+        <div class="swap-box"><div class="swap-label">${t('swap.to')}</div><div class="swap-row"><input type="number" id="swapToAmount" placeholder="0.00" readonly><div class="currency-selector-small" onclick="showSwapCurrencySelector('to')"><img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}"><span id="swapToSymbol">${swapToCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapToBalance">0</span></div></div>
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
         <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-        <button class="btn-primary" onclick="confirmSwap()"><i class="fas fa-exchange-alt"></i> ${t('swap.confirm')}</button>
+        <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
     `;
     updateSwapBalances();
     calculateSwap();
@@ -950,21 +760,18 @@ function renderSwapModal() {
 
 function updateSwapBalances() {
     if (!userData) return;
-    const fromEl = document.getElementById('swapFromBalance');
-    const toEl = document.getElementById('swapToBalance');
-    if (fromEl) fromEl.innerText = userData.balances[swapFromCurrency] || 0;
-    if (toEl) toEl.innerText = userData.balances[swapToCurrency] || 0;
+    document.getElementById('swapFromBalance').innerText = userData.balances[swapFromCurrency] || 0;
+    document.getElementById('swapToBalance').innerText = userData.balances[swapToCurrency] || 0;
 }
 
 function showSwapCurrencySelector(type) {
     currentCurrencySelector = type;
     const modal = document.getElementById('currencySelectorModal');
-    const currencyList = document.getElementById('currencyList');
-    
-    currencyList.innerHTML = ALL_ASSETS.map(asset => `
+    const list = document.getElementById('currencyList');
+    list.innerHTML = ALL_ASSETS.map(asset => `
         <div class="currency-list-item" onclick="selectSwapCurrency('${asset.symbol}')">
             <img src="${getCurrencyIcon(asset.symbol)}">
-            <div class="currency-list-info"><h4>${asset.name}</h4><p>${asset.symbol}</p></div>
+            <div><h4>${asset.name}</h4><p>${asset.symbol}</p></div>
         </div>
     `).join('');
     modal.classList.add('show');
@@ -973,16 +780,12 @@ function showSwapCurrencySelector(type) {
 function selectSwapCurrency(symbol) {
     if (currentCurrencySelector === 'from') {
         swapFromCurrency = symbol;
-        const iconEl = document.getElementById('swapFromIcon');
-        const symbolEl = document.getElementById('swapFromSymbol');
-        if (iconEl) iconEl.src = getCurrencyIcon(symbol);
-        if (symbolEl) symbolEl.textContent = symbol;
+        document.getElementById('swapFromIcon').src = getCurrencyIcon(symbol);
+        document.getElementById('swapFromSymbol').innerText = symbol;
     } else {
         swapToCurrency = symbol;
-        const iconEl = document.getElementById('swapToIcon');
-        const symbolEl = document.getElementById('swapToSymbol');
-        if (iconEl) iconEl.src = getCurrencyIcon(symbol);
-        if (symbolEl) symbolEl.textContent = symbol;
+        document.getElementById('swapToIcon').src = getCurrencyIcon(symbol);
+        document.getElementById('swapToSymbol').innerText = symbol;
     }
     closeModal('currencySelectorModal');
     updateSwapBalances();
@@ -990,25 +793,21 @@ function selectSwapCurrency(symbol) {
 }
 
 function calculateSwap() {
-    const fromAmount = parseFloat(document.getElementById('swapFromAmount').value) || 0;
+    const amount = parseFloat(document.getElementById('swapFromAmount').value) || 0;
     let fromPrice = swapFromCurrency === 'TWT' ? TWT_PRICE : (livePrices[swapFromCurrency]?.price || 0);
     let toPrice = swapToCurrency === 'TWT' ? TWT_PRICE : (livePrices[swapToCurrency]?.price || 0);
-    
     if (fromPrice > 0 && toPrice > 0) {
-        const toAmount = (fromAmount * fromPrice) / toPrice;
-        const toEl = document.getElementById('swapToAmount');
-        const feeEl = document.getElementById('swapFee');
-        const rateEl = document.getElementById('swapRateDisplay');
-        if (toEl) toEl.value = toAmount.toFixed(6);
-        if (feeEl) feeEl.textContent = `$${(fromAmount * fromPrice * SWAP_FEE_PERCENT).toFixed(4)}`;
-        if (rateEl) rateEl.textContent = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
+        const toAmount = (amount * fromPrice) / toPrice;
+        document.getElementById('swapToAmount').value = toAmount.toFixed(6);
+        const fee = amount * fromPrice * 0.003;
+        document.getElementById('swapFee').innerText = `$${fee.toFixed(4)}`;
+        document.getElementById('swapRateDisplay').innerHTML = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
     }
 }
 
 function setSwapPercentage(percent) {
     const balance = userData.balances[swapFromCurrency] || 0;
-    const amountEl = document.getElementById('swapFromAmount');
-    if (amountEl) amountEl.value = balance * (percent / 100);
+    document.getElementById('swapFromAmount').value = balance * (percent / 100);
     calculateSwap();
 }
 
@@ -1016,275 +815,123 @@ function swapDirection() {
     const temp = swapFromCurrency;
     swapFromCurrency = swapToCurrency;
     swapToCurrency = temp;
-    const fromIcon = document.getElementById('swapFromIcon');
-    const fromSymbol = document.getElementById('swapFromSymbol');
-    const toIcon = document.getElementById('swapToIcon');
-    const toSymbol = document.getElementById('swapToSymbol');
-    if (fromIcon) fromIcon.src = getCurrencyIcon(swapFromCurrency);
-    if (fromSymbol) fromSymbol.textContent = swapFromCurrency;
-    if (toIcon) toIcon.src = getCurrencyIcon(swapToCurrency);
-    if (toSymbol) toSymbol.textContent = swapToCurrency;
+    document.getElementById('swapFromIcon').src = getCurrencyIcon(swapFromCurrency);
+    document.getElementById('swapFromSymbol').innerText = swapFromCurrency;
+    document.getElementById('swapToIcon').src = getCurrencyIcon(swapToCurrency);
+    document.getElementById('swapToSymbol').innerText = swapToCurrency;
     updateSwapBalances();
     calculateSwap();
 }
 
 async function confirmSwap() {
-    const fromAmount = parseFloat(document.getElementById('swapFromAmount').value);
+    const amount = parseFloat(document.getElementById('swapFromAmount').value);
     const toAmount = parseFloat(document.getElementById('swapToAmount').value);
-    
-    if (!fromAmount || fromAmount <= 0) { showToast('Enter valid amount', 'error'); return; }
-    if ((userData.balances[swapFromCurrency] || 0) < fromAmount) { showToast('Insufficient balance', 'error'); return; }
-    
-    userData.balances[swapFromCurrency] -= fromAmount;
+    if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
+    if ((userData.balances[swapFromCurrency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
+    userData.balances[swapFromCurrency] -= amount;
     userData.balances[swapToCurrency] = (userData.balances[swapToCurrency] || 0) + toAmount;
-    
-    addTransaction({ type: 'swap', fromAmount, fromCurrency: swapFromCurrency, toAmount, toCurrency: swapToCurrency });
     saveUserData();
     updateUI();
     updateSwapBalances();
-    const amountEl = document.getElementById('swapFromAmount');
-    if (amountEl) amountEl.value = '';
+    document.getElementById('swapFromAmount').value = '';
     calculateSwap();
     closeModal('swapModal');
     showToast('Swap completed!');
 }
 
-// ====== 17. SEND/RECEIVE/HISTORY ======
-function showSendModal() {
-    document.getElementById('sendModal').classList.add('show');
-}
+// ====== 17. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
+function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
+function showReceiveModal() { document.getElementById('receiveModal').classList.add('show'); document.getElementById('receiveAddress').innerText = userData?.userId || ''; }
+function copyAddress() { copyToClipboard(document.getElementById('receiveAddress')?.innerText); }
 
 async function sendTransaction() {
     const currency = document.getElementById('sendCurrency').value;
     const amount = parseFloat(document.getElementById('sendAmount').value);
     const address = document.getElementById('sendAddress').value;
-    
     if (!amount || amount <= 0 || !address) { showToast('Fill all fields', 'error'); return; }
     if ((userData.balances[currency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
-    
     userData.balances[currency] -= amount;
-    addTransaction({ type: 'send', amount, currency, toAddress: address });
     saveUserData();
     updateUI();
     closeModal('sendModal');
-    const amountEl = document.getElementById('sendAmount');
-    const addressEl = document.getElementById('sendAddress');
-    if (amountEl) amountEl.value = '';
-    if (addressEl) addressEl.value = '';
     showToast(`Sent ${amount} ${currency}`);
 }
 
-function showReceiveModal() {
-    document.getElementById('receiveModal').classList.add('show');
-    const addressEl = document.getElementById('receiveAddress');
-    if (addressEl) addressEl.innerText = userData.userId;
-}
-
-function copyAddress() {
-    const addressEl = document.getElementById('receiveAddress');
-    if (addressEl) copyToClipboard(addressEl.innerText);
-}
-
-function showHistory() {
-    const modal = document.getElementById('historyModal');
-    const list = document.getElementById('historyList');
-    if (!modal || !list) return;
-    
-    const txs = userData?.transactions || [];
-    if (txs.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No transactions</div>';
-    } else {
-        list.innerHTML = txs.slice(0, 50).map(tx => `
-            <div class="history-item">
-                <div class="history-item-header">
-                    <span>${tx.type}</span>
-                    <span>${new Date(tx.timestamp).toLocaleDateString()}</span>
-                </div>
-                <div class="history-details">
-                    ${tx.amount || tx.fromAmount} ${tx.currency || tx.fromCurrency}
-                </div>
-            </div>
-        `).join('');
-    }
-    modal.classList.add('show');
-}
-
-// ====== 18. DEPOSIT/WITHDRAW ======
 async function showDepositModal() {
-    const modal = document.getElementById('depositModal');
-    modal.classList.add('show');
+    document.getElementById('depositModal').classList.add('show');
     const currency = document.getElementById('depositCurrency').value;
     const result = await createDepositAddress(userData.userId, currency);
-    const addressEl = document.getElementById('depositAddress');
-    const minEl = document.getElementById('depositMinAmount');
-    if (addressEl) addressEl.innerText = result.address || `0x${userData.userId.slice(-40)}`;
-    if (minEl) minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
+    document.getElementById('depositAddress').innerText = result.address || `0x${userData.userId.slice(-40)}`;
 }
 
-function copyDepositAddress() {
-    const addressEl = document.getElementById('depositAddress');
-    if (addressEl) copyToClipboard(addressEl.innerText);
-}
+function copyDepositAddress() { copyToClipboard(document.getElementById('depositAddress')?.innerText); }
 
-function showWithdrawModal() {
-    document.getElementById('withdrawModal').classList.add('show');
-    updateWithdrawInfo();
-}
-
-function updateWithdrawInfo() {
-    const currency = document.getElementById('withdrawCurrency').value;
-    const minEl = document.getElementById('withdrawMinAmount');
-    const feeEl = document.getElementById('withdrawFee');
-    if (minEl) minEl.innerText = WITHDRAW_MINIMUMS[currency] || 10;
-    if (feeEl) feeEl.innerText = (WITHDRAW_FEES[currency] || 1) + ' ' + currency;
-}
+function showWithdrawModal() { document.getElementById('withdrawModal').classList.add('show'); }
 
 async function submitWithdraw() {
     const currency = document.getElementById('withdrawCurrency').value;
     const amount = parseFloat(document.getElementById('withdrawAmount').value);
     const address = document.getElementById('withdrawAddress').value;
-    
     if (!amount || amount <= 0 || !address) { showToast('Fill all fields', 'error'); return; }
     if ((userData.balances[currency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
-    
     userData.balances[currency] -= amount;
-    addTransaction({ type: 'withdraw', amount, currency, address, status: 'pending' });
     saveUserData();
     updateUI();
     closeModal('withdrawModal');
-    const amountEl = document.getElementById('withdrawAmount');
-    const addressEl = document.getElementById('withdrawAddress');
-    if (amountEl) amountEl.value = '';
-    if (addressEl) addressEl.value = '';
     showToast(`Withdrawal request submitted for ${amount} ${currency}`);
 }
 
-function addTransaction(tx) {
-    if (!userData.transactions) userData.transactions = [];
-    userData.transactions.unshift({ ...tx, timestamp: new Date().toISOString() });
-    saveUserData();
-}
-
-// ====== 19. ADMIN PANEL ======
+// ====== 18. ADMIN PANEL ======
 function showAdminPanel() {
-    if (!isAdmin) { 
-        showToast('Access denied', 'error'); 
-        return;
-    }
+    if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
-    renderAdminPanel();
+    document.getElementById('adminContent').innerHTML = `
+        <div style="padding:20px;">
+            <h4>👑 Admin Dashboard</h4>
+            <p>Welcome, Administrator</p>
+            <hr>
+            <p><strong>Admin ID:</strong> ${adminId}</p>
+            <p><strong>Your ID:</strong> ${getUserId()}</p>
+            <button onclick="closeAdminPanel()" class="btn-primary">Close</button>
+        </div>
+    `;
 }
 
 function closeAdminPanel() {
     document.getElementById('adminPanel').classList.add('hidden');
 }
 
-function renderAdminPanel() {
-    const content = document.getElementById('adminContent');
-    if (!content) return;
+// ====== 19. NAVIGATION ======
+function showWallet() { currentPage = 'wallet'; updateTabs(); renderWallet(); showRandomSticker(); }
+function showAirdrop() { currentPage = 'airdrop'; updateTabs(); renderAirdrop(); showRandomSticker(); }
+function showTWTPay() { currentPage = 'twtpay'; updateTabs(); renderTWTPay(); showRandomSticker(); }
+function showSettings() { currentPage = 'settings'; updateTabs(); renderSettings(); showRandomSticker(); }
+
+function updateTabs() {
+    document.getElementById('adminPanel').classList.add('hidden');
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
     
-    content.innerHTML = `
-        <div style="padding:20px;">
-            <h4>👑 Admin Dashboard</h4>
-            <p>Welcome, Administrator</p>
-            <hr style="margin:15px 0;">
-            <div>
-                <strong>Admin ID:</strong> ${adminId}
-            </div>
-            <div>
-                <strong>Your User ID:</strong> ${getUserId()}
-            </div>
-            <hr style="margin:15px 0;">
-            <button onclick="refreshAdminData()" class="btn-primary" style="width:100%;">
-                <i class="fas fa-sync-alt"></i> Refresh Data
-            </button>
-            <div id="adminData" style="margin-top:15px;"></div>
-        </div>
-    `;
-}
-
-async function refreshAdminData() {
-    const dataDiv = document.getElementById('adminData');
-    if (dataDiv) {
-        dataDiv.innerHTML = '<div style="text-align:center;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-        try {
-            const users = await apiCall('/admin/users?adminKey=' + adminId);
-            if (users.success) {
-                dataDiv.innerHTML = `
-                    <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;">
-                        <strong>Total Users:</strong> ${users.count || 0}
-                    </div>
-                `;
-            } else {
-                dataDiv.innerHTML = '<div style="color:var(--danger);">Error loading data</div>';
-            }
-        } catch(e) {
-            dataDiv.innerHTML = '<div style="color:var(--danger);">Error loading data</div>';
-        }
-    }
-}
-
-// ====== 20. NAVIGATION (المصححة) ======
-function showWallet() { 
-    currentPage = 'wallet'; 
-    document.getElementById('adminPanel').classList.add('hidden');
-    document.getElementById('walletSection').classList.remove('hidden');
-    document.getElementById('referralSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
+    if (currentPage === 'wallet') document.getElementById('walletSection').classList.remove('hidden');
+    else if (currentPage === 'airdrop') document.getElementById('referralSection').classList.remove('hidden');
+    else if (currentPage === 'twtpay') document.getElementById('twtpaySection').classList.remove('hidden');
+    else if (currentPage === 'settings') document.getElementById('settingsSection').classList.remove('hidden');
+    
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="wallet"]').classList.add('active');
-    renderWallet();
-    showRandomSticker();
+    const tabName = currentPage === 'airdrop' ? 'referral' : currentPage;
+    document.querySelector(`.nav-item[data-tab="${tabName}"]`)?.classList.add('active');
 }
 
-function showAirdrop() { 
-    currentPage = 'airdrop'; 
-    document.getElementById('adminPanel').classList.add('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('referralSection').classList.remove('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="referral"]').classList.add('active');
-    renderAirdrop();
-    showRandomSticker();
-}
-
-function showTWTPay() { 
-    currentPage = 'twtpay'; 
-    document.getElementById('adminPanel').classList.add('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('referralSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.remove('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="twtpay"]').classList.add('active');
-    renderTWTPay();
-    showRandomSticker();
-}
-
-function showSettings() { 
-    currentPage = 'settings'; 
-    document.getElementById('adminPanel').classList.add('hidden');
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('referralSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.remove('hidden');
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="settings"]').classList.add('active');
-    renderSettings();
-    showRandomSticker();
-}
-
-// ====== 21. INITIALIZATION ======
+// ====== 20. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
-    // ✅ 1. تحميل إعدادات المشرف من الخادم
-    await loadConfig();
+    // ✅ الخطوة 1: تحميل معرف المشرف من الخادم (الأهم)
+    await loadAdminId();
     
-    // ✅ 2. إعداد أزرار التبويب
+    // ✅ الخطوة 2: إعداد أزرار التبويب
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -1295,22 +942,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // ✅ 3. إعداد أزرار الإنشاء
+    // ✅ الخطوة 3: إعداد أزرار الإنشاء
     document.getElementById('createWalletBtn').onclick = createNewWallet;
     document.getElementById('importWalletBtn').onclick = showImportModal;
     document.getElementById('confirmImportBtn').onclick = importWallet;
     
     await fetchLivePrices();
     
-    const userId = localStorage.getItem('twt_user_id');
-    if (userId && localStorage.getItem(`user_${userId}`)) {
-        userData = JSON.parse(localStorage.getItem(`user_${userId}`));
-        // ✅ تحديث صلاحيات المشرف
-        isAdmin = (userId === adminId);
-        console.log("👑 Final isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
+    const hasUser = localStorage.getItem('twt_user_id');
+    if (hasUser && localStorage.getItem(`user_${hasUser}`)) {
+        userData = JSON.parse(localStorage.getItem(`user_${hasUser}`));
+        // ✅ تحديث isAdmin بعد تحميل userData
+        isAdmin = (hasUser === adminId);
+        console.log("👑 Final isAdmin:", isAdmin);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
         showMainApp();
         updateUI();
-        checkAdminAndUpdate();
     } else {
         showOnboarding();
     }
@@ -1318,10 +971,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.classList.add('hidden');
-    }, 2000);
+    }, 1500);
 });
 
-// ====== 22. EXPOSE GLOBALS ======
+// ====== 21. EXPOSE GLOBALS ======
 window.showWallet = showWallet;
 window.showAirdrop = showAirdrop;
 window.showTWTPay = showTWTPay;
@@ -1354,9 +1007,7 @@ window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
-window.refreshAdminData = refreshAdminData;
-window.showAssetDetails = showAssetDetails;
 
-console.log("✅ Trust Wallet Lite v5.0 - ULTIMATE PROFESSIONAL VERSION");
-console.log("✅ Admin ID loaded from server:", adminId);
+console.log("✅ Trust Wallet Lite v5.0 - Working!");
+console.log("✅ Admin ID:", adminId);
 console.log("✅ Is Admin:", isAdmin);
