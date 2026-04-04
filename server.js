@@ -240,7 +240,6 @@ app.post('/api/users', async (req, res) => {
         
         console.log(`✅ User created: ${userId}`);
         
-        // إرسال إشعار للمشرف مع رقم المستخدم التسلسلي
         if (ADMIN_ID && BOT_TOKEN) {
             const totalUsers = await getTotalUsersCount();
             await sendTelegramMessage(ADMIN_ID, 
@@ -359,8 +358,8 @@ app.post('/api/deposit-address', async (req, res) => {
         if (COINPAYMENTS_PUBLIC_KEY && COINPAYMENTS_PRIVATE_KEY) {
             try {
                 const result = await callCoinPaymentsAPI('get_deposit_address', {
-    currency: currency
-});
+                    currency: currency
+                });
                 address = result?.address;
                 if (address) {
                     console.log(`✅ Generated CoinPayments address for ${userId} - ${currency}: ${address}`);
