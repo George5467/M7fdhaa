@@ -1,9 +1,7 @@
 /* ============================================================================
    TRUST WALLET LITE - PROFESSIONAL STYLESHEET v5.0
-   Modern Design | Dark/Light Mode | RTL Support | Smooth Animations
    ============================================================================ */
 
-/* ====== CSS VARIABLES ====== */
 :root {
     --primary: #2962FF;
     --primary-dark: #0b3bbf;
@@ -50,7 +48,6 @@
     --border: #2D2F3E;
 }
 
-/* ====== RESET ====== */
 * {
     margin: 0;
     padding: 0;
@@ -177,7 +174,7 @@ body {
     width: 100%;
 }
 
-.btn-primary:hover {
+.btn-primary:active {
     transform: scale(0.98);
 }
 
@@ -231,6 +228,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 .header-actions {
@@ -271,13 +269,12 @@ body {
 
 /* ====== TAB CONTENT ====== */
 .tab-content {
-    display: none;
     padding: 24px;
     animation: fadeIn 0.3s ease;
 }
 
-.tab-content.active {
-    display: block;
+.hidden {
+    display: none !important;
 }
 
 /* ====== BALANCE CARD ====== */
@@ -1084,26 +1081,45 @@ body {
     display: flex;
 }
 
-/* ====== FLOATING TOAST ====== */
-.floating-toast {
+/* ====== ADMIN PANEL ====== */
+.admin-panel {
     position: fixed;
-    bottom: 120px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary);
     z-index: 1200;
-    opacity: 0;
-    transform: translateX(-100%);
-    transition: all 0.3s ease;
-    pointer-events: none;
+    overflow-y: auto;
 }
 
-.floating-toast.show {
-    opacity: 1;
-    transform: translateX(0);
+.admin-panel.hidden {
+    display: none;
+}
+
+.admin-header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.admin-content {
+    padding: 20px;
+}
+
+.admin-refresh-btn {
+    width: 100%;
+    padding: 12px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    cursor: pointer;
 }
 
 /* ====== ANIMATIONS ====== */
