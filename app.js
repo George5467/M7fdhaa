@@ -1088,6 +1088,3 @@ console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING!");
 console.log("✅ Real Telegram ID:", REAL_USER_ID);
 console.log("✅ Admin ID:", adminId);
 console.log("✅ Is Admin:", isAdmin);
-
-
-هذا الكود شغل التطبيق ولكنه بدائي جدا وبدون اي ميزات
