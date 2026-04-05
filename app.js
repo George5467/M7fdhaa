@@ -11,7 +11,7 @@ if (tg) {
     console.log("✅ Telegram WebApp initialized");
 }
 
-// ====== جلب بيانات المستخدم الحقيقية من تيليجرام ======
+// جلب بيانات المستخدم الحقيقية من تيليجرام
 const telegramUser = tg?.initDataUnsafe?.user;
 const REAL_USER_ID = telegramUser?.id?.toString() || null;
 const TELEGRAM_USERNAME = telegramUser?.username || '';
@@ -943,56 +943,61 @@ function renderAdminPanel() {
     `;
 }
 
-// ====== 19. NAVIGATION ======
+// ====== 19. NAVIGATION (مثل REFI بالضبط) ======
 function showWallet() { 
     currentPage = 'wallet'; 
-    updateTabs(); 
-    renderWallet(); 
+    document.getElementById('walletSection').classList.remove('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="wallet"]').classList.add('active');
+    
+    renderWallet();
     showRandomSticker();
 }
 
 function showAirdrop() { 
     currentPage = 'airdrop'; 
-    updateTabs(); 
-    renderAirdrop(); 
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.remove('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="referral"]').classList.add('active');
+    
+    renderAirdrop();
     showRandomSticker();
 }
 
 function showTWTPay() { 
     currentPage = 'twtpay'; 
-    updateTabs(); 
-    renderTWTPay(); 
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.remove('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    document.querySelector('.nav-item[data-tab="twtpay"]').classList.add('active');
+    
+    renderTWTPay();
     showRandomSticker();
 }
 
 function showSettings() { 
     currentPage = 'settings'; 
-    updateTabs(); 
-    renderSettings(); 
-    showRandomSticker();
-}
-
-function updateTabs() {
-    const sections = ['walletSection', 'referralSection', 'twtpaySection', 'settingsSection'];
-    sections.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.add('hidden');
-    });
-    
-    if (currentPage === 'wallet') {
-        document.getElementById('walletSection').classList.remove('hidden');
-    } else if (currentPage === 'airdrop') {
-        document.getElementById('referralSection').classList.remove('hidden');
-    } else if (currentPage === 'twtpay') {
-        document.getElementById('twtpaySection').classList.remove('hidden');
-    } else if (currentPage === 'settings') {
-        document.getElementById('settingsSection').classList.remove('hidden');
-    }
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.remove('hidden');
     
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    const tabName = currentPage === 'airdrop' ? 'referral' : currentPage;
-    const activeBtn = document.querySelector(`.nav-item[data-tab="${tabName}"]`);
-    if (activeBtn) activeBtn.classList.add('active');
+    document.querySelector('.nav-item[data-tab="settings"]').classList.add('active');
+    
+    renderSettings();
+    showRandomSticker();
 }
 
 // ====== 20. INITIALIZATION ======
