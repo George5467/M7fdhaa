@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - VERSION 5.0 (REFI COPY + FIXED DEPOSIT)
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -36,7 +36,11 @@ let livePrices = {};
 let unreadNotifications = 0;
 let currentManageUserId = null;
 
-// ====== 3. CONSTANTS (مثل REFI) ======
+// متغيرات النقرات السرية للمشرف
+let adminClickCount = 0;
+let adminClickTimer = null;
+
+// ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
@@ -57,7 +61,7 @@ const ALL_ASSETS = [
     { symbol: 'TON', name: 'Toncoin' }
 ];
 
-// مراحل الإحالة (مثل REFI بالضبط)
+// مراحل الإحالة (مثل REFI)
 const REFERRAL_MILESTONES = [
     { referrals: 10, reward: 50, unit: 'USDT', icon: 'fa-medal' },
     { referrals: 25, reward: 120, unit: 'USDT', icon: 'fa-medal' },
@@ -65,6 +69,16 @@ const REFERRAL_MILESTONES = [
     { referrals: 100, reward: 500, unit: 'USDT', icon: 'fa-crown' },
     { referrals: 250, reward: 1000, unit: 'USDT', icon: 'fa-gem' }
 ];
+
+const WITHDRAW_FEES = {
+    TWT: 1, USDT: 0.16, BNB: 0.0005, BTC: 0.0002, ETH: 0.001,
+    SOL: 0.005, TRX: 1, ADA: 0.5, DOGE: 1, SHIB: 50000, PEPE: 500000, TON: 0.1
+};
+
+const WITHDRAW_MINIMUMS = {
+    TWT: 10, USDT: 10, BNB: 0.02, BTC: 0.0005, ETH: 0.005,
+    SOL: 0.12, TRX: 40, ADA: 10, DOGE: 50, SHIB: 500000, PEPE: 5000000, TON: 1
+};
 
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
@@ -98,25 +112,16 @@ const translations = {
         'nav.settings': 'Settings', 'actions.deposit': 'Deposit',
         'actions.withdraw': 'Withdraw', 'actions.send': 'Send',
         'actions.receive': 'Receive', 'actions.history': 'History',
-        'actions.swap': 'Swap', 'actions.stake': 'Stake USDT',
-        'wallet.totalBalance': 'Total Balance',
-        'swap.from': 'From', 'swap.to': 'To',
-        'swap.exchangeRate': 'Exchange Rate',
-        'swap.networkFee': 'Network Fee',
-        'referral.title': 'EARN USDT',
-        'referral.totalReferrals': 'TOTAL REFERRALS',
-        'referral.usdtEarned': 'USDT EARNED',
-        'referral.yourLink': 'Your Referral Link',
-        'referral.milestones': 'Referral Milestones',
-        'settings.language': 'Language',
-        'settings.theme': 'Theme',
-        'settings.logout': 'Logout',
-        'card.balance': 'Card Balance',
-        'notifications.title': 'Notifications',
-        'admin.title': 'Admin Dashboard',
-        'admin.searchUser': 'Search User',
-        'admin.totalUsers': 'Total Users',
-        'admin.pendingWithdrawals': 'Pending Withdrawals'
+        'actions.swap': 'Swap', 'wallet.totalBalance': 'Total Balance',
+        'swap.from': 'From', 'swap.to': 'To', 'swap.exchangeRate': 'Exchange Rate',
+        'swap.networkFee': 'Network Fee', 'swap.confirm': 'Confirm Swap',
+        'referral.title': 'EARN USDT', 'referral.totalReferrals': 'TOTAL REFERRALS',
+        'referral.usdtEarned': 'USDT EARNED', 'referral.yourLink': 'Your Referral Link',
+        'referral.milestones': 'Referral Milestones', 'card.balance': 'Card Balance',
+        'settings.language': 'Language', 'settings.theme': 'Theme',
+        'settings.logout': 'Logout', 'notifications.title': 'Notifications',
+        'admin.title': 'Admin Dashboard', 'admin.searchUser': 'Search User',
+        'admin.totalUsers': 'Total Users', 'admin.pendingWithdrawals': 'Pending Withdrawals'
     },
     ar: {
         'nav.wallet': 'المحفظة', 'nav.swap': 'تحويل',
@@ -124,25 +129,16 @@ const translations = {
         'nav.settings': 'الإعدادات', 'actions.deposit': 'إيداع',
         'actions.withdraw': 'سحب', 'actions.send': 'إرسال',
         'actions.receive': 'استلام', 'actions.history': 'السجل',
-        'actions.swap': 'تحويل', 'actions.stake': 'تجميد USDT',
-        'wallet.totalBalance': 'الرصيد الإجمالي',
-        'swap.from': 'من', 'swap.to': 'إلى',
-        'swap.exchangeRate': 'سعر الصرف',
-        'swap.networkFee': 'رسوم الشبكة',
-        'referral.title': 'اربح USDT',
-        'referral.totalReferrals': 'إجمالي الإحالات',
-        'referral.usdtEarned': 'USDT المكتسبة',
-        'referral.yourLink': 'رابط الإحالة',
-        'referral.milestones': 'مراحل الإحالة',
-        'settings.language': 'اللغة',
-        'settings.theme': 'المظهر',
-        'settings.logout': 'تسجيل الخروج',
-        'card.balance': 'رصيد البطاقة',
-        'notifications.title': 'الإشعارات',
-        'admin.title': 'لوحة المشرف',
-        'admin.searchUser': 'بحث عن مستخدم',
-        'admin.totalUsers': 'إجمالي المستخدمين',
-        'admin.pendingWithdrawals': 'سحوبات معلقة'
+        'actions.swap': 'تحويل', 'wallet.totalBalance': 'الرصيد الإجمالي',
+        'swap.from': 'من', 'swap.to': 'إلى', 'swap.exchangeRate': 'سعر الصرف',
+        'swap.networkFee': 'رسوم الشبكة', 'swap.confirm': 'تأكيد',
+        'referral.title': 'اربح USDT', 'referral.totalReferrals': 'إجمالي الإحالات',
+        'referral.usdtEarned': 'USDT المكتسبة', 'referral.yourLink': 'رابط الإحالة',
+        'referral.milestones': 'مراحل الإحالة', 'card.balance': 'رصيد البطاقة',
+        'settings.language': 'اللغة', 'settings.theme': 'المظهر',
+        'settings.logout': 'تسجيل الخروج', 'notifications.title': 'الإشعارات',
+        'admin.title': 'لوحة المشرف', 'admin.searchUser': 'بحث عن مستخدم',
+        'admin.totalUsers': 'إجمالي المستخدمين', 'admin.pendingWithdrawals': 'سحوبات معلقة'
     }
 };
 
@@ -174,6 +170,12 @@ function showToast(message, type = 'success') {
     if (!toast) return;
     toastMessage.textContent = message;
     toast.classList.remove('hidden');
+    const icon = toast.querySelector('i');
+    if (icon) {
+        if (type === 'success') icon.className = 'fa-regular fa-circle-check';
+        else if (type === 'error') icon.className = 'fa-regular fa-circle-xmark';
+        else icon.className = 'fa-regular fa-circle-info';
+    }
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
@@ -258,23 +260,25 @@ async function loadAdminId() {
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
-        
-        const userId = getUserId();
-        if (userId && adminId) {
-            isAdmin = (userId === adminId);
-            console.log("👑 Is Admin:", isAdmin);
-        }
-        
-        const crownBtn = document.getElementById('adminCrownBtn');
-        if (crownBtn) {
-            if (isAdmin) crownBtn.classList.remove('hidden');
-            else crownBtn.classList.add('hidden');
-        }
-        
         return config;
     } catch (error) {
         console.error("Failed to load admin ID:", error);
         return null;
+    }
+}
+
+async function verifyAdminPassword(password) {
+    try {
+        const response = await fetch('/api/verify-admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        const data = await response.json();
+        return data.success;
+    } catch (error) {
+        console.error("Error verifying password:", error);
+        return false;
     }
 }
 
@@ -441,21 +445,88 @@ function showNotifications() {
     modal.classList.add('show');
 }
 
-// ====== 11. ONBOARDING & WALLET CREATION ======
+// ====== 11. ADMIN CLICK DETECTOR (5 نقرات سرية) ======
+function setupAdminClickDetector() {
+    const notifBtn = document.getElementById('notificationBtn');
+    if (!notifBtn) {
+        console.log("⚠️ Notification button not found, will retry");
+        setTimeout(setupAdminClickDetector, 1000);
+        return;
+    }
+    
+    notifBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (adminClickTimer) clearTimeout(adminClickTimer);
+        
+        adminClickCount++;
+        console.log(`🔑 Admin click count: ${adminClickCount}`);
+        
+        if (adminClickCount === 5) {
+            adminClickCount = 0;
+            showAdminPasswordModal();
+        }
+        
+        adminClickTimer = setTimeout(() => {
+            adminClickCount = 0;
+            console.log("🔄 Admin click count reset");
+        }, 3000);
+        
+        // استدعاء الوظيفة الأصلية للإشعارات
+        showNotifications();
+    });
+    
+    console.log("✅ Admin click detector setup complete");
+}
+
+function showAdminPasswordModal() {
+    const password = prompt("🔐 Enter Admin Password:");
+    if (!password) return;
+    
+    verifyAndShowAdminPanel(password);
+}
+
+async function verifyAndShowAdminPanel(password) {
+    showToast("🔍 Verifying...", "info");
+    
+    try {
+        const isValid = await verifyAdminPassword(password);
+        
+        if (isValid) {
+            isAdmin = true;
+            showAdminPanel();
+            showToast("✅ Welcome, Administrator!", "success");
+        } else {
+            showToast("❌ Invalid password!", "error");
+        }
+    } catch (error) {
+        console.error("Verification error:", error);
+        showToast("Error verifying password", "error");
+    }
+}
+
+// ====== 12. ONBOARDING & WALLET CREATION ======
 function showMainApp() {
-    document.getElementById('onboardingScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'none';
+    if (main) main.style.display = 'block';
     showWallet();
     showRandomSticker();
 }
 
 function showOnboarding() {
-    document.getElementById('onboardingScreen').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+    const onboarding = document.getElementById('onboardingScreen');
+    const main = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'flex';
+    if (main) main.style.display = 'none';
 }
 
 async function createNewWallet() {
     const btn = document.getElementById('createWalletBtn');
+    if (!btn) return;
+    
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     btn.disabled = true;
     
@@ -480,7 +551,7 @@ async function createNewWallet() {
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
             referralCount: 0,
-            referredBy: null,
+            invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
             referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
             notifications: [{ id: Date.now(), message: '🎉 Welcome! You got 10 USDT!', read: false, timestamp: new Date() }],
@@ -494,15 +565,6 @@ async function createNewWallet() {
         await createUser(newUserId, newUserData);
         userData = newUserData;
         saveUserData();
-        
-        isAdmin = (newUserId === adminId);
-        console.log("👑 New user isAdmin:", isAdmin);
-        
-        const crownBtn = document.getElementById('adminCrownBtn');
-        if (crownBtn) {
-            if (isAdmin) crownBtn.classList.remove('hidden');
-            else crownBtn.classList.add('hidden');
-        }
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -563,7 +625,7 @@ async function importWallet() {
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
             referralCount: 0,
-            referredBy: null,
+            invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
             referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
             notifications: [{ id: Date.now(), message: '🎉 Wallet imported! You got 10 USDT!', read: false, timestamp: new Date() }],
@@ -576,15 +638,6 @@ async function importWallet() {
         await createUser(newUserId, newUserData);
         userData = newUserData;
         saveUserData();
-        
-        isAdmin = (newUserId === adminId);
-        console.log("👑 Imported user isAdmin:", isAdmin);
-        
-        const crownBtn = document.getElementById('adminCrownBtn');
-        if (crownBtn) {
-            if (isAdmin) crownBtn.classList.remove('hidden');
-            else crownBtn.classList.add('hidden');
-        }
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -603,7 +656,7 @@ async function importWallet() {
     }
 }
 
-// ====== 12. RENDER WALLET ======
+// ====== 13. RENDER WALLET ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container || !userData) return;
@@ -661,7 +714,7 @@ function renderWallet() {
     updateTotalBalance();
 }
 
-// ====== 13. SWAP FUNCTIONS ======
+// ====== 14. SWAP FUNCTIONS ======
 let swapFromCurrency = 'TWT';
 let swapToCurrency = 'USDT';
 let currentCurrencySelector = 'from';
@@ -704,7 +757,7 @@ function renderSwap() {
             </div>
             <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
             <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-            <button class="btn-primary" onclick="confirmSwap()">${t('actions.swap')}</button>
+            <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
         </div>
     `;
     updateSwapBalances();
@@ -754,7 +807,7 @@ function renderSwapModal() {
         </div>
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
         <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-        <button class="btn-primary" onclick="confirmSwap()">${t('actions.swap')}</button>
+        <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
     `;
     updateSwapBalances();
     calculateSwap();
@@ -841,7 +894,7 @@ async function confirmSwap() {
     showToast('Swap completed!');
 }
 
-// ====== 14. REFERRAL SECTION (مثل REFI بالضبط) ======
+// ====== 15. REFERRAL SECTION (مثل REFI) ======
 function renderReferral() {
     const container = document.getElementById('referralContainer');
     if (!container || !userData) return;
@@ -933,7 +986,7 @@ function shareInvite() {
     showToast('Link copied!');
 }
 
-// ====== 15. TWT PAY CARD ======
+// ====== 16. TWT PAY CARD ======
 function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
@@ -978,7 +1031,7 @@ function showTopUp() { showToast('Coming soon!'); }
 function showCardSettings() { showToast('Coming soon!'); }
 function showCardTransactions() { showHistory(); }
 
-// ====== 16. SETTINGS ======
+// ====== 17. SETTINGS ======
 function renderSettings() {
     const container = document.getElementById('settingsContainer');
     container.innerHTML = `
@@ -1036,7 +1089,7 @@ function logout() {
     }
 }
 
-// ====== 17. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
+// ====== 18. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
 function showReceiveModal() { document.getElementById('receiveModal').classList.add('show'); document.getElementById('receiveAddress').innerText = userData?.userId || ''; }
 function copyAddress() { copyToClipboard(document.getElementById('receiveAddress')?.innerText); }
@@ -1079,7 +1132,7 @@ async function submitWithdraw() {
     showToast(`Withdrawal request submitted for ${amount} ${currency}`);
 }
 
-// ====== 18. ADMIN PANEL (مثل REFI بالضبط) ======
+// ====== 19. ADMIN PANEL (نسخة REFI) ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
@@ -1282,7 +1335,7 @@ async function refreshAdminStats() {
     showToast('Stats refreshed!', 'success');
 }
 
-// ====== 19. NAVIGATION (مثل REFI) ======
+// ====== 20. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('walletSection').classList.remove('hidden');
@@ -1358,11 +1411,14 @@ function showSettings() {
     showRandomSticker();
 }
 
-// ====== 20. INITIALIZATION ======
+// ====== 21. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
     await loadAdminId();
+    
+    // إعداد كاشف النقرات السرية للمشرف
+    setupAdminClickDetector();
     
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1388,15 +1444,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userId = getUserId();
     if (userId && localStorage.getItem(`user_${userId}`)) {
         userData = JSON.parse(localStorage.getItem(`user_${userId}`));
-        isAdmin = (userId === adminId);
-        console.log("👑 Final isAdmin:", isAdmin);
-        
-        const crownBtn = document.getElementById('adminCrownBtn');
-        if (crownBtn) {
-            if (isAdmin) crownBtn.classList.remove('hidden');
-            else crownBtn.classList.add('hidden');
-        }
-        
         showMainApp();
         updateUI();
     } else {
@@ -1409,7 +1456,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1500);
 });
 
-// ====== 21. EXPOSE GLOBALS ======
+// ====== 22. EXPOSE GLOBALS ======
 window.showWallet = showWallet;
 window.showSwap = showSwap;
 window.showReferral = showReferral;
@@ -1450,7 +1497,6 @@ window.adminBlockUser = adminBlockUser;
 window.refreshAdminStats = refreshAdminStats;
 window.showAssetDetails = showAssetDetails;
 
-console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING (REFI Copy + Fixed Deposit)");
+console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING");
 console.log("✅ Real Telegram ID:", REAL_USER_ID);
-console.log("✅ Admin ID:", adminId);
-console.log("✅ Is Admin:", isAdmin);
+console.log("✅ Admin Password protected (5 clicks on bell)");
