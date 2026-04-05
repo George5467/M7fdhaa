@@ -15,6 +15,7 @@ let ADMIN_ID = null;
 let COINPAYMENTS_PUBLIC_KEY = null;
 let COINPAYMENTS_PRIVATE_KEY = null;
 let BOT_TOKEN = null;
+let ADMIN_PASSWORD = null;
 let firebaseKey = null;
 let db = null;
 let admin = null;
@@ -91,6 +92,23 @@ try {
 } catch (error) {
     console.error("❌ Error loading bot token:", error.message);
     BOT_TOKEN = process.env.BOT_TOKEN || null;
+}
+
+// 5. Admin Password (لكلمة السر)
+try {
+    const adminPasswordPath = '/etc/secrets/admin-password.json';
+    if (fs.existsSync(adminPasswordPath)) {
+        const adminPasswordConfig = JSON.parse(fs.readFileSync(adminPasswordPath, 'utf8'));
+        ADMIN_PASSWORD = adminPasswordConfig.password;
+        console.log("✅ Admin password loaded from Secret File");
+    } else {
+        console.log("⚠️ admin-password.json not found, checking environment variable...");
+        ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ali2026@";
+        if (ADMIN_PASSWORD) console.log("✅ Using ADMIN_PASSWORD from environment variable");
+    }
+} catch (error) {
+    console.error("❌ Error loading admin password:", error.message);
+    ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Ali2026@";
 }
 
 // ====== FIREBASE ADMIN SDK ======
@@ -216,6 +234,22 @@ app.get('/api/config', (req, res) => {
         coinpaymentsConfigured: !!COINPAYMENTS_PUBLIC_KEY,
         version: '5.0.0'
     });
+});
+
+// Verify admin password (للنقرات السرية)
+app.post('/api/verify-admin', async (req, res) => {
+    try {
+        const { password } = req.body;
+        
+        if (password === ADMIN_PASSWORD) {
+            res.json({ success: true, message: "Access granted" });
+        } else {
+            res.json({ success: false, message: "Invalid password" });
+        }
+    } catch (error) {
+        console.error("Verify admin error:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
 });
 
 // Create user
@@ -348,7 +382,7 @@ app.post('/api/referrals', async (req, res) => {
     }
 });
 
-// Create deposit address
+// Create deposit address (عنوان ثابت لكل مستخدم)
 app.post('/api/deposit-address', async (req, res) => {
     try {
         const { userId, currency } = req.body;
@@ -547,4 +581,5 @@ app.listen(PORT, () => {
     console.log(`👑 Admin ID: ${ADMIN_ID ? '✅ Configured' : '❌ Not configured'}`);
     console.log(`💳 CoinPayments: ${COINPAYMENTS_PUBLIC_KEY ? '✅ Configured' : '❌ Not configured'}`);
     console.log(`🤖 Bot Token: ${BOT_TOKEN ? '✅ Configured' : '❌ Not configured'}`);
+    console.log(`🔐 Admin Password: ${ADMIN_PASSWORD ? '✅ Configured' : '❌ Not configured'}`);
 });
