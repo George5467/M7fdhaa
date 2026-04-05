@@ -1,9 +1,9 @@
 // ============================================================================
 // TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 6.0
-// مع: تسجيل حقيقي بـ Telegram ID + CoinPayments + لوحة مشرف متكاملة
+// مع: تسجيل حقيقي بـ Telegram ID (مثل REFI) + CoinPayments + لوحة مشرف متكاملة
 // ============================================================================
 
-// ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
+// ====== 1. TELEGRAM WEBAPP INITIALIZATION (مثل REFI بالضبط) ======
 const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
@@ -12,21 +12,23 @@ if (tg) {
     console.log("✅ Telegram WebApp initialized");
 }
 
-// جلب بيانات المستخدم الحقيقية من تيليجرام
-const telegramUser = tg?.initDataUnsafe?.user;
-const REAL_USER_ID = telegramUser?.id?.toString() || null;
-const TELEGRAM_USERNAME = telegramUser?.username || '';
-const TELEGRAM_FIRST_NAME = telegramUser?.first_name || 'User';
-const TELEGRAM_LAST_NAME = telegramUser?.last_name || '';
-const TELEGRAM_PHOTO = telegramUser?.photo_url || '';
+// 🔥 المفتاح: نفس طريقة REFI بالضبط - مضمونة 100%
+const REAL_USER_ID = tg?.initDataUnsafe?.user?.id?.toString() || 
+                     localStorage.getItem('twt_user_id') || 
+                     null;
 
-console.log("📱 Real Telegram ID:", REAL_USER_ID);
-console.log("👤 Username:", TELEGRAM_USERNAME);
-console.log("📛 Name:", TELEGRAM_FIRST_NAME, TELEGRAM_LAST_NAME);
+const TELEGRAM_USERNAME = tg?.initDataUnsafe?.user?.username || '';
+const TELEGRAM_FIRST_NAME = tg?.initDataUnsafe?.user?.first_name || 'User';
+const TELEGRAM_LAST_NAME = tg?.initDataUnsafe?.user?.last_name || '';
+const TELEGRAM_PHOTO = tg?.initDataUnsafe?.user?.photo_url || '';
 
 const startParam = tg?.initDataUnsafe?.start_param || 
                    new URLSearchParams(window.location.search).get('startapp') || 
                    new URLSearchParams(window.location.search).get('ref');
+
+console.log("📱 Real Telegram ID:", REAL_USER_ID);
+console.log("👤 Username:", TELEGRAM_USERNAME);
+console.log("📛 Name:", TELEGRAM_FIRST_NAME, TELEGRAM_LAST_NAME);
 
 // ====== 2. STATE MANAGEMENT ======
 let userData = null;
@@ -40,6 +42,14 @@ let livePrices = {};
 let unreadNotifications = 0;
 let currentAdminTab = 'deposits';
 let currentManageUserId = null;
+let lastUserLoadTime = 0;
+let lastPricesLoadTime = 0;
+let lastHistoryCheckTime = 0;
+
+// ثوابت التخزين المؤقت (مثل REFI)
+const USER_CACHE_TIME = 300000;     // 5 دقائق
+const PRICES_CACHE_TIME = 10800000; // 3 ساعات
+const HISTORY_CACHE_TIME = 600000;  // 10 دقائق
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
@@ -317,9 +327,8 @@ async function loadAdminId() {
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
         
-        const userId = getUserId();
-        if (userId && adminId) {
-            isAdmin = (userId === adminId);
+        if (REAL_USER_ID && adminId) {
+            isAdmin = (REAL_USER_ID === adminId);
             console.log("👑 Is Admin:", isAdmin);
         }
         
@@ -357,7 +366,20 @@ async function createDepositAddress(userId, currency) {
 }
 
 // ====== 9. PRICES ======
-async function fetchLivePrices() {
+async function fetchLivePrices(force = false) {
+    const now = Date.now();
+    const cachedPrices = localStorage.getItem('live_prices');
+    
+    if (!force && cachedPrices && (now - lastPricesLoadTime) < PRICES_CACHE_TIME) {
+        const { prices, timestamp } = JSON.parse(cachedPrices);
+        livePrices = prices;
+        lastPricesLoadTime = timestamp;
+        console.log("📦 Using cached prices");
+        if (currentPage === 'wallet') renderAssets();
+        updateTotalBalance();
+        return;
+    }
+    
     try {
         const ids = Object.values(CRYPTO_IDS).join(',');
         const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
@@ -369,6 +391,10 @@ async function fetchLivePrices() {
         }
         if (!livePrices.TWT) livePrices.TWT = { price: 1.25, change: 0 };
         TWT_PRICE = livePrices.TWT.price;
+        
+        lastPricesLoadTime = now;
+        localStorage.setItem('live_prices', JSON.stringify({ prices: livePrices, timestamp: now }));
+        
         if (currentPage === 'wallet') renderAssets();
         updateTotalBalance();
     } catch (error) {
@@ -377,32 +403,40 @@ async function fetchLivePrices() {
 }
 
 function refreshPrices() {
-    fetchLivePrices();
+    fetchLivePrices(true);
     showToast('Prices refreshed!');
 }
 
 // ====== 10. USER DATA MANAGEMENT ======
 function getUserId() {
-    // استخدام المعرف الحقيقي من تيليجرام أولاً
     if (REAL_USER_ID) return REAL_USER_ID;
     return localStorage.getItem('twt_user_id') || null;
 }
 
-async function loadUserData() {
+async function loadUserData(force = false) {
     try {
         const userId = getUserId();
         if (!userId) return false;
         
+        const now = Date.now();
         const localData = localStorage.getItem(`user_${userId}`);
+        
+        if (!force && localData && (now - lastUserLoadTime) < USER_CACHE_TIME) {
+            userData = JSON.parse(localData);
+            console.log("✅ Using cached user data");
+            updateUI();
+            return true;
+        }
+        
         if (localData) {
             userData = JSON.parse(localData);
-            updateUI();
         }
         
         const result = await getUser(userId);
         if (result.success && result.data) {
             userData = result.data;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+            lastUserLoadTime = now;
             updateUI();
             return true;
         }
@@ -547,7 +581,7 @@ function clearReadNotifications() {
     if (!userData.notifications) return;
     const readCount = userData.notifications.filter(n => n.read).length;
     if (readCount === 0) {
-        showToast(t('notifications.no_read'), 'info');
+        showToast('No read notifications', 'info');
         return;
     }
     userData.notifications = userData.notifications.filter(n => !n.read);
@@ -582,7 +616,7 @@ function showOnboarding() {
     const onboarding = document.getElementById('onboardingScreen');
     const mainContent = document.getElementById('mainContent');
     if (onboarding) onboarding.style.display = 'flex';
-    if (mainContent) mainContent.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
 }
 
 async function createNewWallet() {
@@ -591,12 +625,14 @@ async function createNewWallet() {
     btn.disabled = true;
     
     try {
-        if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID', 'error');
+        // استخدام REAL_USER_ID مباشرة (مثل REFI)
+        const newUserId = REAL_USER_ID;
+        
+        if (!newUserId) {
+            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
             return;
         }
         
-        const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
         // توليد عنوان إيداع من CoinPayments
@@ -697,15 +733,15 @@ async function importWallet() {
     btn.disabled = true;
     
     try {
-        if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID', 'error');
+        const newUserId = REAL_USER_ID;
+        
+        if (!newUserId) {
+            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
             return;
         }
         
-        const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
-        // توليد عنوان إيداع من CoinPayments
         let depositAddress = null;
         try {
             const addressResult = await createDepositAddress(newUserId, 'USDT');
@@ -1158,13 +1194,11 @@ async function showDepositModal() {
     modal.classList.add('show');
     const currency = document.getElementById('depositCurrency')?.value || 'USDT';
     
-    // عرض عنوان الإيداع المخزن للمستخدم
     const depositAddressSpan = document.getElementById('depositAddress');
     if (depositAddressSpan && userData) {
         if (userData.depositAddress) {
             depositAddressSpan.innerText = userData.depositAddress;
         } else {
-            // محاولة توليد عنوان جديد
             try {
                 const result = await createDepositAddress(userData.userId, currency);
                 if (result.address) {
@@ -1209,13 +1243,12 @@ async function submitWithdraw() {
     closeModal('withdrawModal');
     showToast(t('success.withdrawSubmitted'));
     
-    // إشعار للمشرف
     if (isAdmin) {
         addNotification(`💰 New withdrawal request: ${amount} ${currency} to ${address.slice(0, 10)}...`, 'info');
     }
 }
 
-// ====== 18. ADMIN PANEL - نسخة كاملة من REFI ======
+// ====== 18. ADMIN PANEL (نسخة كاملة من REFI) ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     currentPage = 'admin';
@@ -1284,7 +1317,6 @@ async function refreshAdminPanel() {
     
     try {
         if (currentAdminTab === 'users') {
-            // واجهة إدارة المستخدمين
             content.innerHTML = `
                 <div class="admin-user-search">
                     <div class="search-box">
@@ -1295,9 +1327,8 @@ async function refreshAdminPanel() {
                 </div>
             `;
         } else {
-            // عرض الطلبات المعلقة (سيتم جلبها من الـ API)
             const endpoint = currentAdminTab === 'deposits' ? '/api/admin/deposits' : '/api/admin/withdrawals';
-            const response = await fetch(endpoint);
+            const response = await fetch(`${endpoint}?adminKey=${adminId}`);
             const data = await response.json();
             
             if (data.length === 0) {
@@ -1446,18 +1477,11 @@ async function adminAddBalance(userId) {
         if (result.success) {
             showToast(`Added ${amount} ${currency} to user`, 'success');
             adminSearchUser();
-            // تحديث بيانات المستخدم الحالي إذا كان هو نفسه
             if (userData && userData.userId === userId) {
                 userData.balances[currency] = (userData.balances[currency] || 0) + amount;
                 saveUserData();
                 updateUI();
             }
-            // إرسال إشعار للمستخدم
-            await fetch('/api/send-notification', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, message: `✅ Your deposit of ${amount} ${currency} has been approved!` })
-            });
         } else {
             showToast('Failed to add balance', 'error');
         }
@@ -1536,7 +1560,6 @@ async function adminApproveTransaction(txId, userId, amount, currency) {
         if (result.success) {
             showToast('Transaction approved', 'success');
             refreshAdminPanel();
-            // تحديث بيانات المستخدم الحالي
             if (userData && userData.userId === userId) {
                 userData.balances[currency] = (userData.balances[currency] || 0) + amount;
                 saveUserData();
@@ -1655,7 +1678,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
     
-    // إضافة زر المشرف في الهيدر
     const headerActions = document.querySelector('.header-actions');
     if (headerActions && !document.getElementById('adminCrownBtn')) {
         const crownBtn = document.createElement('button');
