@@ -1,8 +1,8 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 6.1 (FIXED)
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 6.3 (FULLY FIXED)
 // ============================================================================
 
-// ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
+// ====== 1. TELEGRAM WEBAPP INITIALIZATION (FIXED) ======
 let tg = null;
 let REAL_USER_ID = null;
 let TELEGRAM_USERNAME = '';
@@ -12,42 +12,47 @@ let TELEGRAM_PHOTO = '';
 let startParam = null;
 
 try {
-    tg = window.Telegram?.WebApp;
-    if (tg) {
+    // محاولة الوصول إلى Telegram WebApp
+    if (window.Telegram && window.Telegram.WebApp) {
+        tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
         console.log("✅ Telegram WebApp initialized");
         
-        const telegramUser = tg.initDataUnsafe?.user;
-        if (telegramUser && telegramUser.id) {
-            REAL_USER_ID = telegramUser.id.toString();
-            TELEGRAM_USERNAME = telegramUser.username || '';
-            TELEGRAM_FIRST_NAME = telegramUser.first_name || 'User';
-            TELEGRAM_LAST_NAME = telegramUser.last_name || '';
-            TELEGRAM_PHOTO = telegramUser.photo_url || '';
-            console.log("✅ Real Telegram ID loaded:", REAL_USER_ID);
+        // محاولة استخراج بيانات المستخدم
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const user = tg.initDataUnsafe.user;
+            if (user.id) {
+                REAL_USER_ID = user.id.toString();
+                TELEGRAM_USERNAME = user.username || '';
+                TELEGRAM_FIRST_NAME = user.first_name || 'User';
+                TELEGRAM_LAST_NAME = user.last_name || '';
+                TELEGRAM_PHOTO = user.photo_url || '';
+                console.log("✅ Telegram user detected! ID:", REAL_USER_ID);
+                console.log("👤 Name:", TELEGRAM_FIRST_NAME);
+                console.log("🔹 Username:", TELEGRAM_USERNAME);
+            } else {
+                console.log("⚠️ Telegram user object has no ID");
+            }
         } else {
-            console.log("⚠️ No Telegram user data available");
+            console.log("⚠️ No initDataUnsafe.user available");
         }
         
+        // استخراج start_param
         startParam = tg.initDataUnsafe?.start_param || null;
     } else {
-        console.log("⚠️ Not in Telegram WebApp environment");
+        console.log("⚠️ window.Telegram.WebApp not available");
     }
 } catch (error) {
     console.error("❌ Error initializing Telegram WebApp:", error);
 }
 
-// إذا لم نتمكن من الحصول على ID، نستخدم localStorage
+// إذا لم نتمكن من الحصول على ID من تيليجرام، نعرض خطأ
 if (!REAL_USER_ID) {
-    const savedId = localStorage.getItem('twt_user_id');
-    if (savedId) {
-        REAL_USER_ID = savedId;
-        console.log("📦 Using saved user ID from localStorage:", REAL_USER_ID);
-    }
+    console.error("❌ CRITICAL: No Telegram ID found!");
 }
 
-// قراءة startParam من URL إذا لم يكن موجوداً في tg
+// قراءة startParam من URL إذا لم يكن موجوداً
 if (!startParam) {
     const urlParams = new URLSearchParams(window.location.search);
     startParam = urlParams.get('startapp') || urlParams.get('ref') || null;
@@ -56,6 +61,7 @@ if (!startParam) {
 console.log("📱 Final Telegram ID:", REAL_USER_ID);
 console.log("👤 Username:", TELEGRAM_USERNAME);
 console.log("📛 Name:", TELEGRAM_FIRST_NAME);
+console.log("🔗 Start param:", startParam);
 
 // ====== 2. إظهار شاشة التحميل وإخفائها بعد التهيئة ======
 function hideSplashScreen() {
@@ -76,6 +82,7 @@ function showErrorAndRetry(message) {
                 <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff4444;"></i>
                 <h2 style="color: #ff4444;">Error</h2>
                 <p>${message}</p>
+                <p style="font-size: 12px; color: #888;">Please open the bot from Telegram and try again.</p>
                 <button onclick="location.reload()" style="margin-top: 20px; padding: 10px 20px; background: #0088cc; border: none; border-radius: 10px; color: white;">Retry</button>
             </div>
         `;
@@ -161,7 +168,7 @@ const CRYPTO_IDS = {
 
 const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸', '💵', '🤪', '😱', '😤', '😎', '🤑', '💯', '💖', '✨', '🌟', '⭐', '🔥', '⚡', '💎', '🔔', '🎁', '🎈', '🎉', '🎊', '👑', '🚀', '💫'];
 
-// ====== 5. TRANSLATIONS (مختصرة لتوفير المساحة) ======
+// ====== 5. TRANSLATIONS ======
 const translations = {
     en: {
         'nav.wallet': 'Wallet', 'nav.airdrop': 'Airdrop',
@@ -284,17 +291,38 @@ async function loadAdminId() {
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded:", adminId);
+        console.log("👤 Current user ID:", REAL_USER_ID);
+        
         if (REAL_USER_ID && adminId) {
             isAdmin = (REAL_USER_ID === adminId);
+            console.log("👑 Is Admin:", isAdmin);
         }
-        const crownBtn = document.getElementById('adminCrownBtn');
-        if (crownBtn) {
-            crownBtn.classList.toggle('hidden', !isAdmin);
-        }
+        
+        updateAdminCrown();
         return config;
     } catch (error) {
         console.error("Failed to load admin ID:", error);
         return null;
+    }
+}
+
+function updateAdminCrown() {
+    const crownBtn = document.getElementById('adminCrownBtn');
+    if (!crownBtn) {
+        console.log("⚠️ Crown button not found in DOM");
+        return;
+    }
+    
+    console.log("🔍 Updating crown button. isAdmin:", isAdmin);
+    
+    if (isAdmin) {
+        crownBtn.classList.remove('hidden');
+        crownBtn.style.display = 'flex';
+        console.log("👑 Crown button is now VISIBLE");
+    } else {
+        crownBtn.classList.add('hidden');
+        crownBtn.style.display = 'none';
+        console.log("👑 Crown button is now HIDDEN");
     }
 }
 
@@ -340,8 +368,21 @@ async function fetchLivePrices() {
 
 // ====== 9. USER DATA MANAGEMENT ======
 function getUserId() {
-    if (REAL_USER_ID) return REAL_USER_ID;
-    return localStorage.getItem('twt_user_id') || null;
+    // الأولوية القصوى للمعرف الحقيقي من تيليجرام
+    if (REAL_USER_ID) {
+        console.log("✅ Using REAL Telegram ID:", REAL_USER_ID);
+        return REAL_USER_ID;
+    }
+    
+    // إذا لم يكن هناك معرف حقيقي، نستخدم المخزن
+    const savedId = localStorage.getItem('twt_user_id');
+    if (savedId) {
+        console.log("⚠️ Using saved ID (not real Telegram):", savedId);
+        return savedId;
+    }
+    
+    console.log("❌ No user ID available");
+    return null;
 }
 
 async function loadUserData() {
@@ -447,16 +488,16 @@ async function createNewWallet() {
     btn.disabled = true;
     
     try {
-        let newUserId = REAL_USER_ID;
-        
-        // إذا لم يكن هناك ID من تيليجرام، ننشئ ID مؤقت
-        if (!newUserId) {
-            newUserId = 'guest_' + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-            localStorage.setItem('twt_user_id', newUserId);
-            console.log("📝 Created guest user ID:", newUserId);
-        } else {
-            localStorage.setItem('twt_user_id', newUserId);
+        // 🔥 استخدام REAL_USER_ID مباشرة - لا نسمح بإنشاء مستخدمين وهميين
+        if (!REAL_USER_ID) {
+            showToast('Please open this app from Telegram!', 'error');
+            return;
         }
+        
+        const newUserId = REAL_USER_ID;
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        console.log("🎯 Creating wallet for Telegram ID:", newUserId);
         
         // توليد عنوان إيداع
         let depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
@@ -471,7 +512,7 @@ async function createNewWallet() {
             userId: newUserId,
             userName: TELEGRAM_FIRST_NAME,
             username: TELEGRAM_USERNAME,
-            telegramId: REAL_USER_ID || newUserId,
+            telegramId: REAL_USER_ID,
             depositAddress: depositAddress,
             balances: {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
@@ -492,6 +533,7 @@ async function createNewWallet() {
         saveUserData();
         
         isAdmin = (newUserId === adminId);
+        updateAdminCrown();
         
         if (startParam && startParam !== newUserId) {
             await processReferral(startParam, newUserId);
@@ -528,13 +570,15 @@ async function importWallet() {
     }
     
     try {
-        let newUserId = REAL_USER_ID;
-        if (!newUserId) {
-            newUserId = 'imported_' + Date.now().toString(36);
-            localStorage.setItem('twt_user_id', newUserId);
-        } else {
-            localStorage.setItem('twt_user_id', newUserId);
+        if (!REAL_USER_ID) {
+            showToast('Please open this app from Telegram!', 'error');
+            return;
         }
+        
+        const newUserId = REAL_USER_ID;
+        localStorage.setItem('twt_user_id', newUserId);
+        
+        console.log("🎯 Importing wallet for Telegram ID:", newUserId);
         
         let depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
         try {
@@ -567,6 +611,7 @@ async function importWallet() {
         saveUserData();
         
         isAdmin = (newUserId === adminId);
+        updateAdminCrown();
         
         if (startParam && startParam !== newUserId) {
             await processReferral(startParam, newUserId);
@@ -862,22 +907,21 @@ function showSettings() {
     renderSettings();
 }
 
-// ====== 13. ADMIN PANEL (مبسطة) ======
+// ====== 13. ADMIN PANEL ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
-    alert('Admin Panel - Coming Soon');
+    alert('Admin Panel - Use the crown button 👑');
 }
 
 // ====== 14. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("🚀 Initializing Trust Wallet Lite v6.1...");
+    console.log("🚀 Initializing Trust Wallet Lite v6.3...");
     
     initTheme();
     
-    // تأكد من وجود العناصر الأساسية
-    const splash = document.getElementById('splashScreen');
-    if (!splash) {
-        console.error("❌ Splash screen not found!");
+    // التحقق من وجود ID تيليجرام
+    if (!REAL_USER_ID) {
+        showErrorAndRetry("This app must be opened from Telegram.");
         return;
     }
     
@@ -908,16 +952,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userId && localStorage.getItem(`user_${userId}`)) {
             userData = JSON.parse(localStorage.getItem(`user_${userId}`));
             isAdmin = (userId === adminId);
+            updateAdminCrown();
             showMainApp();
             updateUI();
         } else {
             showOnboarding();
         }
         
-        // إخفاء شاشة التحميل
         hideSplashScreen();
         
         console.log("✅ App initialized successfully!");
+        console.log("👑 Final isAdmin:", isAdmin);
         
     } catch (error) {
         console.error("❌ Initialization error:", error);
@@ -953,6 +998,6 @@ window.showCardTransactions = showCardTransactions;
 window.sendTransaction = sendTransaction;
 window.submitWithdraw = submitWithdraw;
 
-console.log("✅ Trust Wallet Lite v6.1 - READY!");
+console.log("✅ Trust Wallet Lite v6.3 - FULLY FIXED!");
 console.log("📱 Telegram ID:", REAL_USER_ID);
 console.log("👑 Is Admin:", isAdmin);
