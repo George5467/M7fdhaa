@@ -20,6 +20,7 @@ const TELEGRAM_LAST_NAME = telegramUser?.last_name || '';
 
 console.log("📱 Real Telegram ID:", REAL_USER_ID);
 console.log("👤 Username:", TELEGRAM_USERNAME);
+console.log("📛 Name:", TELEGRAM_FIRST_NAME, TELEGRAM_LAST_NAME);
 
 const startParam = tg?.initDataUnsafe?.start_param || 
                    new URLSearchParams(window.location.search).get('startapp') || 
@@ -35,11 +36,6 @@ let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
 let unreadNotifications = 0;
-let currentManageUserId = null;
-
-// متغيرات النقرات السرية للمشرف
-let adminClickCount = 0;
-let adminClickTimer = null;
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
@@ -62,13 +58,15 @@ const ALL_ASSETS = [
     { symbol: 'TON', name: 'Toncoin' }
 ];
 
-// مراحل الإحالة (مثل REFI)
-const REFERRAL_MILESTONES = [
-    { referrals: 10, reward: 50, unit: 'USDT', icon: 'fa-medal' },
-    { referrals: 25, reward: 120, unit: 'USDT', icon: 'fa-medal' },
-    { referrals: 50, reward: 250, unit: 'USDT', icon: 'fa-crown' },
-    { referrals: 100, reward: 500, unit: 'USDT', icon: 'fa-crown' },
-    { referrals: 250, reward: 1000, unit: 'USDT', icon: 'fa-gem' }
+const AIRDROP_MILESTONES = [
+    { invites: 5, reward: 25, unit: 'USDT', icon: 'fa-star' },
+    { invites: 10, reward: 50, unit: 'USDT', icon: 'fa-medal' },
+    { invites: 25, reward: 120, unit: 'USDT', icon: 'fa-medal' },
+    { invites: 50, reward: 250, unit: 'USDT', icon: 'fa-crown' },
+    { invites: 100, reward: 500, unit: 'USDT', icon: 'fa-crown' },
+    { invites: 250, reward: 1000, unit: 'USDT', icon: 'fa-gem' },
+    { invites: 500, reward: 2500, unit: 'USDT', icon: 'fa-gem' },
+    { invites: 1000, reward: 5000, unit: 'USDT', icon: 'fa-diamond' }
 ];
 
 const WITHDRAW_FEES = {
@@ -108,38 +106,30 @@ const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸'
 // ====== 4. TRANSLATIONS ======
 const translations = {
     en: {
-        'nav.wallet': 'Wallet', 'nav.swap': 'Swap',
-        'nav.referral': 'Referral', 'nav.twtpay': 'TWT Pay',
-        'nav.settings': 'Settings', 'actions.deposit': 'Deposit',
-        'actions.withdraw': 'Withdraw', 'actions.send': 'Send',
-        'actions.receive': 'Receive', 'actions.history': 'History',
-        'actions.swap': 'Swap', 'wallet.totalBalance': 'Total Balance',
-        'swap.from': 'From', 'swap.to': 'To', 'swap.exchangeRate': 'Exchange Rate',
-        'swap.networkFee': 'Network Fee', 'swap.confirm': 'Confirm Swap',
-        'referral.title': 'EARN USDT', 'referral.totalReferrals': 'TOTAL REFERRALS',
-        'referral.usdtEarned': 'USDT EARNED', 'referral.yourLink': 'Your Referral Link',
-        'referral.milestones': 'Referral Milestones', 'card.balance': 'Card Balance',
-        'settings.language': 'Language', 'settings.theme': 'Theme',
-        'settings.logout': 'Logout', 'notifications.title': 'Notifications',
-        'admin.title': 'Admin Dashboard', 'admin.searchUser': 'Search User',
-        'admin.totalUsers': 'Total Users', 'admin.pendingWithdrawals': 'Pending Withdrawals'
+        'nav.wallet': 'Wallet', 'nav.airdrop': 'Airdrop',
+        'nav.twtpay': 'TWT Pay', 'nav.settings': 'Settings',
+        'actions.send': 'Send', 'actions.receive': 'Receive', 
+        'actions.swap': 'Swap', 'actions.history': 'History',
+        'actions.deposit': 'Deposit', 'actions.withdraw': 'Withdraw',
+        'wallet.totalBalance': 'Total Balance',
+        'swap.from': 'From', 'swap.to': 'To', 'swap.confirm': 'Confirm Swap',
+        'airdrop.totalInvites': 'Total Invites', 'airdrop.earned': 'USDT Earned',
+        'airdrop.yourLink': 'Your Invite Link', 'airdrop.milestones': 'Airdrop Milestones',
+        'card.balance': 'Card Balance', 'settings.language': 'Language',
+        'settings.theme': 'Theme', 'settings.logout': 'Logout'
     },
     ar: {
-        'nav.wallet': 'المحفظة', 'nav.swap': 'تحويل',
-        'nav.referral': 'إحالة', 'nav.twtpay': 'TWT Pay',
-        'nav.settings': 'الإعدادات', 'actions.deposit': 'إيداع',
-        'actions.withdraw': 'سحب', 'actions.send': 'إرسال',
-        'actions.receive': 'استلام', 'actions.history': 'السجل',
-        'actions.swap': 'تحويل', 'wallet.totalBalance': 'الرصيد الإجمالي',
-        'swap.from': 'من', 'swap.to': 'إلى', 'swap.exchangeRate': 'سعر الصرف',
-        'swap.networkFee': 'رسوم الشبكة', 'swap.confirm': 'تأكيد',
-        'referral.title': 'اربح USDT', 'referral.totalReferrals': 'إجمالي الإحالات',
-        'referral.usdtEarned': 'USDT المكتسبة', 'referral.yourLink': 'رابط الإحالة',
-        'referral.milestones': 'مراحل الإحالة', 'card.balance': 'رصيد البطاقة',
-        'settings.language': 'اللغة', 'settings.theme': 'المظهر',
-        'settings.logout': 'تسجيل الخروج', 'notifications.title': 'الإشعارات',
-        'admin.title': 'لوحة المشرف', 'admin.searchUser': 'بحث عن مستخدم',
-        'admin.totalUsers': 'إجمالي المستخدمين', 'admin.pendingWithdrawals': 'سحوبات معلقة'
+        'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
+        'nav.twtpay': 'TWT Pay', 'nav.settings': 'الإعدادات',
+        'actions.send': 'إرسال', 'actions.receive': 'استلام',
+        'actions.swap': 'تحويل', 'actions.history': 'السجل',
+        'actions.deposit': 'إيداع', 'actions.withdraw': 'سحب',
+        'wallet.totalBalance': 'الرصيد الإجمالي',
+        'swap.from': 'من', 'swap.to': 'إلى', 'swap.confirm': 'تأكيد',
+        'airdrop.totalInvites': 'إجمالي الدعوات', 'airdrop.earned': 'USDT المكتسبة',
+        'airdrop.yourLink': 'رابط الدعوة', 'airdrop.milestones': 'مراحل الإسقاط',
+        'card.balance': 'رصيد البطاقة', 'settings.language': 'اللغة',
+        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج'
     }
 };
 
@@ -156,8 +146,7 @@ function formatBalance(balance, symbol) {
     if (symbol === 'TWT') return balance.toLocaleString() + ' TWT';
     if (symbol === 'USDT') return '$' + balance.toFixed(2);
     if (symbol === 'BTC') return balance.toFixed(6) + ' BTC';
-    if (['BNB', 'ETH', 'SOL', 'TRX', 'ADA', 'TON'].includes(symbol)) return balance.toFixed(4) + ' ' + symbol;
-    return balance.toLocaleString() + ' ' + symbol;
+    return balance.toFixed(4) + ' ' + symbol;
 }
 
 function formatNumber(num) {
@@ -172,12 +161,6 @@ function showToast(message, type = 'success') {
     if (!toast) return;
     toastMessage.textContent = message;
     toast.classList.remove('hidden');
-    const icon = toast.querySelector('i');
-    if (icon) {
-        if (type === 'success') icon.className = 'fa-regular fa-circle-check';
-        else if (type === 'error') icon.className = 'fa-regular fa-circle-xmark';
-        else icon.className = 'fa-regular fa-circle-info';
-    }
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
@@ -189,10 +172,6 @@ function closeModal(modalId) {
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
     showToast('Copied!');
-}
-
-function scrollToTop() {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ====== 6. THEME & LANGUAGE ======
@@ -209,10 +188,9 @@ function toggleLanguage() {
         document.documentElement.dir = 'ltr';
     }
     if (currentPage === 'settings') renderSettings();
-    if (currentPage === 'referral') renderReferral();
+    if (currentPage === 'airdrop') renderAirdrop();
     if (currentPage === 'wallet') renderWallet();
     if (currentPage === 'twtpay') renderTWTPay();
-    if (currentPage === 'swap') renderSwap();
     showToast('Language changed');
 }
 
@@ -266,25 +244,23 @@ async function loadAdminId() {
         const config = await response.json();
         adminId = config.adminId;
         console.log("✅ Admin ID loaded from server:", adminId);
-        return true;
+        
+        const userId = getUserId();
+        if (userId && adminId) {
+            isAdmin = (userId === adminId);
+            console.log("👑 Is Admin:", isAdmin);
+        }
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
+        return config;
     } catch (error) {
         console.error("Failed to load admin ID:", error);
-        return false;
-    }
-}
-
-async function verifyAdminPassword(password) {
-    try {
-        const response = await fetch('/api/verify-admin', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password })
-        });
-        const data = await response.json();
-        return data.success;
-    } catch (error) {
-        console.error("Error verifying password:", error);
-        return false;
+        return null;
     }
 }
 
@@ -306,26 +282,6 @@ async function processReferral(referrerId, newUserId) {
 
 async function createDepositAddress(userId, currency) {
     return apiCall('/deposit-address', 'POST', { userId, currency });
-}
-
-async function getAllUsers(adminKey) {
-    return apiCall(`/admin/users?adminKey=${adminKey}`);
-}
-
-async function addBalanceByAdmin(userId, currency, amount, adminKey) {
-    return apiCall('/admin/add-balance', 'POST', { userId, currency, amount, adminKey });
-}
-
-async function removeBalanceByAdmin(userId, currency, amount, adminKey) {
-    return apiCall('/admin/remove-balance', 'POST', { userId, currency, amount, adminKey });
-}
-
-async function blockUserByAdmin(userId, adminKey) {
-    return apiCall('/admin/block-user', 'POST', { userId, adminKey });
-}
-
-async function getAdminStats(adminKey) {
-    return apiCall(`/admin/stats?adminKey=${adminKey}`);
 }
 
 // ====== 9. PRICES ======
@@ -395,17 +351,6 @@ function updateTotalBalance() {
     if (!userData) return;
     let total = userData.balances.USDT || 0;
     total += (userData.balances.TWT || 0) * TWT_PRICE;
-    total += (userData.balances.BNB || 0) * (livePrices.BNB?.price || 580);
-    total += (userData.balances.BTC || 0) * (livePrices.BTC?.price || 65000);
-    total += (userData.balances.ETH || 0) * (livePrices.ETH?.price || 3400);
-    total += (userData.balances.SOL || 0) * (livePrices.SOL?.price || 150);
-    total += (userData.balances.TRX || 0) * (livePrices.TRX?.price || 0.25);
-    total += (userData.balances.ADA || 0) * (livePrices.ADA?.price || 0.45);
-    total += (userData.balances.DOGE || 0) * (livePrices.DOGE?.price || 0.15);
-    total += (userData.balances.SHIB || 0) * (livePrices.SHIB?.price || 0.000025);
-    total += (userData.balances.PEPE || 0) * (livePrices.PEPE?.price || 0.000015);
-    total += (userData.balances.TON || 0) * (livePrices.TON?.price || 5.50);
-    
     const totalEl = document.getElementById('totalBalance');
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
 }
@@ -415,8 +360,7 @@ function updateUI() {
         renderAssets();
         updateTotalBalance();
     }
-    if (currentPage === 'swap') renderSwap();
-    if (currentPage === 'referral') renderReferral();
+    if (currentPage === 'airdrop') renderAirdrop();
     if (currentPage === 'twtpay') renderTWTPay();
     if (currentPage === 'settings') renderSettings();
     updateNotificationBadge();
@@ -462,79 +406,17 @@ function showNotifications() {
     modal.classList.add('show');
 }
 
-// ====== 11. ADMIN CLICK DETECTOR (5 نقرات سرية) ======
-function setupAdminClickDetector() {
-    const notifBtn = document.getElementById('notificationBtn');
-    if (!notifBtn) {
-        setTimeout(setupAdminClickDetector, 500);
-        return;
-    }
-    
-    notifBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (adminClickTimer) clearTimeout(adminClickTimer);
-        
-        adminClickCount++;
-        console.log(`🔑 Admin click count: ${adminClickCount}`);
-        
-        if (adminClickCount === 5) {
-            adminClickCount = 0;
-            showAdminPasswordModal();
-        }
-        
-        adminClickTimer = setTimeout(() => {
-            adminClickCount = 0;
-            console.log("🔄 Admin click count reset");
-        }, 3000);
-        
-        showNotifications();
-    });
-    
-    console.log("✅ Admin click detector ready");
-}
-
-function showAdminPasswordModal() {
-    const password = prompt("🔐 Enter Admin Password:");
-    if (!password) return;
-    verifyAndShowAdminPanel(password);
-}
-
-async function verifyAndShowAdminPanel(password) {
-    showToast("🔍 Verifying...", "info");
-    
-    try {
-        const isValid = await verifyAdminPassword(password);
-        
-        if (isValid) {
-            isAdmin = true;
-            showAdminPanel();
-            showToast("✅ Welcome, Administrator!", "success");
-        } else {
-            showToast("❌ Invalid password!", "error");
-        }
-    } catch (error) {
-        console.error("Verification error:", error);
-        showToast("Error verifying password", "error");
-    }
-}
-
-// ====== 12. ONBOARDING & WALLET CREATION ======
+// ====== 11. ONBOARDING & WALLET CREATION ======
 function showMainApp() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const main = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'none';
-    if (main) main.style.display = 'block';
+    document.getElementById('onboardingScreen').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
     showWallet();
     showRandomSticker();
 }
 
 function showOnboarding() {
-    const onboarding = document.getElementById('onboardingScreen');
-    const main = document.getElementById('mainContent');
-    if (onboarding) onboarding.style.display = 'flex';
-    if (main) main.style.display = 'none';
+    document.getElementById('onboardingScreen').style.display = 'flex';
+    document.getElementById('mainContent').style.display = 'none';
 }
 
 async function createNewWallet() {
@@ -544,7 +426,7 @@ async function createNewWallet() {
     
     try {
         if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
+            showToast('Could not get Telegram ID', 'error');
             return;
         }
         
@@ -562,10 +444,10 @@ async function createNewWallet() {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
-            referralCount: 0,
+            inviteCount: 0,
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
-            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
             notifications: [{ id: Date.now(), message: '🎉 Welcome! You got 10 USDT!', read: false, timestamp: new Date() }],
             transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date() }],
             depositAddresses: {},
@@ -577,6 +459,15 @@ async function createNewWallet() {
         await createUser(newUserId, newUserData);
         userData = newUserData;
         saveUserData();
+        
+        isAdmin = (newUserId === adminId);
+        console.log("👑 New user isAdmin:", isAdmin);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -617,7 +508,7 @@ async function importWallet() {
     
     try {
         if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
+            showToast('Could not get Telegram ID', 'error');
             return;
         }
         
@@ -636,10 +527,10 @@ async function importWallet() {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
             },
-            referralCount: 0,
+            inviteCount: 0,
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
-            referralMilestones: REFERRAL_MILESTONES.map(m => ({ ...m, claimed: false })),
+            airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
             notifications: [{ id: Date.now(), message: '🎉 Wallet imported! You got 10 USDT!', read: false, timestamp: new Date() }],
             transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date() }],
             depositAddresses: {},
@@ -650,6 +541,15 @@ async function importWallet() {
         await createUser(newUserId, newUserData);
         userData = newUserData;
         saveUserData();
+        
+        isAdmin = (newUserId === adminId);
+        console.log("👑 Imported user isAdmin:", isAdmin);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
         
         if (startParam) {
             await processReferral(startParam, newUserId);
@@ -668,7 +568,7 @@ async function importWallet() {
     }
 }
 
-// ====== 13. RENDER WALLET ======
+// ====== 12. RENDER WALLET ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container || !userData) return;
@@ -682,7 +582,7 @@ function renderAssets() {
         const changeSymbol = change >= 0 ? '+' : '';
         
         return `
-            <div class="asset-item" onclick="showAssetDetails('${asset.symbol}')">
+            <div class="asset-item">
                 <div class="asset-left">
                     <img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img">
                     <div class="asset-info">
@@ -697,13 +597,6 @@ function renderAssets() {
             </div>
         `;
     }).join('');
-}
-
-function showAssetDetails(symbol) {
-    const balance = userData.balances[symbol] || 0;
-    const price = symbol === 'TWT' ? TWT_PRICE : (livePrices[symbol]?.price || 0);
-    const value = symbol === 'USDT' ? balance : balance * price;
-    showToast(`${symbol}: ${formatBalance(balance, symbol)} ($${formatNumber(value)})`, 'info');
 }
 
 function renderWallet() {
@@ -726,55 +619,160 @@ function renderWallet() {
     updateTotalBalance();
 }
 
-// ====== 14. SWAP FUNCTIONS ======
+// ====== 13. RENDER AIRDROP ======
+function renderAirdrop() {
+    const container = document.getElementById('referralContainer');
+    if (!container || !userData) return;
+    
+    const inviteLink = `${BOT_LINK}?startapp=${userData.userId}`;
+    
+    container.innerHTML = `
+        <div class="referral-stats">
+            <div class="stat-card"><span>${t('airdrop.totalInvites')}</span><span id="totalInvites">${userData.inviteCount || 0}</span></div>
+            <div class="stat-card"><span>${t('airdrop.earned')}</span><span id="usdtEarned">${(userData.totalUsdtEarned || 0).toFixed(2)}</span></div>
+        </div>
+        <div class="referral-link-card">
+            <div class="link-label">${t('airdrop.yourLink')}</div>
+            <div class="link-container">
+                <input type="text" id="inviteLink" value="${inviteLink}" readonly>
+                <button class="copy-btn" onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
+                <button class="share-btn" onclick="shareInvite()"><i class="fas fa-share-alt"></i></button>
+            </div>
+        </div>
+        <div class="referral-description"><i class="fas fa-gift"></i><p>${t('airdrop.inviteBonus')}</p></div>
+        <div class="section-header"><h3>${t('airdrop.milestones')}</h3></div>
+        <div id="milestonesList" class="milestones-list"></div>
+    `;
+    
+    renderAirdropMilestones();
+}
+
+function renderAirdropMilestones() {
+    const container = document.getElementById('milestonesList');
+    if (!container || !userData) return;
+    
+    container.innerHTML = AIRDROP_MILESTONES.map(m => {
+        const progress = Math.min((userData.inviteCount / m.invites) * 100, 100);
+        const canClaim = userData.inviteCount >= m.invites && !userData.airdropMilestones.find(x => x.invites === m.invites)?.claimed;
+        const isClaimed = userData.airdropMilestones.find(x => x.invites === m.invites)?.claimed;
+        
+        return `
+            <div class="milestone-item">
+                <div class="milestone-header"><span><i class="fas ${m.icon}"></i> ${m.invites} Invites</span><span>${m.reward} ${m.unit}</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                <div class="progress-text">${userData.inviteCount}/${m.invites}</div>
+                ${canClaim ? `<button class="claim-btn" onclick="claimMilestone(${m.invites})">Claim Reward</button>` : isClaimed ? '<p style="color:var(--success);text-align:center;">✓ Claimed</p>' : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+async function claimMilestone(invites) {
+    const m = userData.airdropMilestones.find(x => x.invites === invites);
+    if (!m || m.claimed) return;
+    if (userData.inviteCount < invites) {
+        showToast(`Need ${invites} invites`, 'error');
+        return;
+    }
+    const reward = AIRDROP_MILESTONES.find(x => x.invites === invites).reward;
+    userData.balances.USDT = (userData.balances.USDT || 0) + reward;
+    userData.totalUsdtEarned = (userData.totalUsdtEarned || 0) + reward;
+    m.claimed = true;
+    saveUserData();
+    renderAirdrop();
+    renderWallet();
+    updateTotalBalance();
+    showToast(`Claimed ${reward} USDT!`);
+}
+
+function copyInviteLink() {
+    copyToClipboard(`${BOT_LINK}?startapp=${userData?.userId}`);
+    showToast('Referral link copied!');
+}
+
+function shareInvite() {
+    const text = `🚀 Join Trust Wallet Lite and get ${AIRDROP_BONUS} USDT Airdrop! Use my link: ${BOT_LINK}?startapp=${userData?.userId}`;
+    if (tg?.shareToStory) tg.shareToStory(text);
+    else copyToClipboard(text);
+    showToast('Link copied!');
+}
+
+// ====== 14. RENDER TWT PAY ======
+function renderTWTPay() {
+    const container = document.getElementById('twtpayContainer');
+    if (!container) return;
+    const twtBalance = userData?.balances?.TWT || 0;
+    const cardNumber = userData?.userId?.slice(-4) || '8888';
+    container.innerHTML = `
+        <div class="virtual-card">
+            <div class="card-chip"><i class="fas fa-microchip"></i></div>
+            <div class="card-brand">TWT Pay</div>
+            <div class="card-number"><span>****</span><span>****</span><span>****</span><span>${cardNumber}</span></div>
+            <div class="card-details"><div><div class="label">Card Holder</div><div class="value">${userData?.userName || 'User'}</div></div><div><div class="label">Expires</div><div class="value">12/28</div></div></div>
+            <div class="card-balance"><div class="balance-label">${t('card.balance')}</div><div class="balance-value">${twtBalance} TWT</div><div class="balance-usd">≈ $${(twtBalance * TWT_PRICE).toFixed(2)}</div></div>
+            <div class="card-footer"><i class="fab fa-visa"></i><span>Virtual Card</span></div>
+        </div>
+        <div class="card-actions">
+            <button class="card-action-btn" onclick="showTopUp()"><i class="fas fa-plus-circle"></i><span>Top Up</span></button>
+            <button class="card-action-btn" onclick="showCardSettings()"><i class="fas fa-sliders-h"></i><span>Settings</span></button>
+            <button class="card-action-btn" onclick="showCardTransactions()"><i class="fas fa-history"></i><span>History</span></button>
+        </div>
+        <div class="card-features">
+            <div class="feature"><i class="fas fa-globe"></i><span>Global</span></div>
+            <div class="feature"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
+            <div class="feature"><i class="fas fa-percent"></i><span>2% Cashback</span></div>
+            <div class="feature"><i class="fas fa-exchange-alt"></i><span>Coming Soon</span></div>
+        </div>
+    `;
+}
+
+function showTopUp() { showToast('Coming soon!'); }
+function showCardSettings() { showToast('Coming soon!'); }
+function showCardTransactions() { showHistory(); }
+
+// ====== 15. RENDER SETTINGS ======
+function renderSettings() {
+    const container = document.getElementById('settingsContainer');
+    container.innerHTML = `
+        <div class="settings-list">
+            <div class="settings-item" onclick="showNotifications()"><i class="fas fa-bell"></i><div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="showHistory()"><i class="fas fa-history"></i><div><div class="label">${t('actions.history')}</div><div class="desc">View all transactions</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="toggleLanguage()"><i class="fas fa-language"></i><div><div class="label">${t('settings.language')}</div><div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item" onclick="toggleTheme()"><i class="fas fa-moon"></i><div><div class="label">${t('settings.theme')}</div><div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div></div><i class="fas fa-chevron-right"></i></div>
+            <div class="settings-item logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i><div><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div></div>
+        </div>
+    `;
+}
+
+function showHistory() {
+    const modal = document.getElementById('historyModal');
+    const list = document.getElementById('historyList');
+    if (!modal || !list) return;
+    const txs = userData?.transactions || [];
+    if (txs.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No transactions</div>';
+    } else {
+        list.innerHTML = txs.map(tx => `
+            <div class="history-item">
+                <div><span>${tx.type}</span> <span>${tx.amount} ${tx.currency}</span></div>
+                <div style="font-size:10px;">${new Date(tx.timestamp).toLocaleString()}</div>
+            </div>
+        `).join('');
+    }
+    modal.classList.add('show');
+}
+
+function logout() {
+    if (confirm('Logout?')) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
+// ====== 16. SWAP FUNCTIONS ======
 let swapFromCurrency = 'TWT';
 let swapToCurrency = 'USDT';
 let currentCurrencySelector = 'from';
-
-function renderSwap() {
-    const container = document.getElementById('swapContainer');
-    container.innerHTML = `
-        <div class="swap-container">
-            <div class="swap-box">
-                <div class="swap-label">${t('swap.from')}</div>
-                <div class="swap-row">
-                    <input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()">
-                    <div class="currency-selector-small" onclick="showSwapCurrencySelector('from')">
-                        <img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}">
-                        <span id="swapFromSymbol">${swapFromCurrency}</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="balance-hint">
-                    Balance: <span id="swapFromBalance">0</span>
-                    <span class="percentage-buttons">
-                        <button onclick="setSwapPercentage(25)">25%</button>
-                        <button onclick="setSwapPercentage(50)">50%</button>
-                        <button onclick="setSwapPercentage(100)">Max</button>
-                    </span>
-                </div>
-            </div>
-            <div class="swap-arrow" onclick="swapDirection()"><i class="fas fa-arrow-down"></i></div>
-            <div class="swap-box">
-                <div class="swap-label">${t('swap.to')}</div>
-                <div class="swap-row">
-                    <input type="number" id="swapToAmount" placeholder="0.00" readonly>
-                    <div class="currency-selector-small" onclick="showSwapCurrencySelector('to')">
-                        <img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}">
-                        <span id="swapToSymbol">${swapToCurrency}</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </div>
-                </div>
-                <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
-            </div>
-            <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
-            <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-            <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
-        </div>
-    `;
-    updateSwapBalances();
-    calculateSwap();
-}
 
 function showSwapModal() {
     const modal = document.getElementById('swapModal');
@@ -785,38 +783,9 @@ function showSwapModal() {
 function renderSwapModal() {
     const container = document.getElementById('swapModalContent');
     container.innerHTML = `
-        <div class="swap-box">
-            <div class="swap-label">${t('swap.from')}</div>
-            <div class="swap-row">
-                <input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()">
-                <div class="currency-selector-small" onclick="showSwapCurrencySelector('from')">
-                    <img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}">
-                    <span id="swapFromSymbol">${swapFromCurrency}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="balance-hint">
-                Balance: <span id="swapFromBalance">0</span>
-                <span class="percentage-buttons">
-                    <button onclick="setSwapPercentage(25)">25%</button>
-                    <button onclick="setSwapPercentage(50)">50%</button>
-                    <button onclick="setSwapPercentage(100)">Max</button>
-                </span>
-            </div>
-        </div>
+        <div class="swap-box"><div class="swap-label">${t('swap.from')}</div><div class="swap-row"><input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()"><div class="currency-selector-small" onclick="showSwapCurrencySelector('from')"><img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}"><span id="swapFromSymbol">${swapFromCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapFromBalance">0</span><span class="percentage-buttons"><button onclick="setSwapPercentage(25)">25%</button><button onclick="setSwapPercentage(50)">50%</button><button onclick="setSwapPercentage(100)">Max</button></span></div></div>
         <div class="swap-arrow" onclick="swapDirection()"><i class="fas fa-arrow-down"></i></div>
-        <div class="swap-box">
-            <div class="swap-label">${t('swap.to')}</div>
-            <div class="swap-row">
-                <input type="number" id="swapToAmount" placeholder="0.00" readonly>
-                <div class="currency-selector-small" onclick="showSwapCurrencySelector('to')">
-                    <img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}">
-                    <span id="swapToSymbol">${swapToCurrency}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-            </div>
-            <div class="balance-hint">Balance: <span id="swapToBalance">0</span></div>
-        </div>
+        <div class="swap-box"><div class="swap-label">${t('swap.to')}</div><div class="swap-row"><input type="number" id="swapToAmount" placeholder="0.00" readonly><div class="currency-selector-small" onclick="showSwapCurrencySelector('to')"><img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}"><span id="swapToSymbol">${swapToCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapToBalance">0</span></div></div>
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
         <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
         <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
@@ -906,202 +875,7 @@ async function confirmSwap() {
     showToast('Swap completed!');
 }
 
-// ====== 15. REFERRAL SECTION (مثل REFI) ======
-function renderReferral() {
-    const container = document.getElementById('referralContainer');
-    if (!container || !userData) return;
-    
-    const inviteLink = `${BOT_LINK}?startapp=${userData.userId}`;
-    
-    container.innerHTML = `
-        <div class="referral-stats">
-            <div class="stat-card">
-                <span class="stat-label">${t('referral.totalReferrals')}</span>
-                <span class="stat-value" id="totalReferrals">${userData.referralCount || 0}</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-label">${t('referral.usdtEarned')}</span>
-                <span class="stat-value" id="usdtEarned">${(userData.totalUsdtEarned || 0).toFixed(2)}</span>
-            </div>
-        </div>
-        <div class="referral-link-card">
-            <div class="link-label">${t('referral.yourLink')}</div>
-            <div class="link-container">
-                <input type="text" id="inviteLink" value="${inviteLink}" readonly>
-                <button class="copy-btn" onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
-                <button class="share-btn" onclick="shareInvite()"><i class="fas fa-share-alt"></i></button>
-            </div>
-        </div>
-        <div class="referral-description">
-            <i class="fas fa-gift"></i>
-            <p>Share your link and get <strong>25 USDT</strong> for every friend who joins!</p>
-        </div>
-        <div class="section-header"><h3>${t('referral.milestones')}</h3></div>
-        <div class="milestones-list" id="milestonesList"></div>
-    `;
-    
-    renderReferralMilestones();
-}
-
-function renderReferralMilestones() {
-    const container = document.getElementById('milestonesList');
-    if (!container || !userData) return;
-    
-    container.innerHTML = REFERRAL_MILESTONES.map(m => {
-        const progress = Math.min((userData.referralCount / m.referrals) * 100, 100);
-        const canClaim = userData.referralCount >= m.referrals && !userData.referralMilestones.find(x => x.referrals === m.referrals)?.claimed;
-        const isClaimed = userData.referralMilestones.find(x => x.referrals === m.referrals)?.claimed;
-        
-        return `
-            <div class="milestone-item">
-                <div class="milestone-header">
-                    <span class="milestone-referrals"><i class="fas ${m.icon}"></i> ${m.referrals} Referrals</span>
-                    <span class="milestone-reward">${m.reward} ${m.unit}</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${progress}%"></div>
-                </div>
-                <div class="progress-text">${userData.referralCount}/${m.referrals}</div>
-                ${canClaim ? `<button class="claim-btn" onclick="claimReferralMilestone(${m.referrals})">Claim Reward</button>` : isClaimed ? '<p style="color:var(--success);text-align:center;">✓ Claimed</p>' : ''}
-            </div>
-        `;
-    }).join('');
-}
-
-async function claimReferralMilestone(referrals) {
-    const m = userData.referralMilestones.find(x => x.referrals === referrals);
-    if (!m || m.claimed) return;
-    if (userData.referralCount < referrals) {
-        showToast(`Need ${referrals} referrals`, 'error');
-        return;
-    }
-    const reward = REFERRAL_MILESTONES.find(x => x.referrals === referrals).reward;
-    userData.balances.USDT = (userData.balances.USDT || 0) + reward;
-    userData.totalUsdtEarned = (userData.totalUsdtEarned || 0) + reward;
-    m.claimed = true;
-    saveUserData();
-    renderReferral();
-    renderWallet();
-    updateTotalBalance();
-    showToast(`Claimed ${reward} USDT!`);
-}
-
-function copyInviteLink() {
-    copyToClipboard(`${BOT_LINK}?startapp=${userData?.userId}`);
-    showToast('Referral link copied!');
-}
-
-function shareInvite() {
-    const text = `🚀 Join Trust Wallet Lite and get ${AIRDROP_BONUS} USDT Airdrop! Use my link: ${BOT_LINK}?startapp=${userData?.userId}`;
-    if (tg?.shareToStory) tg.shareToStory(text);
-    else copyToClipboard(text);
-    showToast('Link copied!');
-}
-
-// ====== 16. TWT PAY CARD ======
-function renderTWTPay() {
-    const container = document.getElementById('twtpayContainer');
-    if (!container) return;
-    const twtBalance = userData?.balances?.TWT || 0;
-    const cardNumber = userData?.userId?.slice(-4) || '8888';
-    container.innerHTML = `
-        <div class="virtual-card">
-            <div class="card-chip"><i class="fas fa-microchip"></i></div>
-            <div class="card-brand">TWT Pay</div>
-            <div class="card-number">
-                <span>****</span><span>****</span><span>****</span><span>${cardNumber}</span>
-            </div>
-            <div class="card-details">
-                <div><div class="label">Card Holder</div><div class="value">${userData?.userName || 'User'}</div></div>
-                <div><div class="label">Expires</div><div class="value">12/28</div></div>
-            </div>
-            <div class="card-balance">
-                <div class="balance-label">${t('card.balance')}</div>
-                <div class="balance-value">${twtBalance} TWT</div>
-                <div class="balance-usd">≈ $${(twtBalance * TWT_PRICE).toFixed(2)}</div>
-            </div>
-            <div class="card-footer">
-                <i class="fab fa-visa"></i>
-                <span>Virtual Card</span>
-            </div>
-        </div>
-        <div class="card-actions">
-            <button class="card-action-btn" onclick="showTopUp()"><i class="fas fa-plus-circle"></i><span>Top Up</span></button>
-            <button class="card-action-btn" onclick="showCardSettings()"><i class="fas fa-sliders-h"></i><span>Settings</span></button>
-            <button class="card-action-btn" onclick="showCardTransactions()"><i class="fas fa-history"></i><span>History</span></button>
-        </div>
-        <div class="card-features">
-            <div class="feature"><i class="fas fa-globe"></i><span>Global</span></div>
-            <div class="feature"><i class="fas fa-shield-alt"></i><span>Secure</span></div>
-            <div class="feature"><i class="fas fa-percent"></i><span>2% Cashback</span></div>
-            <div class="feature"><i class="fas fa-exchange-alt"></i><span>Coming Soon</span></div>
-        </div>
-    `;
-}
-
-function showTopUp() { showToast('Coming soon!'); }
-function showCardSettings() { showToast('Coming soon!'); }
-function showCardTransactions() { showHistory(); }
-
-// ====== 17. SETTINGS ======
-function renderSettings() {
-    const container = document.getElementById('settingsContainer');
-    container.innerHTML = `
-        <div class="settings-list">
-            <div class="settings-item" onclick="showNotifications()">
-                <i class="fas fa-bell"></i>
-                <div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="showHistory()">
-                <i class="fas fa-history"></i>
-                <div><div class="label">${t('actions.history')}</div><div class="desc">View all transactions</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="toggleLanguage()">
-                <i class="fas fa-language"></i>
-                <div><div class="label">${t('settings.language')}</div><div class="desc">${currentLanguage === 'en' ? 'English / العربية' : 'العربية / English'}</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item" onclick="toggleTheme()">
-                <i class="fas fa-moon"></i>
-                <div><div class="label">${t('settings.theme')}</div><div class="desc">${currentTheme === 'dark' ? 'Dark Mode' : 'Light Mode'}</div></div>
-                <i class="fas fa-chevron-right"></i>
-            </div>
-            <div class="settings-item logout-btn" onclick="logout()">
-                <i class="fas fa-sign-out-alt"></i>
-                <div><div class="label">${t('settings.logout')}</div><div class="desc">Sign out of your wallet</div></div>
-            </div>
-        </div>
-    `;
-}
-
-function showHistory() {
-    const modal = document.getElementById('historyModal');
-    const list = document.getElementById('historyList');
-    if (!modal || !list) return;
-    const txs = userData?.transactions || [];
-    if (txs.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No transactions</div>';
-    } else {
-        list.innerHTML = txs.map(tx => `
-            <div class="history-item">
-                <div><span>${tx.type}</span> <span>${tx.amount} ${tx.currency}</span></div>
-                <div style="font-size:10px;">${new Date(tx.timestamp).toLocaleString()}</div>
-            </div>
-        `).join('');
-    }
-    modal.classList.add('show');
-}
-
-function logout() {
-    if (confirm('Logout?')) {
-        localStorage.clear();
-        location.reload();
-    }
-}
-
-// ====== 18. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
+// ====== 17. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
 function showReceiveModal() { document.getElementById('receiveModal').classList.add('show'); document.getElementById('receiveAddress').innerText = userData?.userId || ''; }
 function copyAddress() { copyToClipboard(document.getElementById('receiveAddress')?.innerText); }
@@ -1144,7 +918,7 @@ async function submitWithdraw() {
     showToast(`Withdrawal request submitted for ${amount} ${currency}`);
 }
 
-// ====== 19. ADMIN PANEL (نسخة REFI كاملة) ======
+// ====== 18. ADMIN PANEL ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
     document.getElementById('adminPanel').classList.remove('hidden');
@@ -1155,203 +929,24 @@ function closeAdminPanel() {
     document.getElementById('adminPanel').classList.add('hidden');
 }
 
-async function renderAdminPanel() {
+function renderAdminPanel() {
     const content = document.getElementById('adminContent');
-    if (!content) return;
-    
-    let stats = { totalUsers: 0, pendingWithdrawals: 0 };
-    try {
-        stats = await getAdminStats(adminId);
-    } catch (e) { console.error("Stats error:", e); }
-    
     content.innerHTML = `
         <div style="padding:20px;">
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.totalUsers || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">${t('admin.totalUsers')}</div>
-                </div>
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.pendingWithdrawals || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">${t('admin.pendingWithdrawals')}</div>
-                </div>
-            </div>
-            <div style="margin-bottom:20px;">
-                <h4>🔍 ${t('admin.searchUser')}</h4>
-                <div style="display:flex;gap:10px;margin-top:10px;">
-                    <input type="text" id="adminUserIdInput" placeholder="Enter User ID" 
-                           style="flex:1;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px;padding:12px;color:var(--text-primary);">
-                    <button onclick="adminSearchUser()" class="btn-primary" style="padding:0 20px;">
-                        <i class="fas fa-search"></i> ${t('actions.search')}
-                    </button>
-                </div>
-            </div>
-            <div id="adminResult" style="margin-top:20px;"></div>
-            <button onclick="refreshAdminStats()" class="btn-secondary" style="width:100%;margin-top:10px;">
-                <i class="fas fa-sync-alt"></i> ${t('actions.refresh')}
-            </button>
+            <h4>👑 Admin Dashboard</h4>
+            <p>Welcome, Administrator</p>
+            <hr>
+            <p><strong>Admin ID:</strong> ${adminId}</p>
+            <p><strong>Your ID:</strong> ${getUserId()}</p>
+            <button onclick="closeAdminPanel()" class="btn-primary">Close</button>
         </div>
     `;
 }
 
-async function adminSearchUser() {
-    const userId = document.getElementById('adminUserIdInput')?.value.trim();
-    if (!userId) { showToast('Enter User ID', 'error'); return; }
-    
-    const resultDiv = document.getElementById('adminResult');
-    resultDiv.innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
-    
-    try {
-        const result = await getUser(userId);
-        if (result.success && result.data) {
-            displayUserManagement(result.data, userId);
-        } else {
-            resultDiv.innerHTML = `<div style="background:rgba(239,68,68,0.1);border-radius:12px;padding:20px;text-align:center;color:var(--danger);">
-                <i class="fas fa-user-slash"></i> User not found
-            </div>`;
-        }
-    } catch (error) {
-        resultDiv.innerHTML = `<div style="color:var(--danger);text-align:center;">Error loading user</div>`;
-    }
-}
-
-function displayUserManagement(user, userId) {
-    const resultDiv = document.getElementById('adminResult');
-    currentManageUserId = userId;
-    
-    const balancesHtml = Object.entries(user.balances || {})
-        .filter(([_, v]) => v > 0)
-        .map(([c, v]) => `<span style="display:inline-block;margin:4px;padding:4px 10px;background:var(--bg-secondary);border-radius:20px;font-size:12px;"><strong>${c}</strong>: ${c === 'USDT' ? v.toFixed(2) : v.toLocaleString()}</span>`)
-        .join('') || '<span>No balances</span>';
-    
-    resultDiv.innerHTML = `
-        <div style="background:var(--bg-card);border-radius:16px;padding:16px;margin-top:10px;border:1px solid var(--border);">
-            <div style="display:flex;justify-content:space-between;margin-bottom:15px;">
-                <h4>👤 ${user.userName || 'User'}</h4>
-                <div><span style="font-size:12px;color:var(--text-muted);">🆔 ${userId}</span></div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <strong>💰 Balances:</strong>
-                <div style="display:flex;flex-wrap:wrap;margin-top:8px;">${balancesHtml}</div>
-            </div>
-            <div style="margin-bottom:15px;">
-                <strong>👥 Referrals:</strong> ${user.referralCount || 0}
-            </div>
-            <div style="display:flex;gap:10px;margin-top:15px;">
-                <button onclick="adminAddBalance('${userId}')" style="flex:1;background:#10b981;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                    ➕ Add Balance
-                </button>
-                <button onclick="adminRemoveBalance('${userId}')" style="flex:1;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                    ➖ Remove Balance
-                </button>
-            </div>
-            <div style="margin-top:10px;">
-                ${user.withdrawBlocked ? 
-                    `<div style="background:rgba(239,68,68,0.2);border-radius:12px;padding:10px;text-align:center;">
-                        <i class="fas fa-ban"></i> ⚠️ USER IS BLOCKED FROM WITHDRAWALS
-                    </div>` : 
-                    `<button onclick="adminBlockUser('${userId}')" style="width:100%;background:#ef4444;border:none;padding:10px;border-radius:8px;cursor:pointer;color:white;">
-                        <i class="fas fa-ban"></i> Block Withdrawals
-                    </button>`
-                }
-            </div>
-        </div>
-    `;
-}
-
-async function adminAddBalance(userId) {
-    const currency = prompt('Currency (USDT, TWT, BNB, etc.):', 'USDT');
-    if (!currency) return;
-    const amount = parseFloat(prompt(`Amount to ADD (${currency}):`, '0'));
-    if (isNaN(amount) || amount <= 0) return;
-    
-    try {
-        const result = await addBalanceByAdmin(userId, currency, amount, adminId);
-        if (result.success) {
-            showToast(`✅ Added ${amount} ${currency}`, 'success');
-            if (userId === userData?.userId) {
-                userData.balances[currency] = (userData.balances[currency] || 0) + amount;
-                saveUserData();
-                updateUI();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error adding balance', 'error');
-        }
-    } catch (error) {
-        showToast('Error adding balance', 'error');
-    }
-}
-
-async function adminRemoveBalance(userId) {
-    const currency = prompt('Currency (USDT, TWT, BNB, etc.):', 'USDT');
-    if (!currency) return;
-    const amount = parseFloat(prompt(`Amount to REMOVE (${currency}):`, '0'));
-    if (isNaN(amount) || amount <= 0) return;
-    
-    try {
-        const result = await removeBalanceByAdmin(userId, currency, amount, adminId);
-        if (result.success) {
-            showToast(`✅ Removed ${amount} ${currency}`, 'success');
-            if (userId === userData?.userId) {
-                userData.balances[currency] = Math.max(0, (userData.balances[currency] || 0) - amount);
-                saveUserData();
-                updateUI();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error removing balance', 'error');
-        }
-    } catch (error) {
-        showToast('Error removing balance', 'error');
-    }
-}
-
-async function adminBlockUser(userId) {
-    if (!confirm(`⚠️⚠️⚠️ PERMANENT ACTION WARNING ⚠️⚠️⚠️\n\nAre you sure you want to block this user from withdrawals?\n\nThis action can be undone later.`)) return;
-    
-    try {
-        const result = await blockUserByAdmin(userId, adminId);
-        if (result.success) {
-            showToast('✅ User blocked from withdrawals', 'success');
-            if (userId === userData?.userId) {
-                userData.withdrawBlocked = true;
-                saveUserData();
-            }
-            adminSearchUser();
-        } else {
-            showToast('Error blocking user', 'error');
-        }
-    } catch (error) {
-        showToast('Error blocking user', 'error');
-    }
-}
-
-async function refreshAdminStats() {
-    const stats = await getAdminStats(adminId);
-    const statsDiv = document.querySelector('#adminContent > div:first-child');
-    if (statsDiv) {
-        statsDiv.innerHTML = `
-            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:20px;">
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.totalUsers || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">${t('admin.totalUsers')}</div>
-                </div>
-                <div style="background:var(--bg-secondary);border-radius:12px;padding:15px;text-align:center;">
-                    <div style="font-size:24px;font-weight:bold;">${stats.pendingWithdrawals || 0}</div>
-                    <div style="font-size:12px;color:var(--text-muted);">${t('admin.pendingWithdrawals')}</div>
-                </div>
-            </div>
-        `;
-    }
-    showToast('Stats refreshed!', 'success');
-}
-
-// ====== 20. NAVIGATION ======
+// ====== 19. NAVIGATION (مثل REFI بالضبط) ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('walletSection').classList.remove('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -1363,25 +958,9 @@ function showWallet() {
     showRandomSticker();
 }
 
-function showSwap() { 
-    currentPage = 'swap'; 
+function showAirdrop() { 
+    currentPage = 'airdrop'; 
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.remove('hidden');
-    document.getElementById('referralSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
-    
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="swap"]').classList.add('active');
-    
-    renderSwap();
-    showRandomSticker();
-}
-
-function showReferral() { 
-    currentPage = 'referral'; 
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('referralSection').classList.remove('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -1389,14 +968,13 @@ function showReferral() {
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
     document.querySelector('.nav-item[data-tab="referral"]').classList.add('active');
     
-    renderReferral();
+    renderAirdrop();
     showRandomSticker();
 }
 
 function showTWTPay() { 
     currentPage = 'twtpay'; 
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.remove('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -1411,7 +989,6 @@ function showTWTPay() {
 function showSettings() { 
     currentPage = 'settings'; 
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.remove('hidden');
@@ -1423,20 +1000,17 @@ function showSettings() {
     showRandomSticker();
 }
 
-// ====== 21. INITIALIZATION ======
+// ====== 20. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     
     await loadAdminId();
     
-    setupAdminClickDetector();
-    
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
             if (tab === 'wallet') showWallet();
-            else if (tab === 'swap') showSwap();
-            else if (tab === 'referral') showReferral();
+            else if (tab === 'referral') showAirdrop();
             else if (tab === 'twtpay') showTWTPay();
             else if (tab === 'settings') showSettings();
         });
@@ -1455,6 +1029,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userId = getUserId();
     if (userId && localStorage.getItem(`user_${userId}`)) {
         userData = JSON.parse(localStorage.getItem(`user_${userId}`));
+        isAdmin = (userId === adminId);
+        console.log("👑 Final isAdmin:", isAdmin, "userId:", userId, "adminId:", adminId);
+        
+        const crownBtn = document.getElementById('adminCrownBtn');
+        if (crownBtn) {
+            if (isAdmin) crownBtn.classList.remove('hidden');
+            else crownBtn.classList.add('hidden');
+        }
+        
         showMainApp();
         updateUI();
     } else {
@@ -1467,10 +1050,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 1500);
 });
 
-// ====== 22. EXPOSE GLOBALS ======
+// ====== 21. EXPOSE GLOBALS ======
 window.showWallet = showWallet;
-window.showSwap = showSwap;
-window.showReferral = showReferral;
+window.showAirdrop = showAirdrop;
 window.showTWTPay = showTWTPay;
 window.showSettings = showSettings;
 window.showSendModal = showSendModal;
@@ -1494,20 +1076,18 @@ window.copyAddress = copyAddress;
 window.copyDepositAddress = copyDepositAddress;
 window.copyInviteLink = copyInviteLink;
 window.shareInvite = shareInvite;
-window.claimReferralMilestone = claimReferralMilestone;
+window.claimMilestone = claimMilestone;
 window.toggleLanguage = toggleLanguage;
 window.toggleTheme = toggleTheme;
 window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
-window.adminSearchUser = adminSearchUser;
-window.adminAddBalance = adminAddBalance;
-window.adminRemoveBalance = adminRemoveBalance;
-window.adminBlockUser = adminBlockUser;
-window.refreshAdminStats = refreshAdminStats;
-window.showAssetDetails = showAssetDetails;
 
 console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING!");
 console.log("✅ Real Telegram ID:", REAL_USER_ID);
 console.log("✅ Admin ID:", adminId);
+console.log("✅ Is Admin:", isAdmin);
+
+
+هذا الكود شغل التطبيق ولكنه بدائي جدا وبدون اي ميزات
