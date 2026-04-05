@@ -107,36 +107,30 @@ const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸'
 // ====== 4. TRANSLATIONS ======
 const translations = {
     en: {
-        'nav.wallet': 'Wallet', 'nav.swap': 'Swap',
-        'nav.referral': 'Referral', 'nav.twtpay': 'TWT Pay',
-        'nav.settings': 'Settings', 'actions.deposit': 'Deposit',
-        'actions.withdraw': 'Withdraw', 'actions.send': 'Send',
-        'actions.receive': 'Receive', 'actions.history': 'History',
-        'actions.swap': 'Swap', 'wallet.totalBalance': 'Total Balance',
-        'swap.from': 'From', 'swap.to': 'To', 'swap.exchangeRate': 'Exchange Rate',
-        'swap.networkFee': 'Network Fee', 'swap.confirm': 'Confirm Swap',
-        'referral.title': 'EARN USDT', 'referral.totalReferrals': 'TOTAL REFERRALS',
-        'referral.usdtEarned': 'USDT EARNED', 'referral.yourLink': 'Your Referral Link',
-        'referral.milestones': 'Referral Milestones', 'card.balance': 'Card Balance',
-        'settings.language': 'Language', 'settings.theme': 'Theme',
-        'settings.logout': 'Logout', 'notifications.title': 'Notifications',
+        'nav.wallet': 'Wallet', 'nav.swap': 'Swap', 'nav.referral': 'Referral',
+        'nav.twtpay': 'TWT Pay', 'nav.settings': 'Settings',
+        'actions.send': 'Send', 'actions.receive': 'Receive', 'actions.deposit': 'Deposit',
+        'actions.withdraw': 'Withdraw', 'actions.history': 'History', 'actions.swap': 'Swap',
+        'wallet.totalBalance': 'Total Balance', 'swap.from': 'From', 'swap.to': 'To',
+        'swap.exchangeRate': 'Exchange Rate', 'swap.networkFee': 'Network Fee',
+        'referral.totalReferrals': 'TOTAL REFERRALS', 'referral.usdtEarned': 'USDT EARNED',
+        'referral.yourLink': 'Your Referral Link', 'referral.milestones': 'Referral Milestones',
+        'card.balance': 'Card Balance', 'settings.language': 'Language',
+        'settings.theme': 'Theme', 'settings.logout': 'Logout', 'notifications.title': 'Notifications',
         'admin.title': 'Admin Dashboard', 'admin.searchUser': 'Search User',
         'admin.totalUsers': 'Total Users', 'admin.pendingWithdrawals': 'Pending Withdrawals'
     },
     ar: {
-        'nav.wallet': 'المحفظة', 'nav.swap': 'تحويل',
-        'nav.referral': 'إحالة', 'nav.twtpay': 'TWT Pay',
-        'nav.settings': 'الإعدادات', 'actions.deposit': 'إيداع',
-        'actions.withdraw': 'سحب', 'actions.send': 'إرسال',
-        'actions.receive': 'استلام', 'actions.history': 'السجل',
-        'actions.swap': 'تحويل', 'wallet.totalBalance': 'الرصيد الإجمالي',
-        'swap.from': 'من', 'swap.to': 'إلى', 'swap.exchangeRate': 'سعر الصرف',
-        'swap.networkFee': 'رسوم الشبكة', 'swap.confirm': 'تأكيد',
-        'referral.title': 'اربح USDT', 'referral.totalReferrals': 'إجمالي الإحالات',
-        'referral.usdtEarned': 'USDT المكتسبة', 'referral.yourLink': 'رابط الإحالة',
-        'referral.milestones': 'مراحل الإحالة', 'card.balance': 'رصيد البطاقة',
-        'settings.language': 'اللغة', 'settings.theme': 'المظهر',
-        'settings.logout': 'تسجيل الخروج', 'notifications.title': 'الإشعارات',
+        'nav.wallet': 'المحفظة', 'nav.swap': 'تحويل', 'nav.referral': 'إحالة',
+        'nav.twtpay': 'TWT Pay', 'nav.settings': 'الإعدادات',
+        'actions.send': 'إرسال', 'actions.receive': 'استلام', 'actions.deposit': 'إيداع',
+        'actions.withdraw': 'سحب', 'actions.history': 'السجل', 'actions.swap': 'تحويل',
+        'wallet.totalBalance': 'الرصيد الإجمالي', 'swap.from': 'من', 'swap.to': 'إلى',
+        'swap.exchangeRate': 'سعر الصرف', 'swap.networkFee': 'رسوم الشبكة',
+        'referral.totalReferrals': 'إجمالي الإحالات', 'referral.usdtEarned': 'USDT المكتسبة',
+        'referral.yourLink': 'رابط الإحالة', 'referral.milestones': 'مراحل الإحالة',
+        'card.balance': 'رصيد البطاقة', 'settings.language': 'اللغة',
+        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج', 'notifications.title': 'الإشعارات',
         'admin.title': 'لوحة المشرف', 'admin.searchUser': 'بحث عن مستخدم',
         'admin.totalUsers': 'إجمالي المستخدمين', 'admin.pendingWithdrawals': 'سحوبات معلقة'
     }
@@ -155,7 +149,8 @@ function formatBalance(balance, symbol) {
     if (symbol === 'TWT') return balance.toLocaleString() + ' TWT';
     if (symbol === 'USDT') return '$' + balance.toFixed(2);
     if (symbol === 'BTC') return balance.toFixed(6) + ' BTC';
-    return balance.toFixed(4) + ' ' + symbol;
+    if (['BNB', 'ETH', 'SOL', 'TRX', 'ADA', 'TON'].includes(symbol)) return balance.toFixed(4) + ' ' + symbol;
+    return balance.toLocaleString() + ' ' + symbol;
 }
 
 function formatNumber(num) {
@@ -259,11 +254,11 @@ async function loadAdminId() {
         const response = await fetch('/api/config');
         const config = await response.json();
         adminId = config.adminId;
-        console.log("✅ Admin ID loaded from server:", adminId);
-        return config;
+        console.log("✅ Admin ID loaded:", adminId);
+        return true;
     } catch (error) {
         console.error("Failed to load admin ID:", error);
-        return null;
+        return false;
     }
 }
 
@@ -449,8 +444,7 @@ function showNotifications() {
 function setupAdminClickDetector() {
     const notifBtn = document.getElementById('notificationBtn');
     if (!notifBtn) {
-        console.log("⚠️ Notification button not found, will retry");
-        setTimeout(setupAdminClickDetector, 1000);
+        setTimeout(setupAdminClickDetector, 500);
         return;
     }
     
@@ -473,17 +467,15 @@ function setupAdminClickDetector() {
             console.log("🔄 Admin click count reset");
         }, 3000);
         
-        // استدعاء الوظيفة الأصلية للإشعارات
         showNotifications();
     });
     
-    console.log("✅ Admin click detector setup complete");
+    console.log("✅ Admin click detector ready");
 }
 
 function showAdminPasswordModal() {
     const password = prompt("🔐 Enter Admin Password:");
     if (!password) return;
-    
     verifyAndShowAdminPanel(password);
 }
 
@@ -501,7 +493,6 @@ async function verifyAndShowAdminPanel(password) {
             showToast("❌ Invalid password!", "error");
         }
     } catch (error) {
-        console.error("Verification error:", error);
         showToast("Error verifying password", "error");
     }
 }
@@ -532,7 +523,7 @@ async function createNewWallet() {
     
     try {
         if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
+            showToast('Could not get Telegram ID', 'error');
             return;
         }
         
@@ -605,7 +596,7 @@ async function importWallet() {
     
     try {
         if (!REAL_USER_ID) {
-            showToast('Could not get Telegram ID. Please open from Telegram app.', 'error');
+            showToast('Could not get Telegram ID', 'error');
             return;
         }
         
@@ -757,7 +748,7 @@ function renderSwap() {
             </div>
             <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
             <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-            <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
+            <button class="btn-primary" onclick="confirmSwap()">${t('actions.swap')}</button>
         </div>
     `;
     updateSwapBalances();
@@ -807,7 +798,7 @@ function renderSwapModal() {
         </div>
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
         <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
-        <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
+        <button class="btn-primary" onclick="confirmSwap()">${t('actions.swap')}</button>
     `;
     updateSwapBalances();
     calculateSwap();
@@ -1413,11 +1404,12 @@ function showSettings() {
 
 // ====== 21. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log("🚀 App starting...");
+    
     initTheme();
     
     await loadAdminId();
     
-    // إعداد كاشف النقرات السرية للمشرف
     setupAdminClickDetector();
     
     document.querySelectorAll('.nav-item').forEach(btn => {
@@ -1454,6 +1446,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.classList.add('hidden');
     }, 1500);
+    
+    console.log("✅ App initialized successfully");
 });
 
 // ====== 22. EXPOSE GLOBALS ======
@@ -1497,6 +1491,6 @@ window.adminBlockUser = adminBlockUser;
 window.refreshAdminStats = refreshAdminStats;
 window.showAssetDetails = showAssetDetails;
 
-console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING");
+console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING!");
 console.log("✅ Real Telegram ID:", REAL_USER_ID);
 console.log("✅ Admin Password protected (5 clicks on bell)");
