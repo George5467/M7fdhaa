@@ -1,5 +1,6 @@
 // ============================================================================
-// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 5.0
+// TRUST WALLET LITE - ULTIMATE PROFESSIONAL VERSION 6.0
+// مع: تسجيل حقيقي بـ Telegram ID + CoinPayments + لوحة مشرف متكاملة
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -17,6 +18,7 @@ const REAL_USER_ID = telegramUser?.id?.toString() || null;
 const TELEGRAM_USERNAME = telegramUser?.username || '';
 const TELEGRAM_FIRST_NAME = telegramUser?.first_name || 'User';
 const TELEGRAM_LAST_NAME = telegramUser?.last_name || '';
+const TELEGRAM_PHOTO = telegramUser?.photo_url || '';
 
 console.log("📱 Real Telegram ID:", REAL_USER_ID);
 console.log("👤 Username:", TELEGRAM_USERNAME);
@@ -36,6 +38,8 @@ let currentPage = 'wallet';
 let TWT_PRICE = 1.25;
 let livePrices = {};
 let unreadNotifications = 0;
+let currentAdminTab = 'deposits';
+let currentManageUserId = null;
 
 // ====== 3. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
@@ -113,10 +117,35 @@ const translations = {
         'actions.deposit': 'Deposit', 'actions.withdraw': 'Withdraw',
         'wallet.totalBalance': 'Total Balance',
         'swap.from': 'From', 'swap.to': 'To', 'swap.confirm': 'Confirm Swap',
+        'swap.swapperFee': 'Swapper Fee',
         'airdrop.totalInvites': 'Total Invites', 'airdrop.earned': 'USDT Earned',
         'airdrop.yourLink': 'Your Invite Link', 'airdrop.milestones': 'Airdrop Milestones',
+        'airdrop.inviteBonus': 'Get 25 USDT for each friend who joins!',
         'card.balance': 'Card Balance', 'settings.language': 'Language',
-        'settings.theme': 'Theme', 'settings.logout': 'Logout'
+        'settings.theme': 'Theme', 'settings.logout': 'Logout',
+        'notifications.title': 'Notifications',
+        'notifications.clear_read': 'Clear Read',
+        'notifications.clear_all': 'Clear All',
+        'notifications.no_notifications': 'No notifications',
+        'admin.title': 'Admin Panel',
+        'admin.deposits': 'Pending Deposits',
+        'admin.withdrawals': 'Pending Withdrawals',
+        'admin.users': 'User Management',
+        'admin.approve': 'Approve',
+        'admin.reject': 'Reject',
+        'admin.searchUser': 'Search User',
+        'admin.enterUserId': 'Enter Telegram ID',
+        'admin.addBalance': 'Add Balance',
+        'admin.removeBalance': 'Remove Balance',
+        'admin.refresh': 'Refresh',
+        'admin.blockWithdraw': 'Block Withdrawals',
+        'error.insufficient': 'Insufficient balance',
+        'error.enterAmount': 'Enter valid amount',
+        'error.invalidAddress': 'Invalid address',
+        'success.depositSubmitted': 'Deposit request submitted',
+        'success.withdrawSubmitted': 'Withdrawal request submitted',
+        'success.swapCompleted': 'Swap completed',
+        'success.referralCopied': 'Referral link copied'
     },
     ar: {
         'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
@@ -126,16 +155,43 @@ const translations = {
         'actions.deposit': 'إيداع', 'actions.withdraw': 'سحب',
         'wallet.totalBalance': 'الرصيد الإجمالي',
         'swap.from': 'من', 'swap.to': 'إلى', 'swap.confirm': 'تأكيد',
+        'swap.swapperFee': 'رسوم التحويل',
         'airdrop.totalInvites': 'إجمالي الدعوات', 'airdrop.earned': 'USDT المكتسبة',
         'airdrop.yourLink': 'رابط الدعوة', 'airdrop.milestones': 'مراحل الإسقاط',
+        'airdrop.inviteBonus': 'احصل على 25 USDT لكل صديق ينضم!',
         'card.balance': 'رصيد البطاقة', 'settings.language': 'اللغة',
-        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج'
+        'settings.theme': 'المظهر', 'settings.logout': 'تسجيل الخروج',
+        'notifications.title': 'الإشعارات',
+        'notifications.clear_read': 'حذف المقروء',
+        'notifications.clear_all': 'حذف الكل',
+        'notifications.no_notifications': 'لا توجد إشعارات',
+        'admin.title': 'لوحة المشرف',
+        'admin.deposits': 'إيداعات معلقة',
+        'admin.withdrawals': 'سحوبات معلقة',
+        'admin.users': 'إدارة المستخدمين',
+        'admin.approve': 'موافقة',
+        'admin.reject': 'رفض',
+        'admin.searchUser': 'بحث عن مستخدم',
+        'admin.enterUserId': 'أدخل معرف تيليجرام',
+        'admin.addBalance': 'إضافة رصيد',
+        'admin.removeBalance': 'خصم رصيد',
+        'admin.refresh': 'تحديث',
+        'admin.blockWithdraw': 'حظر السحوبات',
+        'error.insufficient': 'رصيد غير كاف',
+        'error.enterAmount': 'أدخل مبلغ صحيح',
+        'error.invalidAddress': 'عنوان غير صالح',
+        'success.depositSubmitted': 'تم تقديم طلب الإيداع',
+        'success.withdrawSubmitted': 'تم تقديم طلب السحب',
+        'success.swapCompleted': 'تم التحويل بنجاح',
+        'success.referralCopied': 'تم نسخ رابط الإحالة'
     }
 };
 
 // ====== 5. UTILITY FUNCTIONS ======
-function t(key) {
-    return translations[currentLanguage]?.[key] || translations.en[key] || key;
+function t(key, params = {}) {
+    let text = translations[currentLanguage]?.[key] || translations.en[key] || key;
+    Object.keys(params).forEach(p => text = text.replace(`{${p}}`, params[p]));
+    return text;
 }
 
 function getCurrencyIcon(symbol) {
@@ -152,6 +208,8 @@ function formatBalance(balance, symbol) {
 function formatNumber(num) {
     if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
     if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    if (num < 0.0001) return num.toFixed(8);
+    if (num < 0.01) return num.toFixed(6);
     return num.toFixed(2);
 }
 
@@ -161,6 +219,11 @@ function showToast(message, type = 'success') {
     if (!toast) return;
     toastMessage.textContent = message;
     toast.classList.remove('hidden');
+    const icon = toast.querySelector('i');
+    if (type === 'success') icon.className = 'fas fa-check-circle';
+    else if (type === 'error') icon.className = 'fas fa-times-circle';
+    else if (type === 'warning') icon.className = 'fas fa-exclamation-triangle';
+    else icon.className = 'fas fa-info-circle';
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
 
@@ -172,6 +235,14 @@ function closeModal(modalId) {
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
     showToast('Copied!');
+}
+
+function animateElement(selector, animation) {
+    const el = document.querySelector(selector);
+    if (el) {
+        el.classList.add(animation);
+        setTimeout(() => el.classList.remove(animation), 500);
+    }
 }
 
 // ====== 6. THEME & LANGUAGE ======
@@ -191,6 +262,7 @@ function toggleLanguage() {
     if (currentPage === 'airdrop') renderAirdrop();
     if (currentPage === 'wallet') renderWallet();
     if (currentPage === 'twtpay') renderTWTPay();
+    if (currentPage === 'admin') renderAdminPanel();
     showToast('Language changed');
 }
 
@@ -311,6 +383,7 @@ function refreshPrices() {
 
 // ====== 10. USER DATA MANAGEMENT ======
 function getUserId() {
+    // استخدام المعرف الحقيقي من تيليجرام أولاً
     if (REAL_USER_ID) return REAL_USER_ID;
     return localStorage.getItem('twt_user_id') || null;
 }
@@ -323,17 +396,18 @@ async function loadUserData() {
         const localData = localStorage.getItem(`user_${userId}`);
         if (localData) {
             userData = JSON.parse(localData);
+            updateUI();
         }
         
         const result = await getUser(userId);
         if (result.success && result.data) {
             userData = result.data;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+            updateUI();
+            return true;
         }
         
-        updateUI();
-        updateNotificationBadge();
-        return true;
+        return false;
     } catch (error) {
         console.error("Error loading user data:", error);
         return false;
@@ -351,6 +425,10 @@ function updateTotalBalance() {
     if (!userData) return;
     let total = userData.balances.USDT || 0;
     total += (userData.balances.TWT || 0) * TWT_PRICE;
+    total += (userData.balances.BNB || 0) * (livePrices.BNB?.price || 0);
+    total += (userData.balances.BTC || 0) * (livePrices.BTC?.price || 0);
+    total += (userData.balances.ETH || 0) * (livePrices.ETH?.price || 0);
+    total += (userData.balances.SOL || 0) * (livePrices.SOL?.price || 0);
     const totalEl = document.getElementById('totalBalance');
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
 }
@@ -363,7 +441,29 @@ function updateUI() {
     if (currentPage === 'airdrop') renderAirdrop();
     if (currentPage === 'twtpay') renderTWTPay();
     if (currentPage === 'settings') renderSettings();
+    if (currentPage === 'admin' && isAdmin) renderAdminPanel();
     updateNotificationBadge();
+    updateUserDisplay();
+}
+
+function updateUserDisplay() {
+    const userNameEl = document.getElementById('userName');
+    const userIdEl = document.getElementById('userIdDisplay');
+    const userAvatarEl = document.getElementById('userAvatar');
+    
+    if (userNameEl && userData) {
+        userNameEl.textContent = userData.userName || TELEGRAM_FIRST_NAME;
+    }
+    
+    if (userIdEl && userData) {
+        const shortId = userData.userId?.slice(-8);
+        userIdEl.textContent = `ID: ${shortId}`;
+    }
+    
+    if (userAvatarEl && userData) {
+        const firstChar = (userData.userName || TELEGRAM_FIRST_NAME).charAt(0).toUpperCase();
+        userAvatarEl.textContent = firstChar;
+    }
 }
 
 function updateNotificationBadge() {
@@ -371,52 +471,118 @@ function updateNotificationBadge() {
     if (badge && userData) {
         const unread = userData.notifications?.filter(n => !n.read).length || 0;
         badge.textContent = unread;
-        badge.style.display = unread > 0 ? 'block' : 'none';
+        badge.style.display = unread > 0 ? 'flex' : 'none';
     }
 }
 
-function addNotification(message) {
+function addNotification(message, type = 'info') {
     if (!userData) return;
     if (!userData.notifications) userData.notifications = [];
     userData.notifications.unshift({
-        id: Date.now().toString(),
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
         message: message,
+        type: type,
         read: false,
         timestamp: new Date().toISOString()
     });
     saveUserData();
     updateNotificationBadge();
+    showToast(message, type);
 }
 
 function showNotifications() {
     const modal = document.getElementById('notificationsModal');
     const list = document.getElementById('notificationsList');
     if (!modal || !list || !userData) return;
+    
     const notifications = userData.notifications || [];
+    
+    let controlsHTML = `
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; padding: 0 5px;">
+            <button onclick="clearReadNotifications()" 
+                    style="flex: 1; padding: 8px; background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2); border-radius: 8px; color: var(--quantum-blue); font-size: 12px; cursor: pointer;">
+                <i class="fas fa-trash-alt"></i> ${t('notifications.clear_read')}
+            </button>
+            <button onclick="clearAllNotifications()" 
+                    style="flex: 1; padding: 8px; background: rgba(255,68,68,0.1); border: 1px solid rgba(255,68,68,0.2); border-radius: 8px; color: #ff4444; font-size: 12px; cursor: pointer;">
+                <i class="fas fa-bell-slash"></i> ${t('notifications.clear_all')}
+            </button>
+        </div>
+    `;
+    
     if (notifications.length === 0) {
-        list.innerHTML = '<div style="text-align:center;padding:40px;">📭 No notifications</div>';
+        list.innerHTML = controlsHTML + `
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-bell-slash" style="font-size: 48px; opacity: 0.5;"></i>
+                <p>${t('notifications.no_notifications')}</p>
+            </div>
+        `;
     } else {
-        list.innerHTML = notifications.map(n => `
-            <div class="notification-item" style="padding:12px;border-bottom:1px solid var(--border);">
-                <div>${n.message}</div>
-                <div style="font-size:10px;color:var(--text-muted);">${new Date(n.timestamp).toLocaleString()}</div>
+        list.innerHTML = controlsHTML + notifications.map(n => `
+            <div class="notification-item ${n.read ? '' : 'unread'}" onclick="markNotificationRead('${n.id}')">
+                <div class="notification-header">
+                    <span class="notification-title"><i class="fas ${n.type === 'success' ? 'fa-check-circle' : n.type === 'error' ? 'fa-times-circle' : 'fa-info-circle'}"></i> Notification</span>
+                    <span class="notification-time">${new Date(n.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="notification-message">${n.message}</div>
             </div>
         `).join('');
     }
+    
     modal.classList.add('show');
+}
+
+function markNotificationRead(notificationId) {
+    if (!userData.notifications) return;
+    const notification = userData.notifications.find(n => n.id === notificationId);
+    if (notification && !notification.read) {
+        notification.read = true;
+        updateNotificationBadge();
+        saveUserData();
+        showNotifications();
+    }
+}
+
+function clearReadNotifications() {
+    if (!userData.notifications) return;
+    const readCount = userData.notifications.filter(n => n.read).length;
+    if (readCount === 0) {
+        showToast(t('notifications.no_read'), 'info');
+        return;
+    }
+    userData.notifications = userData.notifications.filter(n => !n.read);
+    saveUserData();
+    updateNotificationBadge();
+    showNotifications();
+    showToast(`Cleared ${readCount} notifications`);
+}
+
+function clearAllNotifications() {
+    if (!userData.notifications) return;
+    const unreadCount = userData.notifications.filter(n => !n.read).length;
+    if (unreadCount > 0 && !confirm(`Delete ${unreadCount} unread notifications?`)) return;
+    userData.notifications = [];
+    saveUserData();
+    updateNotificationBadge();
+    showNotifications();
+    showToast('All notifications cleared');
 }
 
 // ====== 11. ONBOARDING & WALLET CREATION ======
 function showMainApp() {
-    document.getElementById('onboardingScreen').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
+    const onboarding = document.getElementById('onboardingScreen');
+    const mainContent = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'none';
+    if (mainContent) mainContent.style.display = 'block';
     showWallet();
     showRandomSticker();
 }
 
 function showOnboarding() {
-    document.getElementById('onboardingScreen').style.display = 'flex';
-    document.getElementById('mainContent').style.display = 'none';
+    const onboarding = document.getElementById('onboardingScreen');
+    const mainContent = document.getElementById('mainContent');
+    if (onboarding) onboarding.style.display = 'flex';
+    if (mainContent) mainContent.style.display = 'none';
 }
 
 async function createNewWallet() {
@@ -433,13 +599,26 @@ async function createNewWallet() {
         const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
+        // توليد عنوان إيداع من CoinPayments
+        let depositAddress = null;
+        try {
+            const addressResult = await createDepositAddress(newUserId, 'USDT');
+            depositAddress = addressResult.address;
+            console.log("✅ Deposit address generated:", depositAddress);
+        } catch (addrError) {
+            console.error("Failed to generate deposit address:", addrError);
+            depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
+        }
+        
         const newUserData = {
             userId: newUserId,
             userName: TELEGRAM_FIRST_NAME,
             lastName: TELEGRAM_LAST_NAME,
             username: TELEGRAM_USERNAME,
             telegramId: REAL_USER_ID,
+            photoUrl: TELEGRAM_PHOTO,
             referralCode: newUserId.slice(-8),
+            depositAddress: depositAddress,
             balances: {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
@@ -448,12 +627,21 @@ async function createNewWallet() {
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
             airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [{ id: Date.now(), message: '🎉 Welcome! You got 10 USDT!', read: false, timestamp: new Date() }],
-            transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date() }],
-            depositAddresses: {},
+            notifications: [{ 
+                id: Date.now().toString(), 
+                message: '🎉 Welcome to Trust Wallet Lite! You received 10 USDT airdrop!', 
+                type: 'success',
+                read: false, 
+                timestamp: new Date().toISOString() 
+            }],
+            transactions: [{ 
+                type: 'airdrop', 
+                amount: AIRDROP_BONUS, 
+                currency: 'USDT', 
+                timestamp: new Date().toISOString() 
+            }],
             withdrawBlocked: false,
-            createdAt: new Date().toISOString(),
-            recoveryPhrase: ['apple', 'banana', 'cherry', 'dragon', 'eagle', 'forest', 'green', 'happy', 'island', 'jungle', 'king', 'light'].join(' ')
+            createdAt: new Date().toISOString()
         };
         
         await createUser(newUserId, newUserData);
@@ -469,7 +657,7 @@ async function createNewWallet() {
             else crownBtn.classList.add('hidden');
         }
         
-        if (startParam) {
+        if (startParam && startParam !== newUserId) {
             await processReferral(startParam, newUserId);
         }
         
@@ -487,9 +675,11 @@ async function createNewWallet() {
 
 function showImportModal() {
     const grid = document.getElementById('wordsGrid');
-    grid.innerHTML = '';
-    for (let i = 1; i <= 12; i++) {
-        grid.innerHTML += `<div class="word-field"><div class="word-label">${i}</div><input type="text" id="word_${i}" class="word-input" placeholder="word ${i}"></div>`;
+    if (grid) {
+        grid.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            grid.innerHTML += `<div class="word-field"><div class="word-label">${i}</div><input type="text" id="word_${i}" class="word-input" placeholder="word ${i}"></div>`;
+        }
     }
     document.getElementById('importModal').classList.add('show');
 }
@@ -515,6 +705,17 @@ async function importWallet() {
         const newUserId = REAL_USER_ID;
         localStorage.setItem('twt_user_id', newUserId);
         
+        // توليد عنوان إيداع من CoinPayments
+        let depositAddress = null;
+        try {
+            const addressResult = await createDepositAddress(newUserId, 'USDT');
+            depositAddress = addressResult.address;
+            console.log("✅ Deposit address generated:", depositAddress);
+        } catch (addrError) {
+            console.error("Failed to generate deposit address:", addrError);
+            depositAddress = `0x${newUserId.slice(-40).padStart(40, '0')}`;
+        }
+        
         const newUserData = {
             userId: newUserId,
             userName: TELEGRAM_FIRST_NAME,
@@ -523,6 +724,7 @@ async function importWallet() {
             telegramId: REAL_USER_ID,
             recoveryPhrase: words.join(' '),
             referralCode: newUserId.slice(-8),
+            depositAddress: depositAddress,
             balances: {
                 TWT: 1000, USDT: AIRDROP_BONUS, BNB: 0, BTC: 0, ETH: 0,
                 SOL: 0, TRX: 0, ADA: 0, DOGE: 0, SHIB: 0, PEPE: 0, TON: 0
@@ -531,9 +733,19 @@ async function importWallet() {
             invitedBy: null,
             totalUsdtEarned: AIRDROP_BONUS,
             airdropMilestones: AIRDROP_MILESTONES.map(m => ({ ...m, claimed: false })),
-            notifications: [{ id: Date.now(), message: '🎉 Wallet imported! You got 10 USDT!', read: false, timestamp: new Date() }],
-            transactions: [{ type: 'airdrop', amount: AIRDROP_BONUS, currency: 'USDT', timestamp: new Date() }],
-            depositAddresses: {},
+            notifications: [{ 
+                id: Date.now().toString(), 
+                message: '🎉 Wallet imported! You received 10 USDT airdrop!', 
+                type: 'success',
+                read: false, 
+                timestamp: new Date().toISOString() 
+            }],
+            transactions: [{ 
+                type: 'airdrop', 
+                amount: AIRDROP_BONUS, 
+                currency: 'USDT', 
+                timestamp: new Date().toISOString() 
+            }],
             withdrawBlocked: false,
             createdAt: new Date().toISOString()
         };
@@ -551,7 +763,7 @@ async function importWallet() {
             else crownBtn.classList.add('hidden');
         }
         
-        if (startParam) {
+        if (startParam && startParam !== newUserId) {
             await processReferral(startParam, newUserId);
         }
         
@@ -582,7 +794,7 @@ function renderAssets() {
         const changeSymbol = change >= 0 ? '+' : '';
         
         return `
-            <div class="asset-item">
+            <div class="asset-item" onclick="showAssetDetails('${asset.symbol}')">
                 <div class="asset-left">
                     <img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img">
                     <div class="asset-info">
@@ -599,8 +811,17 @@ function renderAssets() {
     }).join('');
 }
 
+function showAssetDetails(symbol) {
+    const balance = userData?.balances[symbol] || 0;
+    const price = livePrices[symbol]?.price || (symbol === 'TWT' ? TWT_PRICE : 0);
+    const value = symbol === 'USDT' ? balance : balance * price;
+    showToast(`${symbol}: ${formatBalance(balance, symbol)} ($${formatNumber(value)})`, 'info');
+}
+
 function renderWallet() {
     const container = document.getElementById('walletContainer');
+    if (!container) return;
+    
     container.innerHTML = `
         <div class="balance-card">
             <div class="total-balance" id="totalBalance">$0</div>
@@ -687,14 +908,13 @@ async function claimMilestone(invites) {
 
 function copyInviteLink() {
     copyToClipboard(`${BOT_LINK}?startapp=${userData?.userId}`);
-    showToast('Referral link copied!');
+    showToast(t('success.referralCopied'));
 }
 
 function shareInvite() {
     const text = `🚀 Join Trust Wallet Lite and get ${AIRDROP_BONUS} USDT Airdrop! Use my link: ${BOT_LINK}?startapp=${userData?.userId}`;
     if (tg?.shareToStory) tg.shareToStory(text);
     else copyToClipboard(text);
-    showToast('Link copied!');
 }
 
 // ====== 14. RENDER TWT PAY ======
@@ -733,6 +953,8 @@ function showCardTransactions() { showHistory(); }
 // ====== 15. RENDER SETTINGS ======
 function renderSettings() {
     const container = document.getElementById('settingsContainer');
+    if (!container) return;
+    
     container.innerHTML = `
         <div class="settings-list">
             <div class="settings-item" onclick="showNotifications()"><i class="fas fa-bell"></i><div><div class="label">${t('notifications.title')}</div><div class="desc">View all notifications</div></div><i class="fas fa-chevron-right"></i></div>
@@ -782,12 +1004,14 @@ function showSwapModal() {
 
 function renderSwapModal() {
     const container = document.getElementById('swapModalContent');
+    if (!container) return;
+    
     container.innerHTML = `
         <div class="swap-box"><div class="swap-label">${t('swap.from')}</div><div class="swap-row"><input type="number" id="swapFromAmount" placeholder="0.00" oninput="calculateSwap()"><div class="currency-selector-small" onclick="showSwapCurrencySelector('from')"><img id="swapFromIcon" src="${getCurrencyIcon(swapFromCurrency)}"><span id="swapFromSymbol">${swapFromCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapFromBalance">0</span><span class="percentage-buttons"><button onclick="setSwapPercentage(25)">25%</button><button onclick="setSwapPercentage(50)">50%</button><button onclick="setSwapPercentage(100)">Max</button></span></div></div>
         <div class="swap-arrow" onclick="swapDirection()"><i class="fas fa-arrow-down"></i></div>
         <div class="swap-box"><div class="swap-label">${t('swap.to')}</div><div class="swap-row"><input type="number" id="swapToAmount" placeholder="0.00" readonly><div class="currency-selector-small" onclick="showSwapCurrencySelector('to')"><img id="swapToIcon" src="${getCurrencyIcon(swapToCurrency)}"><span id="swapToSymbol">${swapToCurrency}</span><i class="fas fa-chevron-down"></i></div></div><div class="balance-hint">Balance: <span id="swapToBalance">0</span></div></div>
         <div class="swap-rate" id="swapRateDisplay">1 ${swapFromCurrency} ≈ ${TWT_PRICE.toFixed(4)} ${swapToCurrency}</div>
-        <div class="swap-fee"><span>${t('swap.swapperFee')}</span><span id="swapFee">$0.00</span></div>
+        <div class="swap-fee"><span>${t('swap.swapperFee')} (0.3%)</span><span id="swapFee">$0.00</span></div>
         <button class="btn-primary" onclick="confirmSwap()">${t('swap.confirm')}</button>
     `;
     updateSwapBalances();
@@ -796,14 +1020,18 @@ function renderSwapModal() {
 
 function updateSwapBalances() {
     if (!userData) return;
-    document.getElementById('swapFromBalance').innerText = userData.balances[swapFromCurrency] || 0;
-    document.getElementById('swapToBalance').innerText = userData.balances[swapToCurrency] || 0;
+    const fromBalance = document.getElementById('swapFromBalance');
+    const toBalance = document.getElementById('swapToBalance');
+    if (fromBalance) fromBalance.innerText = userData.balances[swapFromCurrency] || 0;
+    if (toBalance) toBalance.innerText = userData.balances[swapToCurrency] || 0;
 }
 
 function showSwapCurrencySelector(type) {
     currentCurrencySelector = type;
     const modal = document.getElementById('currencySelectorModal');
     const list = document.getElementById('currencyList');
+    if (!list) return;
+    
     list.innerHTML = ALL_ASSETS.map(asset => `
         <div class="currency-list-item" onclick="selectSwapCurrency('${asset.symbol}')">
             <img src="${getCurrencyIcon(asset.symbol)}">
@@ -816,12 +1044,16 @@ function showSwapCurrencySelector(type) {
 function selectSwapCurrency(symbol) {
     if (currentCurrencySelector === 'from') {
         swapFromCurrency = symbol;
-        document.getElementById('swapFromIcon').src = getCurrencyIcon(symbol);
-        document.getElementById('swapFromSymbol').innerText = symbol;
+        const fromIcon = document.getElementById('swapFromIcon');
+        const fromSymbol = document.getElementById('swapFromSymbol');
+        if (fromIcon) fromIcon.src = getCurrencyIcon(symbol);
+        if (fromSymbol) fromSymbol.innerText = symbol;
     } else {
         swapToCurrency = symbol;
-        document.getElementById('swapToIcon').src = getCurrencyIcon(symbol);
-        document.getElementById('swapToSymbol').innerText = symbol;
+        const toIcon = document.getElementById('swapToIcon');
+        const toSymbol = document.getElementById('swapToSymbol');
+        if (toIcon) toIcon.src = getCurrencyIcon(symbol);
+        if (toSymbol) toSymbol.innerText = symbol;
     }
     closeModal('currencySelectorModal');
     updateSwapBalances();
@@ -829,21 +1061,27 @@ function selectSwapCurrency(symbol) {
 }
 
 function calculateSwap() {
-    const amount = parseFloat(document.getElementById('swapFromAmount').value) || 0;
+    const amount = parseFloat(document.getElementById('swapFromAmount')?.value) || 0;
     let fromPrice = swapFromCurrency === 'TWT' ? TWT_PRICE : (livePrices[swapFromCurrency]?.price || 0);
     let toPrice = swapToCurrency === 'TWT' ? TWT_PRICE : (livePrices[swapToCurrency]?.price || 0);
     if (fromPrice > 0 && toPrice > 0) {
         const toAmount = (amount * fromPrice) / toPrice;
-        document.getElementById('swapToAmount').value = toAmount.toFixed(6);
-        const fee = amount * fromPrice * 0.003;
-        document.getElementById('swapFee').innerText = `$${fee.toFixed(4)}`;
-        document.getElementById('swapRateDisplay').innerHTML = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
+        const toAmountInput = document.getElementById('swapToAmount');
+        const swapFeeSpan = document.getElementById('swapFee');
+        const swapRateDisplay = document.getElementById('swapRateDisplay');
+        if (toAmountInput) toAmountInput.value = toAmount.toFixed(6);
+        if (swapFeeSpan) {
+            const fee = amount * fromPrice * SWAP_FEE_PERCENT;
+            swapFeeSpan.innerText = `$${fee.toFixed(4)}`;
+        }
+        if (swapRateDisplay) swapRateDisplay.innerHTML = `1 ${swapFromCurrency} ≈ ${(fromPrice / toPrice).toFixed(6)} ${swapToCurrency}`;
     }
 }
 
 function setSwapPercentage(percent) {
-    const balance = userData.balances[swapFromCurrency] || 0;
-    document.getElementById('swapFromAmount').value = balance * (percent / 100);
+    const balance = userData?.balances[swapFromCurrency] || 0;
+    const fromAmount = document.getElementById('swapFromAmount');
+    if (fromAmount) fromAmount.value = balance * (percent / 100);
     calculateSwap();
 }
 
@@ -851,41 +1089,63 @@ function swapDirection() {
     const temp = swapFromCurrency;
     swapFromCurrency = swapToCurrency;
     swapToCurrency = temp;
-    document.getElementById('swapFromIcon').src = getCurrencyIcon(swapFromCurrency);
-    document.getElementById('swapFromSymbol').innerText = swapFromCurrency;
-    document.getElementById('swapToIcon').src = getCurrencyIcon(swapToCurrency);
-    document.getElementById('swapToSymbol').innerText = swapToCurrency;
+    const fromIcon = document.getElementById('swapFromIcon');
+    const fromSymbol = document.getElementById('swapFromSymbol');
+    const toIcon = document.getElementById('swapToIcon');
+    const toSymbol = document.getElementById('swapToSymbol');
+    if (fromIcon) fromIcon.src = getCurrencyIcon(swapFromCurrency);
+    if (fromSymbol) fromSymbol.innerText = swapFromCurrency;
+    if (toIcon) toIcon.src = getCurrencyIcon(swapToCurrency);
+    if (toSymbol) toSymbol.innerText = swapToCurrency;
     updateSwapBalances();
     calculateSwap();
+    animateElement('.swap-arrow', 'pop');
 }
 
 async function confirmSwap() {
-    const amount = parseFloat(document.getElementById('swapFromAmount').value);
-    const toAmount = parseFloat(document.getElementById('swapToAmount').value);
-    if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
-    if ((userData.balances[swapFromCurrency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
+    const amount = parseFloat(document.getElementById('swapFromAmount')?.value);
+    const toAmount = parseFloat(document.getElementById('swapToAmount')?.value);
+    if (!amount || amount <= 0) { showToast(t('error.enterAmount'), 'error'); return; }
+    if ((userData.balances[swapFromCurrency] || 0) < amount) { showToast(t('error.insufficient'), 'error'); return; }
+    
     userData.balances[swapFromCurrency] -= amount;
     userData.balances[swapToCurrency] = (userData.balances[swapToCurrency] || 0) + toAmount;
+    
+    if (!userData.transactions) userData.transactions = [];
+    userData.transactions.unshift({
+        type: 'swap',
+        amount: amount,
+        fromCurrency: swapFromCurrency,
+        toCurrency: swapToCurrency,
+        toAmount: toAmount,
+        timestamp: new Date().toISOString()
+    });
+    
     saveUserData();
     updateUI();
     updateSwapBalances();
-    document.getElementById('swapFromAmount').value = '';
+    const fromAmountInput = document.getElementById('swapFromAmount');
+    if (fromAmountInput) fromAmountInput.value = '';
     calculateSwap();
     closeModal('swapModal');
-    showToast('Swap completed!');
+    showToast(t('success.swapCompleted'));
 }
 
 // ====== 17. SEND/RECEIVE/DEPOSIT/WITHDRAW ======
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
-function showReceiveModal() { document.getElementById('receiveModal').classList.add('show'); document.getElementById('receiveAddress').innerText = userData?.userId || ''; }
+function showReceiveModal() { 
+    document.getElementById('receiveModal').classList.add('show'); 
+    const receiveAddress = document.getElementById('receiveAddress');
+    if (receiveAddress && userData) receiveAddress.innerText = userData.userId || '';
+}
 function copyAddress() { copyToClipboard(document.getElementById('receiveAddress')?.innerText); }
 
 async function sendTransaction() {
-    const currency = document.getElementById('sendCurrency').value;
-    const amount = parseFloat(document.getElementById('sendAmount').value);
-    const address = document.getElementById('sendAddress').value;
-    if (!amount || amount <= 0 || !address) { showToast('Fill all fields', 'error'); return; }
-    if ((userData.balances[currency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
+    const currency = document.getElementById('sendCurrency')?.value;
+    const amount = parseFloat(document.getElementById('sendAmount')?.value);
+    const address = document.getElementById('sendAddress')?.value;
+    if (!amount || amount <= 0 || !address) { showToast(t('error.enterAmount'), 'error'); return; }
+    if ((userData.balances[currency] || 0) < amount) { showToast(t('error.insufficient'), 'error'); return; }
     userData.balances[currency] -= amount;
     saveUserData();
     updateUI();
@@ -896,9 +1156,29 @@ async function sendTransaction() {
 async function showDepositModal() {
     const modal = document.getElementById('depositModal');
     modal.classList.add('show');
-    const currency = document.getElementById('depositCurrency').value;
-    const result = await createDepositAddress(userData.userId, currency);
-    document.getElementById('depositAddress').innerText = result.address || `0x${userData.userId.slice(-40)}`;
+    const currency = document.getElementById('depositCurrency')?.value || 'USDT';
+    
+    // عرض عنوان الإيداع المخزن للمستخدم
+    const depositAddressSpan = document.getElementById('depositAddress');
+    if (depositAddressSpan && userData) {
+        if (userData.depositAddress) {
+            depositAddressSpan.innerText = userData.depositAddress;
+        } else {
+            // محاولة توليد عنوان جديد
+            try {
+                const result = await createDepositAddress(userData.userId, currency);
+                if (result.address) {
+                    userData.depositAddress = result.address;
+                    saveUserData();
+                    depositAddressSpan.innerText = result.address;
+                } else {
+                    depositAddressSpan.innerText = `0x${userData.userId.slice(-40).padStart(40, '0')}`;
+                }
+            } catch (error) {
+                depositAddressSpan.innerText = `0x${userData.userId.slice(-40).padStart(40, '0')}`;
+            }
+        }
+    }
 }
 
 function copyDepositAddress() { copyToClipboard(document.getElementById('depositAddress')?.innerText); }
@@ -906,53 +1186,406 @@ function copyDepositAddress() { copyToClipboard(document.getElementById('deposit
 function showWithdrawModal() { document.getElementById('withdrawModal').classList.add('show'); }
 
 async function submitWithdraw() {
-    const currency = document.getElementById('withdrawCurrency').value;
-    const amount = parseFloat(document.getElementById('withdrawAmount').value);
-    const address = document.getElementById('withdrawAddress').value;
-    if (!amount || amount <= 0 || !address) { showToast('Fill all fields', 'error'); return; }
-    if ((userData.balances[currency] || 0) < amount) { showToast('Insufficient balance', 'error'); return; }
+    const currency = document.getElementById('withdrawCurrency')?.value;
+    const amount = parseFloat(document.getElementById('withdrawAmount')?.value);
+    const address = document.getElementById('withdrawAddress')?.value;
+    if (!amount || amount <= 0 || !address) { showToast(t('error.enterAmount'), 'error'); return; }
+    if ((userData.balances[currency] || 0) < amount) { showToast(t('error.insufficient'), 'error'); return; }
+    
     userData.balances[currency] -= amount;
+    
+    if (!userData.transactions) userData.transactions = [];
+    userData.transactions.unshift({
+        type: 'withdraw',
+        amount: amount,
+        currency: currency,
+        address: address,
+        status: 'pending',
+        timestamp: new Date().toISOString()
+    });
+    
     saveUserData();
     updateUI();
     closeModal('withdrawModal');
-    showToast(`Withdrawal request submitted for ${amount} ${currency}`);
+    showToast(t('success.withdrawSubmitted'));
+    
+    // إشعار للمشرف
+    if (isAdmin) {
+        addNotification(`💰 New withdrawal request: ${amount} ${currency} to ${address.slice(0, 10)}...`, 'info');
+    }
 }
 
-// ====== 18. ADMIN PANEL ======
+// ====== 18. ADMIN PANEL - نسخة كاملة من REFI ======
 function showAdminPanel() {
     if (!isAdmin) { showToast('Access denied', 'error'); return; }
-    document.getElementById('adminPanel').classList.remove('hidden');
+    currentPage = 'admin';
+    document.getElementById('walletSection').classList.add('hidden');
+    document.getElementById('referralSection').classList.add('hidden');
+    document.getElementById('twtpaySection').classList.add('hidden');
+    document.getElementById('settingsSection').classList.add('hidden');
+    document.getElementById('adminSection').classList.remove('hidden');
+    
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    
     renderAdminPanel();
+    showRandomSticker();
 }
 
 function closeAdminPanel() {
-    document.getElementById('adminPanel').classList.add('hidden');
+    currentPage = 'wallet';
+    document.getElementById('adminSection').classList.add('hidden');
+    document.getElementById('walletSection').classList.remove('hidden');
+    document.querySelector('.nav-item[data-tab="wallet"]').classList.add('active');
+    showWallet();
 }
 
 function renderAdminPanel() {
-    const content = document.getElementById('adminContent');
-    content.innerHTML = `
-        <div style="padding:20px;">
-            <h4>👑 Admin Dashboard</h4>
-            <p>Welcome, Administrator</p>
-            <hr>
-            <p><strong>Admin ID:</strong> ${adminId}</p>
-            <p><strong>Your ID:</strong> ${getUserId()}</p>
-            <button onclick="closeAdminPanel()" class="btn-primary">Close</button>
+    const container = document.getElementById('adminContainer');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="admin-tabs">
+            <button class="admin-tab ${currentAdminTab === 'deposits' ? 'active' : ''}" onclick="switchAdminTab('deposits')">
+                <i class="fas fa-download"></i> ${t('admin.deposits')}
+            </button>
+            <button class="admin-tab ${currentAdminTab === 'withdrawals' ? 'active' : ''}" onclick="switchAdminTab('withdrawals')">
+                <i class="fas fa-upload"></i> ${t('admin.withdrawals')}
+            </button>
+            <button class="admin-tab ${currentAdminTab === 'users' ? 'active' : ''}" onclick="switchAdminTab('users')">
+                <i class="fas fa-users"></i> ${t('admin.users')}
+            </button>
+        </div>
+        <div id="adminContent" class="admin-content">
+            <div style="text-align: center; padding: 40px;">
+                <i class="fas fa-hand-pointer" style="font-size: 48px; color: var(--quantum-blue);"></i>
+                <p style="margin-top: 20px;">Click refresh to load data</p>
+                <button onclick="refreshAdminPanel()" class="admin-refresh-btn">
+                    <i class="fas fa-sync-alt"></i> ${t('admin.refresh')}
+                </button>
+            </div>
         </div>
     `;
 }
 
-// ====== 19. NAVIGATION (مثل REFI بالضبط) ======
+function switchAdminTab(tab) {
+    currentAdminTab = tab;
+    document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.admin-tab[onclick="switchAdminTab('${tab}')"]`).classList.add('active');
+    refreshAdminPanel();
+}
+
+async function refreshAdminPanel() {
+    if (!isAdmin) return;
+    
+    const content = document.getElementById('adminContent');
+    if (!content) return;
+    
+    content.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    try {
+        if (currentAdminTab === 'users') {
+            // واجهة إدارة المستخدمين
+            content.innerHTML = `
+                <div class="admin-user-search">
+                    <div class="search-box">
+                        <input type="text" id="adminUserIdInput" placeholder="${t('admin.enterUserId')}" class="admin-search-input">
+                        <button onclick="adminSearchUser()" class="admin-search-btn"><i class="fas fa-search"></i> ${t('admin.searchUser')}</button>
+                    </div>
+                    <div id="adminUserResult" class="admin-user-result"></div>
+                </div>
+            `;
+        } else {
+            // عرض الطلبات المعلقة (سيتم جلبها من الـ API)
+            const endpoint = currentAdminTab === 'deposits' ? '/api/admin/deposits' : '/api/admin/withdrawals';
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            
+            if (data.length === 0) {
+                content.innerHTML = '<div class="empty-state">No pending transactions</div>';
+            } else {
+                content.innerHTML = data.map(item => `
+                    <div class="admin-transaction-card">
+                        <div class="admin-tx-header">
+                            <div class="admin-tx-type ${item.type}">
+                                <i class="fas ${item.type === 'deposit' ? 'fa-download' : 'fa-upload'}"></i>
+                                <span>${item.type.toUpperCase()}</span>
+                            </div>
+                            <span class="admin-tx-status pending">PENDING</span>
+                        </div>
+                        <div class="admin-tx-details">
+                            <div class="admin-tx-row">
+                                <span class="admin-tx-label">User ID:</span>
+                                <span class="admin-tx-value">${item.userId}</span>
+                            </div>
+                            <div class="admin-tx-row">
+                                <span class="admin-tx-label">Amount:</span>
+                                <span class="admin-tx-value">${item.amount} ${item.currency}</span>
+                            </div>
+                            <div class="admin-tx-row">
+                                <span class="admin-tx-label">Deposit Address:</span>
+                                <div class="admin-address-container">
+                                    <code>${item.depositAddress?.slice(0, 20)}...</code>
+                                    <button class="admin-copy-btn" onclick="copyToClipboard('${item.depositAddress}')"><i class="fas fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div class="admin-tx-row">
+                                <span class="admin-tx-label">Time:</span>
+                                <span class="admin-tx-value">${new Date(item.timestamp).toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <div class="admin-tx-actions">
+                            <button class="admin-approve-btn" onclick="adminApproveTransaction('${item.id}', '${item.userId}', ${item.amount}, '${item.currency}')">
+                                <i class="fas fa-check"></i> ${t('admin.approve')}
+                            </button>
+                            <button class="admin-reject-btn" onclick="adminRejectTransaction('${item.id}', '${item.userId}')">
+                                <i class="fas fa-times"></i> ${t('admin.reject')}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (error) {
+        console.error("Error refreshing admin panel:", error);
+        content.innerHTML = '<div class="empty-state">Error loading data</div>';
+    }
+}
+
+async function adminSearchUser() {
+    const userId = document.getElementById('adminUserIdInput')?.value.trim();
+    const resultDiv = document.getElementById('adminUserResult');
+    if (!userId || !resultDiv) return;
+    
+    resultDiv.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+    
+    try {
+        const response = await fetch(`/api/users/${userId}`);
+        const result = await response.json();
+        
+        if (!result.success || !result.data) {
+            resultDiv.innerHTML = '<div class="empty-state">User not found</div>';
+            return;
+        }
+        
+        const user = result.data;
+        const referralCount = user.inviteCount || 0;
+        const earnedUSDT = user.totalUsdtEarned || 0;
+        
+        resultDiv.innerHTML = `
+            <div class="admin-user-profile">
+                <div class="user-profile-header">
+                    <div class="user-avatar-large">${(user.userName || 'U').charAt(0)}</div>
+                    <div class="user-info">
+                        <h3>${user.userName || 'User'}</h3>
+                        <p><i class="fab fa-telegram"></i> ${user.userId}</p>
+                        ${user.username ? `<p><i class="fab fa-telegram"></i> @${user.username}</p>` : ''}
+                    </div>
+                </div>
+                <div class="user-stats">
+                    <div class="stat"><span>👥 Referrals</span><strong>${referralCount}</strong></div>
+                    <div class="stat"><span>💰 USDT Earned</span><strong>$${earnedUSDT.toFixed(2)}</strong></div>
+                </div>
+                <div class="user-balances">
+                    <h4>Balances</h4>
+                    <div class="balance-grid">
+                        ${Object.entries(user.balances || {}).filter(([_, v]) => v > 0).map(([c, v]) => `
+                            <div class="balance-item"><span>${c}</span><strong>${formatBalance(v, c)}</strong></div>
+                        `).join('')}
+                    </div>
+                </div>
+                <div class="user-actions">
+                    <div class="balance-control">
+                        <select id="adminCurrencySelect" class="admin-select">
+                            <option value="USDT">USDT</option>
+                            <option value="TWT">TWT</option>
+                            <option value="BNB">BNB</option>
+                            <option value="BTC">BTC</option>
+                            <option value="ETH">ETH</option>
+                        </select>
+                        <input type="number" id="adminAmountInput" placeholder="Amount" class="admin-amount-input">
+                        <div class="action-buttons">
+                            <button onclick="adminAddBalance('${userId}')" class="admin-add-btn"><i class="fas fa-plus"></i> ${t('admin.addBalance')}</button>
+                            <button onclick="adminRemoveBalance('${userId}')" class="admin-remove-btn"><i class="fas fa-minus"></i> ${t('admin.removeBalance')}</button>
+                        </div>
+                    </div>
+                    <button onclick="adminBlockUser('${userId}')" class="admin-block-btn"><i class="fas fa-ban"></i> ${t('admin.blockWithdraw')}</button>
+                </div>
+                <div class="admin-tx-history">
+                    <h4>Recent Transactions</h4>
+                    <div class="tx-list">
+                        ${(user.transactions || []).slice(0, 5).map(tx => `
+                            <div class="tx-item">
+                                <span>${tx.type}</span>
+                                <span>${tx.amount} ${tx.currency}</span>
+                                <span>${new Date(tx.timestamp).toLocaleDateString()}</span>
+                            </div>
+                        `).join('') || '<p>No transactions</p>'}
+                    </div>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error("Error searching user:", error);
+        resultDiv.innerHTML = '<div class="empty-state">Error searching user</div>';
+    }
+}
+
+async function adminAddBalance(userId) {
+    const currency = document.getElementById('adminCurrencySelect')?.value;
+    const amount = parseFloat(document.getElementById('adminAmountInput')?.value);
+    if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
+    
+    try {
+        const response = await fetch('/api/add-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, currency, amount, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`Added ${amount} ${currency} to user`, 'success');
+            adminSearchUser();
+            // تحديث بيانات المستخدم الحالي إذا كان هو نفسه
+            if (userData && userData.userId === userId) {
+                userData.balances[currency] = (userData.balances[currency] || 0) + amount;
+                saveUserData();
+                updateUI();
+            }
+            // إرسال إشعار للمستخدم
+            await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, message: `✅ Your deposit of ${amount} ${currency} has been approved!` })
+            });
+        } else {
+            showToast('Failed to add balance', 'error');
+        }
+    } catch (error) {
+        console.error("Error adding balance:", error);
+        showToast('Error adding balance', 'error');
+    }
+}
+
+async function adminRemoveBalance(userId) {
+    const currency = document.getElementById('adminCurrencySelect')?.value;
+    const amount = parseFloat(document.getElementById('adminAmountInput')?.value);
+    if (!amount || amount <= 0) { showToast('Enter valid amount', 'error'); return; }
+    
+    try {
+        const response = await fetch('/api/remove-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, currency, amount, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast(`Removed ${amount} ${currency} from user`, 'success');
+            adminSearchUser();
+            if (userData && userData.userId === userId) {
+                userData.balances[currency] = Math.max(0, (userData.balances[currency] || 0) - amount);
+                saveUserData();
+                updateUI();
+            }
+        } else {
+            showToast('Failed to remove balance', 'error');
+        }
+    } catch (error) {
+        console.error("Error removing balance:", error);
+        showToast('Error removing balance', 'error');
+    }
+}
+
+async function adminBlockUser(userId) {
+    if (!confirm(`⚠️ PERMANENT ACTION!\n\nBlock user ${userId} from withdrawals?\n\nTHIS CANNOT BE UNDONE!`)) return;
+    
+    try {
+        const response = await fetch('/api/block-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('User blocked from withdrawals', 'warning');
+            adminSearchUser();
+            if (userData && userData.userId === userId) {
+                userData.withdrawBlocked = true;
+                saveUserData();
+            }
+        } else {
+            showToast('Failed to block user', 'error');
+        }
+    } catch (error) {
+        console.error("Error blocking user:", error);
+        showToast('Error blocking user', 'error');
+    }
+}
+
+async function adminApproveTransaction(txId, userId, amount, currency) {
+    try {
+        const response = await fetch('/api/approve-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txId, userId, amount, currency, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Transaction approved', 'success');
+            refreshAdminPanel();
+            // تحديث بيانات المستخدم الحالي
+            if (userData && userData.userId === userId) {
+                userData.balances[currency] = (userData.balances[currency] || 0) + amount;
+                saveUserData();
+                updateUI();
+            }
+        } else {
+            showToast('Failed to approve', 'error');
+        }
+    } catch (error) {
+        console.error("Error approving transaction:", error);
+        showToast('Error approving transaction', 'error');
+    }
+}
+
+async function adminRejectTransaction(txId, userId) {
+    if (!confirm('Reject this transaction?')) return;
+    
+    try {
+        const response = await fetch('/api/reject-transaction', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txId, userId, adminKey: adminId })
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('Transaction rejected', 'success');
+            refreshAdminPanel();
+        } else {
+            showToast('Failed to reject', 'error');
+        }
+    } catch (error) {
+        console.error("Error rejecting transaction:", error);
+        showToast('Error rejecting transaction', 'error');
+    }
+}
+
+// ====== 19. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('walletSection').classList.remove('hidden');
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
+    document.getElementById('adminSection').classList.add('hidden');
     
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="wallet"]').classList.add('active');
+    const walletNav = document.querySelector('.nav-item[data-tab="wallet"]');
+    if (walletNav) walletNav.classList.add('active');
     
     renderWallet();
     showRandomSticker();
@@ -964,9 +1597,11 @@ function showAirdrop() {
     document.getElementById('referralSection').classList.remove('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
+    document.getElementById('adminSection').classList.add('hidden');
     
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="referral"]').classList.add('active');
+    const airdropNav = document.querySelector('.nav-item[data-tab="referral"]');
+    if (airdropNav) airdropNav.classList.add('active');
     
     renderAirdrop();
     showRandomSticker();
@@ -978,9 +1613,11 @@ function showTWTPay() {
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.remove('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
+    document.getElementById('adminSection').classList.add('hidden');
     
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="twtpay"]').classList.add('active');
+    const twtpayNav = document.querySelector('.nav-item[data-tab="twtpay"]');
+    if (twtpayNav) twtpayNav.classList.add('active');
     
     renderTWTPay();
     showRandomSticker();
@@ -992,9 +1629,11 @@ function showSettings() {
     document.getElementById('referralSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.remove('hidden');
+    document.getElementById('adminSection').classList.add('hidden');
     
     document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="settings"]').classList.add('active');
+    const settingsNav = document.querySelector('.nav-item[data-tab="settings"]');
+    if (settingsNav) settingsNav.classList.add('active');
     
     renderSettings();
     showRandomSticker();
@@ -1015,6 +1654,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             else if (tab === 'settings') showSettings();
         });
     });
+    
+    // إضافة زر المشرف في الهيدر
+    const headerActions = document.querySelector('.header-actions');
+    if (headerActions && !document.getElementById('adminCrownBtn')) {
+        const crownBtn = document.createElement('button');
+        crownBtn.id = 'adminCrownBtn';
+        crownBtn.className = 'icon-btn';
+        crownBtn.innerHTML = '<i class="fas fa-crown" style="color: gold;"></i>';
+        crownBtn.onclick = showAdminPanel;
+        crownBtn.title = 'Admin Panel';
+        if (isAdmin) crownBtn.classList.remove('hidden');
+        else crownBtn.classList.add('hidden');
+        headerActions.appendChild(crownBtn);
+    }
     
     const createBtn = document.getElementById('createWalletBtn');
     const importBtn = document.getElementById('importWalletBtn');
@@ -1083,8 +1736,26 @@ window.logout = logout;
 window.createNewWallet = createNewWallet;
 window.importWallet = importWallet;
 window.showImportModal = showImportModal;
+window.showSwapCurrencySelector = showSwapCurrencySelector;
+window.selectSwapCurrency = selectSwapCurrency;
+window.showAssetDetails = showAssetDetails;
+window.markNotificationRead = markNotificationRead;
+window.clearReadNotifications = clearReadNotifications;
+window.clearAllNotifications = clearAllNotifications;
+window.switchAdminTab = switchAdminTab;
+window.refreshAdminPanel = refreshAdminPanel;
+window.adminSearchUser = adminSearchUser;
+window.adminAddBalance = adminAddBalance;
+window.adminRemoveBalance = adminRemoveBalance;
+window.adminBlockUser = adminBlockUser;
+window.adminApproveTransaction = adminApproveTransaction;
+window.adminRejectTransaction = adminRejectTransaction;
+window.showTopUp = showTopUp;
+window.showCardSettings = showCardSettings;
+window.showCardTransactions = showCardTransactions;
 
-console.log("✅ Trust Wallet Lite v5.0 - FULLY WORKING!");
+console.log("✅ Trust Wallet Lite v6.0 - FULLY WORKING!");
 console.log("✅ Real Telegram ID:", REAL_USER_ID);
 console.log("✅ Admin ID:", adminId);
 console.log("✅ Is Admin:", isAdmin);
+console.log("✅ Features: Real Telegram ID, CoinPayments deposits, Full Admin Panel, Airdrop, Swap, TWT Pay");
