@@ -1,9 +1,8 @@
 // ============================================================================
-// TRUST WALLET LITE - COMPLETE PRODUCTION VERSION
-// جميع الميزات: محفظة، إحالات، TWT Pay، إعدادات، إشعارات
+// TRUST WALLET LITE - FORCED REAL TELEGRAM ID VERSION
 // ============================================================================
 
-// ====== 1. TELEGRAM WEBAPP ======
+// ====== 1. TELEGRAM WEBAPP & REAL ID FORCED CHECK ======
 const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
@@ -11,27 +10,60 @@ if (tg) {
     console.log("✅ Telegram WebApp initialized");
 }
 
-// ====== 2. USER IDENTIFICATION ======
-const userId = tg?.initDataUnsafe?.user?.id?.toString() || 
-               localStorage.getItem('twt_user_id') || 
-               'guest_' + Math.random().toString(36).substr(2, 9);
+// 🔥🔥🔥 الحل السحري: منع أي مستخدم وهمي تماماً 🔥🔥🔥
+let REAL_TELEGRAM_ID = null;
+try {
+    // محاولة جلب المعرف من المصدر الصحيح (مثل تطبيق REFI)
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+        REAL_TELEGRAM_ID = tg.initDataUnsafe.user.id.toString();
+        console.log("🎉 REAL TELEGRAM ID DETECTED:", REAL_TELEGRAM_ID);
+    } else {
+        console.error("❌ FATAL ERROR: No real Telegram ID found! The app must be opened from the official Telegram Mini App.");
+        // إظهار رسالة خطأ للمستخدم بدلاً من إنشاء معرف وهمي
+        document.body.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; padding: 20px; background: #0a0b0f; color: white;">
+                <div>
+                    <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff4444;"></i>
+                    <h2>⚠️ Security Error</h2>
+                    <p>This application must be opened from the official Telegram Mini App.</p>
+                    <p>Please click the "OPEN" or "START" button inside the Telegram bot.</p>
+                    <small style="color: #888;">(Debug: No Telegram user data found)</small>
+                </div>
+            </div>
+        `;
+        // إيقاف تنفيذ الكود نهائياً لمنع إنشاء مستخدم وهمي
+        throw new Error("No real Telegram ID found. App cannot continue.");
+    }
+} catch (e) {
+    console.error(e);
+    // إذا فشل كل شيء، نوقف التنفيذ
+    throw new Error("Initialization failed: Missing Telegram user context.");
+}
 
+// الآن وبكل ثقة، REAL_TELEGRAM_ID هو المعرف الحقيقي للمستخدم
+const userId = REAL_TELEGRAM_ID;
 const userName = tg?.initDataUnsafe?.user?.first_name || 'User';
-const userFirstName = tg?.initDataUnsafe?.user?.first_name || 'User';
+const userUsername = tg?.initDataUnsafe?.user?.username || '';
 
+// تخزين المعرف الحقيقي في localStorage لاستخدامه لاحقاً
 localStorage.setItem('twt_user_id', userId);
+localStorage.setItem('twt_is_real_user', 'true');
 
-console.log("📱 User ID:", userId);
+console.log("📱 REAL User ID (Forced):", userId);
 console.log("👤 Name:", userName);
+console.log("🔹 Username:", userUsername);
 
-// ====== 3. CONSTANTS ======
+// ====== 2. CONSTANTS (بدون تغيير) ======
 const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
 const TWT_PRICE = 1.25;
 const ADMIN_ID = "1653918641";
 
-// ====== 4. ICONS ======
+// ... (باقي الكود كما هو، بدءاً من تعريف CMC_ICONS وحتى نهاية الملف، يبقى كما هو دون تغيير، لأن المشكلة كانت فقط في استخراج ID).
+// سأقوم بلصق باقي الكود من الملف السابق هنا ليكتمل، مع التأكيد أن جزء التعريف هو ما تم تغييره فقط.
+
+// ====== 3. ICONS ======
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
     USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
@@ -64,7 +96,7 @@ const REFERRAL_MILESTONES = [
     { referrals: 250, reward: 1000, unit: 'USDT', icon: 'fa-gem' }
 ];
 
-// ====== 5. STATE ======
+// ====== 4. STATE ======
 let userData = null;
 let livePrices = {};
 let currentLanguage = localStorage.getItem('language') || 'en';
@@ -73,7 +105,7 @@ let currentPage = 'wallet';
 let isAdmin = userId === ADMIN_ID;
 let unreadNotifications = 0;
 
-// ====== 6. TRANSLATIONS ======
+// ====== 5. TRANSLATIONS ======
 const translations = {
     en: {
         'nav.wallet': 'Wallet', 'nav.airdrop': 'Airdrop',
@@ -126,7 +158,7 @@ function showToast(message, type = 'success') {
 function closeModal(modalId) { document.getElementById(modalId)?.classList.remove('show'); }
 function copyToClipboard(text) { navigator.clipboard.writeText(text); showToast('Copied!'); }
 
-// ====== 7. THEME & LANGUAGE ======
+// ====== 6. THEME & LANGUAGE ======
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
     localStorage.setItem('language', currentLanguage);
@@ -153,7 +185,7 @@ function updateAllTexts() {
     });
 }
 
-// ====== 8. ADMIN SYSTEM ======
+// ====== 7. ADMIN SYSTEM ======
 function checkAdminAndAddCrown() {
     if (!isAdmin) return;
     const crownBtn = document.getElementById('adminCrownBtn');
@@ -161,7 +193,7 @@ function checkAdminAndAddCrown() {
 }
 function showAdminPanel() { alert('Admin Panel - Coming Soon'); }
 
-// ====== 9. API CALLS ======
+// ====== 8. API CALLS ======
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) options.body = JSON.stringify(body);
@@ -169,7 +201,7 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-// ====== 10. PRICES ======
+// ====== 9. PRICES ======
 async function fetchLivePrices() {
     try {
         const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=trust-wallet-token,tether,binancecoin,bitcoin,ethereum,solana,tron,shiba-inu,pepe&vs_currencies=usd');
@@ -191,7 +223,7 @@ async function fetchLivePrices() {
 }
 function refreshPrices() { fetchLivePrices(); showToast('Prices refreshed!'); }
 
-// ====== 11. CREATE NEW WALLET ======
+// ====== 10. CREATE NEW WALLET ======
 async function createNewWallet() {
     console.log("🔄 Creating new wallet...");
     const btn = document.getElementById('createWalletBtn');
@@ -220,7 +252,7 @@ async function createNewWallet() {
     finally { if (btn) { btn.innerHTML = 'Create a new wallet'; btn.disabled = false; } }
 }
 
-// ====== 12. PROCESS REFERRAL ======
+// ====== 11. PROCESS REFERRAL ======
 async function processReferral() {
     const referralCode = window.startParam;
     if (!referralCode || referralCode === userId || userData?.invitedBy) return;
@@ -235,7 +267,7 @@ async function processReferral() {
     }
 }
 
-// ====== 13. LOAD USER DATA ======
+// ====== 12. LOAD USER DATA ======
 async function loadUserData() {
     try {
         const localData = localStorage.getItem(`user_${userId}`);
@@ -269,7 +301,7 @@ function saveUserData() {
     }
 }
 
-// ====== 14. RENDER FUNCTIONS ======
+// ====== 13. RENDER FUNCTIONS ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container || !userData) return;
@@ -372,7 +404,7 @@ function updateUI() {
 }
 function logout() { if (confirm('Logout?')) { localStorage.clear(); location.reload(); } }
 
-// ====== 15. MODAL FUNCTIONS ======
+// ====== 14. MODAL FUNCTIONS ======
 function showDepositModal() { document.getElementById('depositModal').classList.add('show'); }
 function showWithdrawModal() { document.getElementById('withdrawModal').classList.add('show'); }
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
@@ -386,7 +418,7 @@ function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function showImportModal() { showToast('Import feature coming soon', 'info'); }
 function importWallet() { showToast('Import feature coming soon', 'info'); }
 
-// ====== 16. NAVIGATION ======
+// ====== 15. NAVIGATION ======
 function showWallet() { 
     currentPage = 'wallet'; 
     document.getElementById('walletSection').classList.remove('hidden');
@@ -428,7 +460,7 @@ function showSettings() {
     renderSettings();
 }
 
-// ====== 17. INITIALIZATION ======
+// ====== 16. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 Initializing Trust Wallet Lite...");
     initTheme(); updateAllTexts();
@@ -453,7 +485,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log("👑 Is Admin:", isAdmin);
 });
 
-// ====== 18. EXPOSE GLOBALS ======
+// ====== 17. EXPOSE GLOBALS ======
 window.showWallet = showWallet; window.showAirdrop = showAirdrop; window.showTWTPay = showTWTPay;
 window.showSettings = showSettings; window.showDepositModal = showDepositModal;
 window.showWithdrawModal = showWithdrawModal; window.showSendModal = showSendModal;
@@ -468,4 +500,5 @@ window.importWallet = importWallet; window.showImportModal = showImportModal;
 window.copyDepositAddress = copyDepositAddress; window.copyAddress = copyAddress;
 window.refreshPrices = refreshPrices; window.scrollToTop = scrollToTop;
 
-console.log("✅ Trust Wallet Lite - READY FOR PRODUCTION!");
+console.log("✅ Trust Wallet Lite - FORCED REAL ID VERSION READY!");
+console.log("👑 Final isAdmin:", isAdmin);
