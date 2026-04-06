@@ -9,7 +9,7 @@
 </head>
 <body>
 
-    <!-- Splash Screen -->
+    <!-- ========== SPLASH SCREEN ========== -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-content">
             <div class="splash-logo"><i class="fas fa-shield-alt"></i></div>
@@ -19,7 +19,7 @@
         </div>
     </div>
 
-    <!-- Onboarding Screen -->
+    <!-- ========== ONBOARDING SCREEN ========== -->
     <div id="onboardingScreen" class="onboarding-screen" style="display: none;">
         <div class="onboarding-container">
             <div class="logo-icon-large"><i class="fas fa-shield-alt"></i></div>
@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <!-- Import Modal -->
+    <!-- ========== IMPORT WALLET MODAL ========== -->
     <div id="importModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -48,7 +48,7 @@
         </div>
     </div>
 
-    <!-- Main App -->
+    <!-- ========== MAIN APP CONTENT ========== -->
     <div id="mainContent" class="main-content" style="display: none;">
         <!-- Header -->
         <div class="app-header">
@@ -60,7 +60,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <button id="adminCrownBtn" class="icon-btn hidden"><i class="fa-solid fa-crown"></i></button>
+                <button id="adminCrownBtn" class="icon-btn hidden"><i class="fa-solid fa-crown" style="color: gold;"></i></button>
                 <button id="notificationBtn" class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge">0</span></button>
                 <button id="refreshPricesBtn" class="icon-btn"><i class="fa-solid fa-rotate-right"></i></button>
                 <button id="languageBtn" class="icon-btn"><span id="currentLanguageFlag">🇬🇧</span></button>
@@ -70,7 +70,7 @@
 
         <div id="welcomeSticker" class="welcome-sticker"></div>
 
-        <!-- Tabs -->
+        <!-- Tab Contents -->
         <div id="walletSection" class="tab-content active">
             <div id="walletContainer"></div>
         </div>
@@ -93,7 +93,7 @@
         </div>
     </div>
 
-    <!-- Modals (مختصرة) -->
+    <!-- ========== MODALS ========== -->
     <div id="depositModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Deposit</h3><button onclick="closeModal('depositModal')">×</button></div><div class="modal-body"><div class="address-box"><code id="depositAddress"></code><button onclick="copyDepositAddress()">Copy</button></div></div></div></div>
     <div id="withdrawModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Withdraw</h3><button onclick="closeModal('withdrawModal')">×</button></div><div class="modal-body"><input type="number" id="withdrawAmount" placeholder="Amount"><input type="text" id="withdrawAddress" placeholder="Address"><button onclick="submitWithdraw()">Withdraw</button></div></div></div>
     <div id="sendModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Send</h3><button onclick="closeModal('sendModal')">×</button></div><div class="modal-body"><input type="number" id="sendAmount" placeholder="Amount"><input type="text" id="sendAddress" placeholder="Address"><button onclick="sendTransaction()">Send</button></div></div></div>
