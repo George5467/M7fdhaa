@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - COMPLETE VERSION (REFI STYLE - PURE BACKEND)
+// TRUST WALLET LITE - LEGENDARY EDITION v7.0
 // ============================================================================
 
 // ====== 1. TELEGRAM WEBAPP INITIALIZATION ======
@@ -11,16 +11,14 @@ if (tg) {
     console.log("✅ Telegram WebApp initialized");
 }
 
-// 🔥 السطر السحري من REFI
+// 🔥 السطر السحري - لا تغيره أبداً
 const userId = tg?.initDataUnsafe?.user?.id?.toString() || 
                localStorage.getItem('twt_user_id') || 
                'guest_' + Math.random().toString(36).substr(2, 9);
 
 const userName = tg?.initDataUnsafe?.user?.first_name || 'TWT User';
 const userFirstName = tg?.initDataUnsafe?.user?.first_name || 'User';
-const userLastName = tg?.initDataUnsafe?.user?.last_name || '';
 const userUsername = tg?.initDataUnsafe?.user?.username || '';
-const userPhoto = tg?.initDataUnsafe?.user?.photo_url || '';
 
 localStorage.setItem('twt_user_id', userId);
 
@@ -48,11 +46,8 @@ const CMC_ICONS = {
     ETH: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png',
     SOL: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png',
     TRX: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1958.png',
-    ADA: 'https://s2.coinmarketcap.com/static/img/coins/64x64/2010.png',
-    DOGE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/74.png',
     SHIB: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5994.png',
-    PEPE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png',
-    TON: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11419.png'
+    PEPE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png'
 };
 
 const ALL_ASSETS = [
@@ -61,10 +56,10 @@ const ALL_ASSETS = [
     { symbol: 'BNB', name: 'BNB' },
     { symbol: 'BTC', name: 'Bitcoin' },
     { symbol: 'ETH', name: 'Ethereum' },
-    { symbol: 'SHIB', name: 'Shiba Inu' },
-    { symbol: 'PEPE', name: 'Pepe' },
     { symbol: 'SOL', name: 'Solana' },
-    { symbol: 'TRX', name: 'TRON' }
+    { symbol: 'TRX', name: 'TRON' },
+    { symbol: 'SHIB', name: 'Shiba Inu' },
+    { symbol: 'PEPE', name: 'Pepe' }
 ];
 
 const REFERRAL_MILESTONES = [
@@ -97,10 +92,7 @@ const translations = {
         'airdrop.earned': 'USDT Earned',
         'airdrop.yourLink': 'Your Invite Link',
         'airdrop.milestones': 'Airdrop Milestones',
-        'notifications.title': 'Notifications',
-        'notifications.clear_read': 'Clear Read',
-        'notifications.clear_all': 'Clear All',
-        'notifications.no_notifications': 'No notifications'
+        'notifications.title': 'Notifications'
     },
     ar: {
         'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
@@ -113,10 +105,7 @@ const translations = {
         'airdrop.earned': 'USDT المكتسبة',
         'airdrop.yourLink': 'رابط الدعوة',
         'airdrop.milestones': 'مراحل الإسقاط',
-        'notifications.title': 'الإشعارات',
-        'notifications.clear_read': 'حذف المقروء',
-        'notifications.clear_all': 'حذف الكل',
-        'notifications.no_notifications': 'لا توجد إشعارات'
+        'notifications.title': 'الإشعارات'
     }
 };
 
@@ -157,14 +146,6 @@ function closeModal(modalId) {
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
     showToast('Copied!');
-}
-
-function animateElement(selector, animation) {
-    const el = document.querySelector(selector);
-    if (el) {
-        el.classList.add(animation);
-        setTimeout(() => el.classList.remove(animation), 500);
-    }
 }
 
 // ====== 6. THEME & LANGUAGE ======
@@ -251,11 +232,9 @@ async function fetchLivePrices() {
     }
 }
 
-// ====== 10. CREATE NEW WALLET (FIXED) ======
+// ====== 10. CREATE NEW WALLET ======
 async function createNewWallet() {
     console.log("🔄 Creating new wallet...");
-    console.log("📱 User ID:", userId);
-    console.log("👤 User Name:", userName);
     
     const btn = document.getElementById('createWalletBtn');
     if (btn) {
@@ -298,8 +277,6 @@ async function createNewWallet() {
             createdAt: new Date().toISOString()
         };
         
-        console.log("📤 Sending to /api/users...");
-        
         const response = await fetch('/api/users', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -307,17 +284,15 @@ async function createNewWallet() {
         });
         
         const result = await response.json();
-        console.log("📥 Response:", result);
+        console.log("Response:", result);
         
         if (result.success) {
             userData = newUserData;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
-            console.log("✅ User created successfully");
             
-            const onboarding = document.getElementById('onboardingScreen');
-            const mainContent = document.getElementById('mainContent');
-            if (onboarding) onboarding.style.display = 'none';
-            if (mainContent) mainContent.style.display = 'block';
+            // إخفاء شاشة البداية
+            document.getElementById('onboardingScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
             
             updateUI();
             showToast('✅ Wallet created! +10 USDT');
@@ -330,7 +305,7 @@ async function createNewWallet() {
         }
         
     } catch (error) {
-        console.error("❌ Error creating user:", error);
+        console.error("Error:", error);
         showToast('Failed to create wallet: ' + error.message, 'error');
     } finally {
         if (btn) {
@@ -347,8 +322,6 @@ async function processReferral() {
         if (!referralCode || referralCode === userId) return;
         if (userData?.invitedBy) return;
         
-        console.log("🎯 Processing referral code:", referralCode);
-        
         const response = await fetch('/api/referrals', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -359,8 +332,8 @@ async function processReferral() {
         
         if (result.success && userData) {
             userData.invitedBy = referralCode;
-            userData.balances.USDT = (userData.balances.USDT || 0) + REFERRAL_BONUS;
-            userData.totalUsdtEarned = (userData.totalUsdtEarned || 0) + REFERRAL_BONUS;
+            userData.balances.USDT += REFERRAL_BONUS;
+            userData.totalUsdtEarned += REFERRAL_BONUS;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
             updateUI();
             showToast(`🎉 +${REFERRAL_BONUS} USDT from referral!`, 'success');
@@ -375,6 +348,7 @@ async function loadUserData() {
     try {
         console.log("📂 Loading user data for:", userId);
         
+        // أولاً: التحقق من localStorage
         const localData = localStorage.getItem(`user_${userId}`);
         if (localData) {
             userData = JSON.parse(localData);
@@ -383,13 +357,13 @@ async function loadUserData() {
             updateNotificationBadge();
             checkAdminAndAddCrown();
             
-            const onboarding = document.getElementById('onboardingScreen');
-            const mainContent = document.getElementById('mainContent');
-            if (onboarding) onboarding.style.display = 'none';
-            if (mainContent) mainContent.style.display = 'block';
+            // إخفاء شاشة البداية
+            document.getElementById('onboardingScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
             return;
         }
         
+        // ثانياً: محاولة جلب البيانات من الـ API
         const response = await fetch(`/api/users/${userId}`);
         const result = await response.json();
         
@@ -401,14 +375,21 @@ async function loadUserData() {
             updateNotificationBadge();
             checkAdminAndAddCrown();
             
-            const onboarding = document.getElementById('onboardingScreen');
-            const mainContent = document.getElementById('mainContent');
-            if (onboarding) onboarding.style.display = 'none';
-            if (mainContent) mainContent.style.display = 'block';
+            // إخفاء شاشة البداية
+            document.getElementById('onboardingScreen').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        } else {
+            // لا يوجد مستخدم - نعرض شاشة البداية
+            console.log("📝 No user found, showing onboarding");
+            document.getElementById('onboardingScreen').style.display = 'flex';
+            document.getElementById('mainContent').style.display = 'none';
         }
         
     } catch (error) {
         console.error("❌ Error loading user data:", error);
+        // في حالة الخطأ، نعرض شاشة البداية
+        document.getElementById('onboardingScreen').style.display = 'flex';
+        document.getElementById('mainContent').style.display = 'none';
     }
 }
 
@@ -498,7 +479,6 @@ function renderAirdrop() {
                 <button class="copy-btn" onclick="copyInviteLink()"><i class="fas fa-copy"></i></button>
             </div>
         </div>
-        <div class="section-header"><h3>${t('airdrop.milestones')}</h3></div>
         <div id="milestonesList" class="milestones-list"></div>
     `;
     
@@ -519,7 +499,7 @@ function renderAirdropMilestones() {
                 <div class="milestone-header"><span><i class="fas ${m.icon}"></i> ${m.referrals} Referrals</span><span>${m.reward} ${m.unit}</span></div>
                 <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
                 <div class="progress-text">${userData.inviteCount}/${m.referrals}</div>
-                ${canClaim ? `<button class="claim-btn" onclick="claimMilestone(${m.referrals})">Claim Reward</button>` : isClaimed ? '<p style="color:var(--success);text-align:center;">✓ Claimed</p>' : ''}
+                ${canClaim ? `<button class="claim-btn" onclick="claimMilestone(${m.referrals})">Claim Reward</button>` : isClaimed ? '<p style="color:green;text-align:center;">✓ Claimed</p>' : ''}
             </div>
         `;
     }).join('');
@@ -644,7 +624,7 @@ function updateNotificationBadge() {
     if (badge && userData) {
         const unread = userData.notifications?.filter(n => !n.read).length || 0;
         badge.textContent = unread;
-        badge.style.display = unread > 0 ? 'flex' : 'none';
+        badge.style.display = unread > 0 ? 'block' : 'none';
     }
 }
 
@@ -705,7 +685,6 @@ async function importWallet() {
         }
         words.push(word);
     }
-    
     showToast('Import feature coming soon', 'info');
 }
 
@@ -773,12 +752,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTheme();
     updateAllTexts();
     
+    // أزرار الإنشاء والاستيراد
     const createBtn = document.getElementById('createWalletBtn');
     const importBtn = document.getElementById('importWalletBtn');
     
     if (createBtn) createBtn.onclick = createNewWallet;
     if (importBtn) importBtn.onclick = showImportModal;
     
+    // أزرار التنقل
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
@@ -793,6 +774,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUserData();
     checkAdminAndAddCrown();
     
+    // إخفاء شاشة التحميل
     setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.classList.add('hidden');
@@ -830,5 +812,4 @@ window.markNotificationRead = markNotificationRead;
 window.clearReadNotifications = clearReadNotifications;
 window.clearAllNotifications = clearAllNotifications;
 
-console.log("✅ Trust Wallet Lite - READY!");
-console.log("✅ No direct Firebase - all via backend API");
+console.log("✅ Trust Wallet Lite - LEGENDARY EDITION READY!");
