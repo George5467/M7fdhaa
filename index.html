@@ -4,23 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>Trust Wallet Lite • Secure Crypto Wallet</title>
-    <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- ========== SPLASH SCREEN ========== -->
+    <!-- Splash Screen -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-content">
             <div class="splash-logo"><i class="fas fa-shield-alt"></i></div>
             <h1>Trust Wallet Lite</h1>
             <div class="splash-spinner"></div>
-            <div class="splash-version">v5.0</div>
+            <div class="splash-version">v6.0</div>
         </div>
     </div>
 
-    <!-- ========== ONBOARDING SCREEN ========== -->
-    <div id="onboardingScreen" class="onboarding-screen">
+    <!-- Onboarding Screen -->
+    <div id="onboardingScreen" class="onboarding-screen" style="display: none;">
         <div class="onboarding-container">
             <div class="logo-icon-large"><i class="fas fa-shield-alt"></i></div>
             <h1>Trust Wallet Lite</h1>
@@ -33,190 +33,77 @@
         </div>
     </div>
 
-    <!-- ========== IMPORT WALLET MODAL (12 Words) ========== -->
+    <!-- Import Modal -->
     <div id="importModal" class="modal">
-        <div class="modal-content import-modal-content">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-key"></i> Import Wallet</h3>
                 <button class="close-modal" onclick="closeModal('importModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <p class="modal-desc">Enter your 12-word recovery phrase</p>
+                <p>Enter your 12-word recovery phrase</p>
                 <div class="words-grid" id="wordsGrid"></div>
-                <div class="warning-box"><i class="fas fa-shield-alt"></i><span>⚠️ Keep your phrase safe. Never share it!</span></div>
-                <button id="confirmImportBtn" class="btn-primary import-btn"><i class="fas fa-arrow-right"></i> Import Wallet</button>
+                <button id="confirmImportBtn" class="btn-primary">Import Wallet</button>
             </div>
         </div>
     </div>
 
-    <!-- ========== MAIN APP CONTENT ========== -->
+    <!-- Main App -->
     <div id="mainContent" class="main-content" style="display: none;">
         <!-- Header -->
         <div class="app-header">
-            <div class="header-top">
-                <div class="wallet-selector">
-                    <i class="fas fa-chevron-down"></i>
-                    <span>Main Wallet</span>
-                </div>
-                <div class="header-actions">
-                    <button id="notificationBtn" class="icon-btn" onclick="showNotifications()">
-                        <i class="fa-regular fa-bell"></i>
-                        <span class="badge hidden">0</span>
-                    </button>
-                    <button id="refreshPricesBtn" class="icon-btn" onclick="refreshPrices()">
-                        <i class="fa-solid fa-rotate-right"></i>
-                    </button>
-                    <button id="adminCrownBtn" class="icon-btn hidden" onclick="showAdminPanel()">
-                        <i class="fa-solid fa-crown" style="color:gold;"></i>
-                    </button>
-                    <button id="languageBtn" class="icon-btn" onclick="toggleLanguage()">
-                        <span id="currentLanguageFlag">🇬🇧</span>
-                    </button>
-                    <button id="themeBtn" class="icon-btn" onclick="toggleTheme()">
-                        <i class="fas fa-moon"></i>
-                    </button>
+            <div class="header-left">
+                <div class="user-avatar" id="userAvatar">U</div>
+                <div class="user-info">
+                    <div class="username" id="userName">User</div>
+                    <div class="user-id" id="userIdDisplay">ID: --------</div>
                 </div>
             </div>
-            <div id="welcomeSticker" class="welcome-sticker"></div>
+            <div class="header-actions">
+                <button id="adminCrownBtn" class="icon-btn hidden"><i class="fa-solid fa-crown"></i></button>
+                <button id="notificationBtn" class="icon-btn"><i class="fa-regular fa-bell"></i><span class="badge">0</span></button>
+                <button id="refreshPricesBtn" class="icon-btn"><i class="fa-solid fa-rotate-right"></i></button>
+                <button id="languageBtn" class="icon-btn"><span id="currentLanguageFlag">🇬🇧</span></button>
+                <button id="themeBtn" class="icon-btn"><i class="fas fa-moon"></i></button>
+            </div>
         </div>
 
-        <!-- Tab Contents - 4 Sections (مثل REFI) -->
+        <div id="welcomeSticker" class="welcome-sticker"></div>
+
+        <!-- Tabs -->
         <div id="walletSection" class="tab-content active">
             <div id="walletContainer"></div>
         </div>
-        
         <div id="referralSection" class="tab-content hidden">
             <div id="referralContainer"></div>
         </div>
-        
         <div id="twtpaySection" class="tab-content hidden">
             <div id="twtpayContainer"></div>
         </div>
-        
         <div id="settingsSection" class="tab-content hidden">
             <div id="settingsContainer"></div>
         </div>
 
-        <!-- Bottom Navigation (4 أيقونات) -->
+        <!-- Bottom Navigation -->
         <div class="bottom-nav">
-            <button class="nav-item active" data-tab="wallet">
-                <i class="fas fa-wallet"></i>
-                <span>Wallet</span>
-            </button>
-            <button class="nav-item" data-tab="referral">
-                <i class="fas fa-users"></i>
-                <span>Airdrop</span>
-            </button>
-            <button class="nav-item" data-tab="twtpay">
-                <i class="fas fa-credit-card"></i>
-                <span>TWT Pay</span>
-            </button>
-            <button class="nav-item" data-tab="settings">
-                <i class="fas fa-sliders-h"></i>
-                <span>Settings</span>
-            </button>
+            <button class="nav-item active" data-tab="wallet"><i class="fas fa-wallet"></i><span>Wallet</span></button>
+            <button class="nav-item" data-tab="referral"><i class="fas fa-users"></i><span>Airdrop</span></button>
+            <button class="nav-item" data-tab="twtpay"><i class="fas fa-credit-card"></i><span>TWT Pay</span></button>
+            <button class="nav-item" data-tab="settings"><i class="fas fa-cog"></i><span>Settings</span></button>
         </div>
     </div>
 
-    <!-- ========== SEND MODAL ========== -->
-    <div id="sendModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3><i class="fas fa-paper-plane"></i> Send</h3><button class="close-modal" onclick="closeModal('sendModal')"><i class="fas fa-times"></i></button></div>
-            <div class="modal-body">
-                <select id="sendCurrency" class="modal-input">
-                    <option value="TWT">TWT</option><option value="USDT">USDT</option><option value="BNB">BNB</option>
-                    <option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option>
-                    <option value="TRX">TRX</option><option value="ADA">ADA</option><option value="DOGE">DOGE</option>
-                    <option value="SHIB">SHIB</option><option value="PEPE">PEPE</option><option value="TON">TON</option>
-                </select>
-                <input type="number" id="sendAmount" class="modal-input" placeholder="0.00">
-                <input type="text" id="sendAddress" class="modal-input" placeholder="Recipient address">
-                <button class="btn-primary" onclick="sendTransaction()"><i class="fas fa-paper-plane"></i> Send</button>
-            </div>
-        </div>
-    </div>
+    <!-- Modals (مختصرة) -->
+    <div id="depositModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Deposit</h3><button onclick="closeModal('depositModal')">×</button></div><div class="modal-body"><div class="address-box"><code id="depositAddress"></code><button onclick="copyDepositAddress()">Copy</button></div></div></div></div>
+    <div id="withdrawModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Withdraw</h3><button onclick="closeModal('withdrawModal')">×</button></div><div class="modal-body"><input type="number" id="withdrawAmount" placeholder="Amount"><input type="text" id="withdrawAddress" placeholder="Address"><button onclick="submitWithdraw()">Withdraw</button></div></div></div>
+    <div id="sendModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Send</h3><button onclick="closeModal('sendModal')">×</button></div><div class="modal-body"><input type="number" id="sendAmount" placeholder="Amount"><input type="text" id="sendAddress" placeholder="Address"><button onclick="sendTransaction()">Send</button></div></div></div>
+    <div id="receiveModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Receive</h3><button onclick="closeModal('receiveModal')">×</button></div><div class="modal-body"><code id="receiveAddress"></code><button onclick="copyAddress()">Copy</button></div></div></div>
+    <div id="historyModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>History</h3><button onclick="closeModal('historyModal')">×</button></div><div class="modal-body"><div id="historyList"></div></div></div></div>
+    <div id="notificationsModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Notifications</h3><button onclick="closeModal('notificationsModal')">×</button></div><div class="modal-body"><div id="notificationsList"></div></div></div></div>
+    <div id="adminPanel" class="admin-panel hidden"><div class="admin-header"><h3>Admin Panel</h3><button onclick="closeAdminPanel()">×</button></div><div id="adminContent"></div></div>
 
-    <!-- ========== RECEIVE MODAL ========== -->
-    <div id="receiveModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3><i class="fas fa-arrow-down"></i> Receive</h3><button class="close-modal" onclick="closeModal('receiveModal')"><i class="fas fa-times"></i></button></div>
-            <div class="modal-body">
-                <div class="address-box"><code id="receiveAddress"></code><button class="copy-btn" onclick="copyAddress()"><i class="fas fa-copy"></i></button></div>
-                <div class="qr-placeholder"><i class="fas fa-qrcode"></i><p>Your Wallet Address</p></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== SWAP MODAL ========== -->
-    <div id="swapModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3><i class="fas fa-exchange-alt"></i> Swap</h3><button class="close-modal" onclick="closeModal('swapModal')"><i class="fas fa-times"></i></button></div><div class="modal-body" id="swapModalContent"></div></div>
-    </div>
-
-    <!-- ========== CURRENCY SELECTOR MODAL ========== -->
-    <div id="currencySelectorModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3><i class="fas fa-coins"></i> Select Currency</h3><button class="close-modal" onclick="closeModal('currencySelectorModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><div id="currencyList" class="currency-list"></div></div></div>
-    </div>
-
-    <!-- ========== DEPOSIT MODAL ========== -->
-    <div id="depositModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3><i class="fas fa-plus-circle"></i> Deposit</h3><button class="close-modal" onclick="closeModal('depositModal')"><i class="fas fa-times"></i></button></div>
-            <div class="modal-body">
-                <select id="depositCurrency" class="modal-input">
-                    <option value="TWT">TWT</option><option value="USDT">USDT</option><option value="BNB">BNB</option>
-                    <option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option>
-                    <option value="TRX">TRX</option><option value="ADA">ADA</option><option value="DOGE">DOGE</option>
-                    <option value="SHIB">SHIB</option><option value="PEPE">PEPE</option><option value="TON">TON</option>
-                </select>
-                <div class="address-box"><code id="depositAddress"></code><button class="copy-btn" onclick="copyDepositAddress()"><i class="fas fa-copy"></i></button></div>
-                <p class="min-hint">Min: <span id="depositMinAmount">10</span> TWT</p>
-                <div class="deposit-note"><i class="fas fa-info-circle"></i><span>✓ Send funds to this unique address. Admin will add balance manually after verification.</span></div>
-                <button class="btn-primary" onclick="copyDepositAddress()"><i class="fas fa-copy"></i> Copy Address</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== WITHDRAW MODAL ========== -->
-    <div id="withdrawModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header"><h3><i class="fas fa-minus-circle"></i> Withdraw</h3><button class="close-modal" onclick="closeModal('withdrawModal')"><i class="fas fa-times"></i></button></div>
-            <div class="modal-body">
-                <select id="withdrawCurrency" class="modal-input">
-                    <option value="TWT">TWT</option><option value="USDT">USDT</option><option value="BNB">BNB</option>
-                    <option value="BTC">BTC</option><option value="ETH">ETH</option><option value="SOL">SOL</option>
-                    <option value="TRX">TRX</option><option value="ADA">ADA</option><option value="DOGE">DOGE</option>
-                    <option value="SHIB">SHIB</option><option value="PEPE">PEPE</option><option value="TON">TON</option>
-                </select>
-                <input type="number" id="withdrawAmount" class="modal-input" placeholder="Amount">
-                <input type="text" id="withdrawAddress" class="modal-input" placeholder="Withdrawal address">
-                <p class="fee-hint">Network fee: <span id="withdrawFee">1 TWT</span></p>
-                <p class="min-hint">Min: <span id="withdrawMinAmount">10</span> TWT</p>
-                <button class="btn-primary" onclick="submitWithdraw()"><i class="fas fa-minus-circle"></i> Submit Withdrawal</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== HISTORY MODAL ========== -->
-    <div id="historyModal" class="modal">
-        <div class="modal-content history-modal-content"><div class="modal-header"><h3><i class="fas fa-history"></i> Transaction History</h3><button class="close-modal" onclick="closeModal('historyModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><div id="historyList"></div></div></div>
-    </div>
-
-    <!-- ========== NOTIFICATIONS MODAL ========== -->
-    <div id="notificationsModal" class="modal">
-        <div class="modal-content"><div class="modal-header"><h3><i class="fas fa-bell"></i> Notifications</h3><button class="close-modal" onclick="closeModal('notificationsModal')"><i class="fas fa-times"></i></button></div><div class="modal-body"><div id="notificationsList"></div></div></div>
-    </div>
-
-    <!-- ========== ADMIN PANEL ========== -->
-    <div id="adminPanel" class="admin-panel hidden">
-        <div class="admin-header"><h3><i class="fas fa-crown"></i> Admin Dashboard</h3><button onclick="closeAdminPanel()" class="close-admin"><i class="fas fa-times"></i></button></div>
-        <div id="adminContent" class="admin-content"></div>
-        <div class="admin-refresh-container"><button onclick="refreshAdminPanel()" class="admin-refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button></div>
-    </div>
-
-    <!-- ========== TOAST ========== -->
+    <!-- Toast -->
     <div id="toast" class="toast hidden"><i class="fa-regular fa-circle-check"></i><span id="toastMessage"></span></div>
-
-    <!-- ========== SCROLL TOP BUTTON ========== -->
     <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()"><i class="fas fa-arrow-up"></i></button>
 
     <script src="app.js"></script>
