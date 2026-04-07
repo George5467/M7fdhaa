@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - BACKEND SERVER (COMPLETE VERSION)
+// TRUST WALLET LITE - BACKEND SERVER FOR RENDER WEB SERVICE
 // ============================================================================
 
 const express = require('express');
@@ -9,13 +9,15 @@ const cors = require('cors');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 
-// ====== 1. LOAD SECRETS ======
+// ====== 1. LOAD SECRETS FROM ENVIRONMENT VARIABLES ======
+// لأن Render لا يدعم Secret Files بنفس طريقة Render القديم
+
 let ADMIN_ID = null;
 let COINPAYMENTS_PUBLIC_KEY = null;
 let COINPAYMENTS_PRIVATE_KEY = null;
@@ -24,119 +26,123 @@ let firebaseKey = null;
 let db = null;
 let admin = null;
 
-console.log("🔐 Loading secrets...");
-
-// Firebase Service Account
-try {
-    const firebasePath = '/etc/secrets/firebase-key.json';
-    if (fs.existsSync(firebasePath)) {
-        firebaseKey = JSON.parse(fs.readFileSync(firebasePath, 'utf8'));
-        console.log("✅ Firebase key loaded from Secret File");
-    } else {
-        const localPath = path.join(__dirname, 'firebase-key.json');
-        if (fs.existsSync(localPath)) {
-            firebaseKey = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-            console.log("✅ Firebase key loaded from local file");
-        }
-    }
-} catch (error) {
-    console.error("❌ Error loading Firebase key:", error.message);
-}
+console.log("🔐 Loading secrets from Environment Variables...");
 
 // Admin Config
-try {
-    const adminPath = '/etc/secrets/admin-config.json';
-    if (fs.existsSync(adminPath)) {
-        const adminConfig = JSON.parse(fs.readFileSync(adminPath, 'utf8'));
-        ADMIN_ID = adminConfig.admin_id;
-        console.log("✅ Admin config loaded, ID:", ADMIN_ID);
-    } else {
-        ADMIN_ID = process.env.ADMIN_ID || "1653918641";
-        if (ADMIN_ID) console.log("✅ Using ADMIN_ID from environment variable");
-    }
-} catch (error) {
-    ADMIN_ID = process.env.ADMIN_ID || "1653918641";
-    console.log("✅ Using default ADMIN_ID:", ADMIN_ID);
-}
+ADMIN_ID = process.env.ADMIN_ID || "1653918641";
+console.log(`✅ Admin ID: ${ADMIN_ID}`);
 
 // CoinPayments Keys
-try {
-    const coinPath = '/etc/secrets/coinpayments-keys.json';
-    if (fs.existsSync(coinPath)) {
-        const coinKeys = JSON.parse(fs.readFileSync(coinPath, 'utf8'));
-        COINPAYMENTS_PUBLIC_KEY = coinKeys.public_key;
-        COINPAYMENTS_PRIVATE_KEY = coinKeys.private_key;
-        console.log("✅ CoinPayments keys loaded from Secret File");
-    } else {
-        COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY || null;
-        COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY || null;
-        if (COINPAYMENTS_PUBLIC_KEY) console.log("✅ Using CoinPayments keys from environment variables");
-    }
-} catch (error) {
-    console.error("❌ Error loading CoinPayments keys:", error.message);
-    COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY || null;
-    COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY || null;
-}
+COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY || null;
+COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY || null;
+if (COINPAYMENTS_PUBLIC_KEY) console.log("✅ CoinPayments keys loaded");
 
 // Bot Token
-try {
-    const botPath = '/etc/secrets/bot-config.json';
-    if (fs.existsSync(botPath)) {
-        const botConfig = JSON.parse(fs.readFileSync(botPath, 'utf8'));
-        BOT_TOKEN = botConfig.bot_token;
-        console.log("✅ Bot token loaded from Secret File");
-    } else {
-        BOT_TOKEN = process.env.BOT_TOKEN || null;
-        if (BOT_TOKEN) console.log("✅ Using BOT_TOKEN from environment variable");
-    }
-} catch (error) {
-    BOT_TOKEN = process.env.BOT_TOKEN || null;
-}
+BOT_TOKEN = process.env.BOT_TOKEN || null;
+if (BOT_TOKEN) console.log("✅ Bot token loaded");
+
+// Firebase config from environment variables
+const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
+const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY;
+const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
 
 // ====== 2. FIREBASE ADMIN SDK ======
 try {
     admin = require('firebase-admin');
     
-    if (firebaseKey && !admin.apps.length) {
-        admin.initializeApp({
-            credential: admin.credential.cert(firebaseKey),
-            projectId: firebaseKey.project_id
-        });
-        db = admin.firestore();
-        console.log("✅ Firebase Admin SDK initialized");
-    } else if (!firebaseKey) {
-        console.log("⚠️ Firebase key not available, running in demo mode");
-        // Demo mode: in-memory storage
-        const memoryStore = new Map();
-        db = {
-            collection: (name) => ({
-                doc: (id) => ({
-                    get: async () => {
-                        const data = memoryStore.get(`${name}_${id}`);
-                        return { exists: !!data, data: () => data };
-                    },
-                    set: async (data) => {
-                        memoryStore.set(`${name}_${id}`, data);
-                        console.log(`[DEMO] Saved to ${name}/${id}`);
-                    },
-                    update: async (data) => {
-                        const existing = memoryStore.get(`${name}_${id}`) || {};
-                        memoryStore.set(`${name}_${id}`, { ...existing, ...data });
-                        console.log(`[DEMO] Updated ${name}/${id}`);
-                    }
+    // محاولة تهيئة Firebase من متغيرات البيئة
+    if (FIREBASE_PROJECT_ID && FIREBASE_PRIVATE_KEY && FIREBASE_CLIENT_EMAIL) {
+        if (!admin.apps.length) {
+            admin.initializeApp({
+                credential: admin.credential.cert({
+                    projectId: FIREBASE_PROJECT_ID,
+                    clientEmail: FIREBASE_CLIENT_EMAIL,
+                    privateKey: FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
                 }),
-                where: () => ({
-                    get: async () => ({ empty: true, docs: [] })
-                }),
-                add: async (data) => {
-                    const id = `demo_${Date.now()}`;
-                    memoryStore.set(`${name}_${id}`, data);
-                    return { id };
-                }
-            })
-        };
+                databaseURL: FIREBASE_DATABASE_URL
+            });
+            db = admin.firestore();
+            console.log("✅ Firebase Admin SDK initialized from Environment Variables");
+        }
     } else {
-        console.log("✅ Firebase already initialized");
+        // محاولة تحميل ملف firebase-key.json كـ fallback (للتطوير المحلي)
+        try {
+            const localPath = path.join(__dirname, 'firebase-key.json');
+            if (fs.existsSync(localPath)) {
+                firebaseKey = JSON.parse(fs.readFileSync(localPath, 'utf8'));
+                if (!admin.apps.length) {
+                    admin.initializeApp({
+                        credential: admin.credential.cert(firebaseKey),
+                        projectId: firebaseKey.project_id
+                    });
+                    db = admin.firestore();
+                    console.log("✅ Firebase Admin SDK initialized from local file");
+                }
+            } else {
+                console.log("⚠️ Firebase key not available, running in demo mode");
+                // Demo mode: تخزين مؤقت في الذاكرة
+                const memoryStore = new Map();
+                db = {
+                    collection: (name) => ({
+                        doc: (id) => ({
+                            get: async () => {
+                                const data = memoryStore.get(`${name}_${id}`);
+                                return { exists: !!data, data: () => data };
+                            },
+                            set: async (data) => {
+                                memoryStore.set(`${name}_${id}`, data);
+                                console.log(`[DEMO] Saved to ${name}/${id}`);
+                            },
+                            update: async (data) => {
+                                const existing = memoryStore.get(`${name}_${id}`) || {};
+                                memoryStore.set(`${name}_${id}`, { ...existing, ...data });
+                                console.log(`[DEMO] Updated ${name}/${id}`);
+                            }
+                        }),
+                        where: () => ({
+                            get: async () => ({ empty: true, docs: [] })
+                        }),
+                        add: async (data) => {
+                            const id = `demo_${Date.now()}`;
+                            memoryStore.set(`${name}_${id}`, data);
+                            return { id };
+                        }
+                    })
+                };
+            }
+        } catch (localError) {
+            console.log("⚠️ No local firebase-key.json found, running in demo mode");
+            // Demo mode
+            const memoryStore = new Map();
+            db = {
+                collection: (name) => ({
+                    doc: (id) => ({
+                        get: async () => {
+                            const data = memoryStore.get(`${name}_${id}`);
+                            return { exists: !!data, data: () => data };
+                        },
+                        set: async (data) => {
+                            memoryStore.set(`${name}_${id}`, data);
+                            console.log(`[DEMO] Saved to ${name}/${id}`);
+                        },
+                        update: async (data) => {
+                            const existing = memoryStore.get(`${name}_${id}`) || {};
+                            memoryStore.set(`${name}_${id}`, { ...existing, ...data });
+                            console.log(`[DEMO] Updated ${name}/${id}`);
+                        }
+                    }),
+                    where: () => ({
+                        get: async () => ({ empty: true, docs: [] })
+                    }),
+                    add: async (data) => {
+                        const id = `demo_${Date.now()}`;
+                        memoryStore.set(`${name}_${id}`, data);
+                        return { id };
+                    }
+                })
+            };
+        }
     }
 } catch (error) {
     console.error("❌ Firebase init error:", error.message);
@@ -749,16 +755,30 @@ app.post('/api/ipn/:userId', async (req, res) => {
     }
 });
 
-// Serve frontend
+// Debug endpoint (للتأكد من أن الخادم يعمل)
+app.get('/api/debug', (req, res) => {
+    res.json({
+        status: 'ok',
+        timestamp: Date.now(),
+        environment: process.env.NODE_ENV || 'development',
+        firebase: !!db,
+        adminId: ADMIN_ID,
+        botToken: !!BOT_TOKEN,
+        coinpayments: !!(COINPAYMENTS_PUBLIC_KEY && COINPAYMENTS_PRIVATE_KEY)
+    });
+});
+
+// Serve frontend (يجب أن يكون آخر route)
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`🔥 Firebase: ${admin?.apps?.length ? 'Connected' : 'Demo Mode'}`);
     console.log(`👑 Admin ID: ${ADMIN_ID ? '✅ Configured' : '❌ Not configured'}`);
     console.log(`💳 CoinPayments: ${COINPAYMENTS_PUBLIC_KEY ? '✅ Configured' : '❌ Not configured'}`);
     console.log(`🤖 Bot Token: ${BOT_TOKEN ? '✅ Configured' : '❌ Not configured'}`);
+    console.log(`📡 Listening on 0.0.0.0:${PORT}`);
 });
