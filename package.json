@@ -4,14 +4,23 @@
   "description": "Trust Wallet Lite - Secure Crypto Wallet",
   "main": "server.js",
   "scripts": {
-    "start": "npm install && node server.js"
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "dependencies": {
     "express": "^4.18.2",
     "firebase-admin": "^11.11.0",
     "cors": "^2.8.5"
   },
-  "engines": {
-    "node": "18.x"
-  }
+  "devDependencies": {},
+  "keywords": [
+    "crypto",
+    "wallet",
+    "telegram",
+    "web3"
+  ],
+  "author": "Trust Wallet Lite",
+  "license": "MIT"
 }
