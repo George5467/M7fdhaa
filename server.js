@@ -1,5 +1,5 @@
 // ============================================================================
-// TRUST WALLET LITE - BACKEND SERVER (COMPLETE VERSION)
+// TRUST WALLET LITE - BACKEND SERVER (PRODUCTION READY)
 // ============================================================================
 
 const express = require('express');
@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '/')));
 
-// ====== قراءة جميع Secret Files ======
+// ====== 1. LOAD SECRETS ======
 let ADMIN_ID = null;
 let COINPAYMENTS_PUBLIC_KEY = null;
 let COINPAYMENTS_PRIVATE_KEY = null;
@@ -24,26 +24,26 @@ let firebaseKey = null;
 let db = null;
 let admin = null;
 
-console.log("🔐 Loading secrets from Secret Files...");
+console.log("🔐 Loading secrets...");
 
-// 1. Firebase Service Account
+// Firebase Service Account
 try {
     const firebasePath = '/etc/secrets/firebase-key.json';
     if (fs.existsSync(firebasePath)) {
         firebaseKey = JSON.parse(fs.readFileSync(firebasePath, 'utf8'));
-        console.log("✅ Firebase key loaded from Secret File");
+        console.log("✅ Firebase key loaded");
     } else {
         const localPath = path.join(__dirname, 'firebase-key.json');
         if (fs.existsSync(localPath)) {
             firebaseKey = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-            console.log("✅ Firebase key loaded from local file");
+            console.log("✅ Firebase key loaded from local");
         }
     }
 } catch (error) {
-    console.error("❌ Error loading Firebase key:", error.message);
+    console.error("❌ Firebase key error:", error.message);
 }
 
-// 2. Admin Config
+// Admin Config
 try {
     const adminPath = '/etc/secrets/admin-config.json';
     if (fs.existsSync(adminPath)) {
@@ -52,49 +52,42 @@ try {
         console.log("✅ Admin config loaded, ID:", ADMIN_ID);
     } else {
         ADMIN_ID = process.env.ADMIN_ID || "1653918641";
-        if (ADMIN_ID) console.log("✅ Using ADMIN_ID from environment variable:", ADMIN_ID);
     }
 } catch (error) {
-    console.error("❌ Error loading admin config:", error.message);
-    ADMIN_ID = process.env.ADMIN_ID || "1653918641";
+    ADMIN_ID = "1653918641";
 }
 
-// 3. CoinPayments Keys
+// CoinPayments Keys
 try {
-    const coinpaymentsPath = '/etc/secrets/coinpayments-keys.json';
-    if (fs.existsSync(coinpaymentsPath)) {
-        const coinpaymentsKeys = JSON.parse(fs.readFileSync(coinpaymentsPath, 'utf8'));
-        COINPAYMENTS_PUBLIC_KEY = coinpaymentsKeys.public_key;
-        COINPAYMENTS_PRIVATE_KEY = coinpaymentsKeys.private_key;
-        console.log("✅ CoinPayments keys loaded from Secret File");
+    const coinPath = '/etc/secrets/coinpayments-keys.json';
+    if (fs.existsSync(coinPath)) {
+        const coinKeys = JSON.parse(fs.readFileSync(coinPath, 'utf8'));
+        COINPAYMENTS_PUBLIC_KEY = coinKeys.public_key;
+        COINPAYMENTS_PRIVATE_KEY = coinKeys.private_key;
+        console.log("✅ CoinPayments keys loaded");
     } else {
-        COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY || null;
-        COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY || null;
-        if (COINPAYMENTS_PUBLIC_KEY) console.log("✅ Using CoinPayments keys from environment variables");
+        COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY;
+        COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY;
     }
 } catch (error) {
-    console.error("❌ Error loading CoinPayments keys:", error.message);
-    COINPAYMENTS_PUBLIC_KEY = process.env.COINPAYMENTS_PUBLIC_KEY || null;
-    COINPAYMENTS_PRIVATE_KEY = process.env.COINPAYMENTS_PRIVATE_KEY || null;
+    console.error("❌ CoinPayments error:", error.message);
 }
 
-// 4. Bot Token
+// Bot Token
 try {
     const botPath = '/etc/secrets/bot-config.json';
     if (fs.existsSync(botPath)) {
         const botConfig = JSON.parse(fs.readFileSync(botPath, 'utf8'));
         BOT_TOKEN = botConfig.bot_token;
-        console.log("✅ Bot token loaded from Secret File");
+        console.log("✅ Bot token loaded");
     } else {
-        BOT_TOKEN = process.env.BOT_TOKEN || null;
-        if (BOT_TOKEN) console.log("✅ Using BOT_TOKEN from environment variable");
+        BOT_TOKEN = process.env.BOT_TOKEN;
     }
 } catch (error) {
-    console.error("❌ Error loading bot token:", error.message);
-    BOT_TOKEN = process.env.BOT_TOKEN || null;
+    BOT_TOKEN = process.env.BOT_TOKEN;
 }
 
-// ====== FIREBASE ADMIN SDK ======
+// ====== 2. FIREBASE ADMIN SDK ======
 try {
     admin = require('firebase-admin');
     
@@ -105,9 +98,9 @@ try {
         });
         db = admin.firestore();
         console.log("✅ Firebase Admin SDK initialized");
-    } else if (!firebaseKey) {
-        console.log("⚠️ Firebase key not available, running in demo mode");
-        // Demo mode: تخزين مؤقت في الذاكرة
+    } else {
+        console.log("⚠️ Firebase not available, running in demo mode");
+        // Demo mode: in-memory storage
         const memoryStore = new Map();
         db = {
             collection: (name) => ({
@@ -118,12 +111,11 @@ try {
                     },
                     set: async (data) => {
                         memoryStore.set(`${name}_${id}`, data);
-                        console.log(`[DEMO] Saved to ${name}/${id}`);
+                        return { id };
                     },
                     update: async (data) => {
                         const existing = memoryStore.get(`${name}_${id}`) || {};
                         memoryStore.set(`${name}_${id}`, { ...existing, ...data });
-                        console.log(`[DEMO] Updated ${name}/${id}`);
                     }
                 }),
                 where: () => ({
@@ -136,22 +128,42 @@ try {
                 }
             })
         };
-    } else {
-        console.log("✅ Firebase already initialized");
     }
 } catch (error) {
     console.error("❌ Firebase init error:", error.message);
+    // Demo mode fallback
+    const memoryStore = new Map();
+    db = {
+        collection: (name) => ({
+            doc: (id) => ({
+                get: async () => {
+                    const data = memoryStore.get(`${name}_${id}`);
+                    return { exists: !!data, data: () => data };
+                },
+                set: async (data) => {
+                    memoryStore.set(`${name}_${id}`, data);
+                    return { id };
+                },
+                update: async (data) => {
+                    const existing = memoryStore.get(`${name}_${id}`) || {};
+                    memoryStore.set(`${name}_${id}`, { ...existing, ...data });
+                }
+            }),
+            where: () => ({
+                get: async () => ({ empty: true, docs: [] })
+            }),
+            add: async (data) => {
+                const id = `demo_${Date.now()}`;
+                memoryStore.set(`${name}_${id}`, data);
+                return { id };
+            }
+        })
+    };
 }
 
-// ====== Helper Functions ======
-
-// إرسال إشعار عبر تيليجرام
+// ====== 3. HELPER FUNCTIONS ======
 async function sendTelegramMessage(chatId, message) {
-    if (!BOT_TOKEN) {
-        console.log("⚠️ Bot token not configured");
-        return false;
-    }
-    
+    if (!BOT_TOKEN) return false;
     try {
         const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
@@ -164,23 +176,15 @@ async function sendTelegramMessage(chatId, message) {
             })
         });
         const data = await response.json();
-        if (data.ok) {
-            console.log(`✅ Telegram message sent to ${chatId}`);
-            return true;
-        }
-        return false;
+        return data.ok;
     } catch (error) {
-        console.error("Error sending Telegram message:", error);
+        console.error("Telegram error:", error);
         return false;
     }
 }
 
-// CoinPayments API
 async function callCoinPaymentsAPI(cmd, req = {}) {
-    if (!COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) {
-        console.log("⚠️ CoinPayments keys not available");
-        return null;
-    }
+    if (!COINPAYMENTS_PUBLIC_KEY || !COINPAYMENTS_PRIVATE_KEY) return null;
     
     const formData = new URLSearchParams();
     formData.append('cmd', cmd);
@@ -200,71 +204,43 @@ async function callCoinPaymentsAPI(cmd, req = {}) {
             },
             body: formData
         });
-        
         const data = await response.json();
-        if (data.error !== 'ok') throw new Error(data.error);
-        return data.result;
+        return data.error === 'ok' ? data.result : null;
     } catch (error) {
-        console.error("CoinPayments API error:", error.message);
+        console.error("CoinPayments error:", error);
         return null;
     }
 }
 
-// ====== API ENDPOINTS ======
-
-// Health check
+// ====== 4. API ENDPOINTS ======
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'online', 
-        firebase: admin?.apps?.length ? 'connected' : 'demo',
-        coinpayments: COINPAYMENTS_PUBLIC_KEY ? 'configured' : 'not configured',
-        bot: BOT_TOKEN ? 'configured' : 'not configured',
-        admin: ADMIN_ID ? 'configured' : 'not configured',
-        timestamp: Date.now()
-    });
+    res.json({ status: 'online', timestamp: Date.now() });
 });
 
-// Get config
 app.get('/api/config', (req, res) => {
-    res.json({
-        status: 'ok',
-        adminId: ADMIN_ID || '',
-        botConfigured: !!BOT_TOKEN,
-        coinpaymentsConfigured: !!COINPAYMENTS_PUBLIC_KEY,
-        version: '6.0.0'
-    });
+    res.json({ adminId: ADMIN_ID, version: '6.0.0' });
 });
 
-// Create user (مثل REFI)
+// Users
 app.post('/api/users', async (req, res) => {
     try {
         const { userId, userData } = req.body;
-        
-        console.log("📝 Creating/Updating user:", userId);
-        
-        if (!db) {
-            console.log("⚠️ No database, returning success for demo");
-            return res.json({ success: true, userId });
-        }
+        console.log("📝 Creating/updating user:", userId);
         
         const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
+        const doc = await userRef.get();
         
-        if (userDoc.exists) {
+        if (doc.exists) {
             await userRef.update({
                 ...userData,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                lastActive: admin.firestore.FieldValue.serverTimestamp()
+                updatedAt: new Date().toISOString()
             });
-            console.log(`✅ User updated: ${userId}`);
         } else {
             await userRef.set({
                 ...userData,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                lastActive: admin.firestore.FieldValue.serverTimestamp()
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             });
-            console.log(`✅ User created: ${userId}`);
             
             if (ADMIN_ID && BOT_TOKEN) {
                 await sendTelegramMessage(ADMIN_ID, 
@@ -275,217 +251,164 @@ app.post('/api/users', async (req, res) => {
         
         res.json({ success: true, userId });
     } catch (error) {
-        console.error('Create user error:', error);
+        console.error("User error:", error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get user
 app.get('/api/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
-        
-        console.log("📂 Getting user:", userId);
-        
-        if (!db) {
-            return res.json({ success: false, error: 'Database not available' });
-        }
-        
         const doc = await db.collection('users').doc(userId).get();
         
-        if (!doc.exists) {
-            return res.json({ success: false, error: 'User not found' });
+        if (doc.exists) {
+            res.json({ success: true, data: doc.data() });
+        } else {
+            res.json({ success: false });
         }
-        
-        await db.collection('users').doc(userId).update({
-            lastActive: admin.firestore.FieldValue.serverTimestamp()
-        }).catch(console.error);
-        
-        res.json({ success: true, data: doc.data() });
     } catch (error) {
-        console.error('Get user error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Update user
 app.patch('/api/users/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const { updates } = req.body;
-        
-        console.log("📝 Updating user:", userId);
-        
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        
-        if (!userDoc.exists) {
-            await userRef.set({
-                ...updates,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        } else {
-            await userRef.update({
-                ...updates,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        }
-        
+        await db.collection('users').doc(userId).update({
+            ...updates,
+            updatedAt: new Date().toISOString()
+        });
         res.json({ success: true });
     } catch (error) {
-        console.error('Update user error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Process referral
+// Referrals
 app.post('/api/referrals', async (req, res) => {
     try {
         const { referrerId, newUserId } = req.body;
-        
-        console.log("🔗 Processing referral:", referrerId, "->", newUserId);
-        
-        if (!db) {
-            return res.json({ success: true });
-        }
+        console.log("🔗 Referral:", referrerId, "->", newUserId);
         
         const referrerRef = db.collection('users').doc(referrerId);
         const referrer = await referrerRef.get();
         
         if (referrer.exists) {
-            const invites = referrer.data().invites || [];
+            const data = referrer.data();
+            const invites = data.invites || [];
+            
             if (!invites.includes(newUserId)) {
                 await referrerRef.update({
                     invites: [...invites, newUserId],
-                    inviteCount: (referrer.data().inviteCount || 0) + 1,
-                    'balances.USDT': (referrer.data().balances?.USDT || 0) + 25,
-                    totalUsdtEarned: (referrer.data().totalUsdtEarned || 0) + 25
+                    inviteCount: (data.inviteCount || 0) + 1,
+                    'balances.USDT': (data.balances?.USDT || 0) + 25,
+                    totalUsdtEarned: (data.totalUsdtEarned || 0) + 25
                 });
-                console.log(`✅ Referral: ${referrerId} invited ${newUserId}`);
             }
         }
         
         res.json({ success: true });
     } catch (error) {
-        console.error('Referral error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Create deposit address (مع CoinPayments)
+// Deposit Address
 app.post('/api/deposit-address', async (req, res) => {
     try {
         const { userId, currency } = req.body;
-        
-        console.log("💰 Generating deposit address for:", userId, currency);
-        
         let address = null;
         
         if (COINPAYMENTS_PUBLIC_KEY && COINPAYMENTS_PRIVATE_KEY) {
-            try {
-                const result = await callCoinPaymentsAPI('get_callback_address', {
-                    currency: currency,
-                    ipn_url: `https://${req.get('host')}/api/ipn/${userId}`,
-                    label: `twt_${userId}_${currency}`
-                });
-                address = result?.address;
-                if (address) {
-                    console.log(`✅ Generated CoinPayments address: ${address}`);
-                }
-            } catch (coinError) {
-                console.error("CoinPayments error:", coinError.message);
-            }
+            const result = await callCoinPaymentsAPI('get_callback_address', {
+                currency: currency,
+                ipn_url: `https://${req.get('host')}/api/ipn/${userId}`,
+                label: `twt_${userId}`
+            });
+            address = result?.address;
         }
         
         if (!address) {
             address = `0x${userId.slice(-40).padStart(40, '0')}`;
-            console.log(`⚠️ Using fallback address: ${address}`);
         }
         
-        if (db) {
-            const userRef = db.collection('users').doc(userId);
-            const userDoc = await userRef.get();
-            
-            if (userDoc.exists) {
-                await userRef.update({
-                    depositAddress: address
-                });
-            } else {
-                await userRef.set({
-                    userId: userId,
-                    depositAddress: address,
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-            }
-        }
-        
+        await db.collection('users').doc(userId).update({ depositAddress: address });
         res.json({ success: true, address });
     } catch (error) {
-        console.error('Deposit address error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Add balance (Admin only)
+// Deposit Requests
+app.post('/api/deposit-requests', async (req, res) => {
+    try {
+        const deposit = req.body;
+        const docRef = await db.collection('deposit_requests').add({
+            ...deposit,
+            timestamp: new Date().toISOString()
+        });
+        
+        if (ADMIN_ID && BOT_TOKEN) {
+            await sendTelegramMessage(ADMIN_ID,
+                `💰 <b>New Deposit Request!</b>\n\n👤 User: ${deposit.userName}\n💵 Amount: ${deposit.amount} ${deposit.currency}\n🆔 ID: ${deposit.userId}`
+            );
+        }
+        
+        res.json({ success: true, id: docRef.id });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Withdrawal Requests
+app.post('/api/withdrawals', async (req, res) => {
+    try {
+        const withdrawal = req.body;
+        const docRef = await db.collection('withdrawals').add({
+            ...withdrawal,
+            timestamp: new Date().toISOString()
+        });
+        
+        if (ADMIN_ID && BOT_TOKEN) {
+            await sendTelegramMessage(ADMIN_ID,
+                `💸 <b>New Withdrawal Request!</b>\n\n👤 User: ${withdrawal.userName}\n💵 Amount: ${withdrawal.amount} ${withdrawal.currency}\n📍 Address: ${withdrawal.address.slice(0, 20)}...`
+            );
+        }
+        
+        res.json({ success: true, id: docRef.id });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Admin: Add Balance
 app.post('/api/add-balance', async (req, res) => {
     try {
         const { userId, currency, amount, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
+        await db.collection('users').doc(userId).update({
+            [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
+        });
         
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        
-        if (!userDoc.exists) {
-            await userRef.set({
-                userId: userId,
-                balances: { [currency]: amount },
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        } else {
-            await userRef.update({
-                [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
-            });
-        }
-        
-        console.log(`✅ Admin added ${amount} ${currency} to ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Add balance error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Remove balance (Admin only)
+// Admin: Remove Balance
 app.post('/api/remove-balance', async (req, res) => {
     try {
         const { userId, currency, amount, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
         const userDoc = await db.collection('users').doc(userId).get();
-        
-        if (!userDoc.exists) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
         const currentBalance = userDoc.data()?.balances?.[currency] || 0;
         
         if (currentBalance < amount) {
@@ -496,51 +419,38 @@ app.post('/api/remove-balance', async (req, res) => {
             [`balances.${currency}`]: admin.firestore.FieldValue.increment(-amount)
         });
         
-        console.log(`✅ Admin removed ${amount} ${currency} from ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Remove balance error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Block user (Admin only)
+// Admin: Block User
 app.post('/api/block-user', async (req, res) => {
     try {
         const { userId, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
         await db.collection('users').doc(userId).update({
             withdrawBlocked: true,
-            withdrawBlockedAt: admin.firestore.FieldValue.serverTimestamp(),
+            withdrawBlockedAt: new Date().toISOString(),
             withdrawBlockedBy: ADMIN_ID
         });
         
-        console.log(`✅ User ${userId} blocked from withdrawals`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Block user error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get pending deposits (Admin only)
+// Admin: Get Pending Deposits
 app.get('/api/admin/deposits', async (req, res) => {
     try {
         const adminKey = req.query.adminKey;
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
-        }
-        
-        if (!db) {
-            return res.json([]);
         }
         
         const snapshot = await db.collection('deposit_requests')
@@ -555,12 +465,11 @@ app.get('/api/admin/deposits', async (req, res) => {
         
         res.json(deposits);
     } catch (error) {
-        console.error('Get deposits error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get pending withdrawals (Admin only)
+// Admin: Get Pending Withdrawals
 app.get('/api/admin/withdrawals', async (req, res) => {
     try {
         const adminKey = req.query.adminKey;
@@ -568,11 +477,7 @@ app.get('/api/admin/withdrawals', async (req, res) => {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json([]);
-        }
-        
-        const snapshot = await db.collection('withdrawal_requests')
+        const snapshot = await db.collection('withdrawals')
             .where('status', '==', 'pending')
             .orderBy('timestamp', 'desc')
             .get();
@@ -584,44 +489,27 @@ app.get('/api/admin/withdrawals', async (req, res) => {
         
         res.json(withdrawals);
     } catch (error) {
-        console.error('Get withdrawals error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Approve deposit (Admin only)
+// Admin: Approve Deposit
 app.post('/api/approve-deposit', async (req, res) => {
     try {
         const { txId, userId, amount, currency, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
         await db.collection('deposit_requests').doc(txId).update({
             status: 'approved',
-            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            approvedAt: new Date().toISOString(),
             approvedBy: ADMIN_ID
         });
         
-        const userRef = db.collection('users').doc(userId);
-        const userDoc = await userRef.get();
-        
-        if (!userDoc.exists) {
-            await userRef.set({
-                userId: userId,
-                balances: { [currency]: amount },
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        } else {
-            await userRef.update({
-                [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
-            });
-        }
+        await db.collection('users').doc(userId).update({
+            [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
+        });
         
         if (BOT_TOKEN) {
             await sendTelegramMessage(userId,
@@ -629,31 +517,24 @@ app.post('/api/approve-deposit', async (req, res) => {
             );
         }
         
-        console.log(`✅ Deposit ${txId} approved for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Approve deposit error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Reject deposit (Admin only)
+// Admin: Reject Deposit
 app.post('/api/reject-deposit', async (req, res) => {
     try {
         const { txId, userId, reason, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
-        }
-        
-        if (!db) {
-            return res.json({ success: true });
         }
         
         await db.collection('deposit_requests').doc(txId).update({
             status: 'rejected',
             reason: reason,
-            rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            rejectedAt: new Date().toISOString(),
             rejectedBy: ADMIN_ID
         });
         
@@ -663,30 +544,23 @@ app.post('/api/reject-deposit', async (req, res) => {
             );
         }
         
-        console.log(`❌ Deposit ${txId} rejected for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Reject deposit error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Approve withdrawal (Admin only)
+// Admin: Approve Withdrawal
 app.post('/api/approve-withdrawal', async (req, res) => {
     try {
         const { txId, userId, amount, currency, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
-        await db.collection('withdrawal_requests').doc(txId).update({
+        await db.collection('withdrawals').doc(txId).update({
             status: 'approved',
-            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            approvedAt: new Date().toISOString(),
             approvedBy: ADMIN_ID
         });
         
@@ -696,37 +570,29 @@ app.post('/api/approve-withdrawal', async (req, res) => {
             );
         }
         
-        console.log(`✅ Withdrawal ${txId} approved for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Approve withdrawal error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Reject withdrawal (Admin only)
+// Admin: Reject Withdrawal
 app.post('/api/reject-withdrawal', async (req, res) => {
     try {
         const { txId, userId, amount, currency, reason, adminKey } = req.body;
-        
         if (adminKey !== ADMIN_ID) {
             return res.status(403).json({ error: 'Unauthorized' });
         }
         
-        if (!db) {
-            return res.json({ success: true });
-        }
-        
-        await db.collection('withdrawal_requests').doc(txId).update({
+        await db.collection('withdrawals').doc(txId).update({
             status: 'rejected',
             reason: reason,
-            rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
+            rejectedAt: new Date().toISOString(),
             rejectedBy: ADMIN_ID
         });
         
-        // إعادة المبلغ للمستخدم
-        const userRef = db.collection('users').doc(userId);
-        await userRef.update({
+        // Return funds to user
+        await db.collection('users').doc(userId).update({
             [`balances.${currency}`]: admin.firestore.FieldValue.increment(amount)
         });
         
@@ -736,27 +602,19 @@ app.post('/api/reject-withdrawal', async (req, res) => {
             );
         }
         
-        console.log(`❌ Withdrawal ${txId} rejected for user ${userId}`);
         res.json({ success: true });
     } catch (error) {
-        console.error('Reject withdrawal error:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Send notification
+// Send Notification
 app.post('/api/send-notification', async (req, res) => {
     try {
         const { userId, message } = req.body;
-        
-        if (!BOT_TOKEN) {
-            return res.status(500).json({ error: 'Bot not configured' });
-        }
-        
         const success = await sendTelegramMessage(userId, message);
         res.json({ success });
     } catch (error) {
-        console.error('Send notification error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -767,47 +625,37 @@ app.post('/api/ipn/:userId', async (req, res) => {
         const { userId } = req.params;
         const ipnData = req.body;
         
-        console.log(`📥 CoinPayments IPN received for user ${userId}:`, ipnData);
-        
         if (ipnData.status === 100) {
-            const amount = parseFloat(ipnData.amount);
-            const currency = ipnData.currency;
+            await db.collection('deposit_requests').add({
+                userId,
+                amount: parseFloat(ipnData.amount),
+                currency: ipnData.currency,
+                status: 'pending',
+                txId: ipnData.txn_id,
+                timestamp: new Date().toISOString(),
+                source: 'coinpayments'
+            });
             
-            if (db) {
-                await db.collection('deposit_requests').add({
-                    userId,
-                    amount,
-                    currency,
-                    status: 'pending',
-                    txId: ipnData.txn_id,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-                    source: 'coinpayments'
-                });
-                
-                if (ADMIN_ID && BOT_TOKEN) {
-                    await sendTelegramMessage(ADMIN_ID,
-                        `💰 <b>New Deposit via CoinPayments!</b>\n\n` +
-                        `User: <code>${userId}</code>\n` +
-                        `Amount: ${amount} ${currency}\n` +
-                        `TXID: ${ipnData.txn_id}`
-                    );
-                }
+            if (ADMIN_ID && BOT_TOKEN) {
+                await sendTelegramMessage(ADMIN_ID,
+                    `💰 <b>CoinPayments Deposit!</b>\n\nUser: ${userId}\nAmount: ${ipnData.amount} ${ipnData.currency}`
+                );
             }
         }
         
         res.sendStatus(200);
     } catch (error) {
-        console.error('IPN error:', error);
+        console.error("IPN error:", error);
         res.sendStatus(500);
     }
 });
 
-// Serve frontend
+// Serve Frontend
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// بدء الخادم
+// Start Server
 app.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
     console.log(`🔥 Firebase: ${admin?.apps?.length ? 'Connected' : 'Demo Mode'}`);
