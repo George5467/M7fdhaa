@@ -66,7 +66,7 @@ function checkAdminAndAddCrown() {
 }
 
 // ====== 3. CONSTANTS (معدلة لـ TWT) ======
-const BOT_LINK = "https://t.me/TrustTgWalletbot/TWT";
+const BOT_LINK = "https://t.me/TrustWalletLiteTGbot/twt";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
 const TWT_PRICE = 1.25;
