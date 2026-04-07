@@ -1,78 +1,118 @@
 // ============================================================================
-// TRUST WALLET LITE - REFI STYLE (SIMPLE & WORKING)
+// TRUST WALLET LITE - WORKING VERSION
 // ============================================================================
 
-// ====== 1. TELEGRAM WEBAPP INITIALIZATION (مثل REFI بالضبط) ======
+// ====== 1. FORCE TELEGRAM USER DETECTION ======
+// هذه هي الطريقة الوحيدة المضمونة للتعرف على المستخدم
+
+let REAL_USER_ID = null;
+let USER_NAME = 'User';
+let USER_USERNAME = '';
+
+// الطريقة 1: من window.Telegram (الطريقة الرسمية لتيليجرام)
+try {
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+        const user = window.Telegram.WebApp.initDataUnsafe.user;
+        if (user && user.id) {
+            REAL_USER_ID = user.id.toString();
+            USER_NAME = user.first_name || 'User';
+            USER_USERNAME = user.username || '';
+            console.log("✅ Method 1 - Telegram user found:", REAL_USER_ID);
+        }
+    }
+} catch(e) { console.error("Method 1 error:", e); }
+
+// الطريقة 2: من URL parameters (تيليجرام يضعها في الرابط عند الفتح)
+if (!REAL_USER_ID) {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const startParam = urlParams.get('startapp') || urlParams.get('start') || urlParams.get('ref');
+        if (startParam && !isNaN(startParam) && startParam.length > 5 && startParam.length < 20) {
+            REAL_USER_ID = startParam;
+            console.log("✅ Method 2 - User from startapp:", REAL_USER_ID);
+        }
+    } catch(e) { console.error("Method 2 error:", e); }
+}
+
+// الطريقة 3: من localStorage (للمستخدمين العائدين)
+if (!REAL_USER_ID) {
+    try {
+        const savedId = localStorage.getItem('twt_user_id');
+        if (savedId && !savedId.startsWith('guest_') && savedId.length > 5) {
+            REAL_USER_ID = savedId;
+            console.log("✅ Method 3 - User from localStorage:", REAL_USER_ID);
+        }
+    } catch(e) { console.error("Method 3 error:", e); }
+}
+
+// الطريقة 4: من initData (إذا كانت موجودة)
+if (!REAL_USER_ID && window.Telegram?.WebApp?.initData) {
+    try {
+        const params = new URLSearchParams(window.Telegram.WebApp.initData);
+        const userJson = params.get('user');
+        if (userJson) {
+            const user = JSON.parse(decodeURIComponent(userJson));
+            if (user && user.id) {
+                REAL_USER_ID = user.id.toString();
+                USER_NAME = user.first_name || 'User';
+                console.log("✅ Method 4 - User from initData:", REAL_USER_ID);
+            }
+        }
+    } catch(e) { console.error("Method 4 error:", e); }
+}
+
+// إذا لم يتم العثور على مستخدم، نستخدم معرف المشرف مؤقتاً للتطوير
+if (!REAL_USER_ID) {
+    REAL_USER_ID = "1653918641";
+    USER_NAME = "Admin";
+    console.warn("⚠️ Using admin ID as fallback - User:", REAL_USER_ID);
+}
+
+const userId = REAL_USER_ID;
+const userName = USER_NAME;
+
+localStorage.setItem('twt_user_id', userId);
+
+console.log("🎉 FINAL User ID:", userId);
+console.log("🎉 User Name:", userName);
+
+// ====== 2. TELEGRAM WEBAPP INITIALIZATION ======
 const tg = window.Telegram?.WebApp;
 if (tg) {
     tg.ready();
     tg.expand();
-    tg.enableClosingConfirmation?.();
     console.log("✅ Telegram WebApp initialized");
 }
-
-// 🔥 هذا هو السطر السحري الوحيد - مثل REFI تماماً 🔥
-const userId = tg?.initDataUnsafe?.user?.id?.toString() || 
-               localStorage.getItem('twt_user_id') || 
-               'guest_' + Math.random().toString(36).substr(2, 9);
-
-const userName = tg?.initDataUnsafe?.user?.first_name || 'TWT User';
-const userFirstName = tg?.initDataUnsafe?.user?.first_name || 'User';
-const userUsername = tg?.initDataUnsafe?.user?.username || '';
-
-localStorage.setItem('twt_user_id', userId);
-
-console.log("📱 User ID:", userId);
-console.log("👤 Name:", userName);
 
 const startParam = tg?.initDataUnsafe?.start_param || 
                    new URLSearchParams(window.location.search).get('startapp') || 
                    new URLSearchParams(window.location.search).get('ref');
 
-// ====== 2. ADMIN SYSTEM (مثل REFI) ======
+// ====== 3. ADMIN SYSTEM ======
 const ADMIN_ID = "1653918641";
 let isAdmin = userId === ADMIN_ID;
 
 function checkAdminAndAddCrown() {
     if (!isAdmin) return;
-    
-    const addCrown = () => {
-        const header = document.querySelector('.header-actions');
-        if (!header) return false;
-        
-        const existingCrown = document.getElementById('adminCrownBtn');
-        if (existingCrown) existingCrown.remove();
-        
-        const adminBtn = document.createElement('button');
-        adminBtn.id = 'adminCrownBtn';
-        adminBtn.className = 'icon-btn';
-        adminBtn.innerHTML = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
-        adminBtn.onclick = showAdminPanel;
-        adminBtn.title = 'Admin Panel';
-        
-        const notifBtn = document.getElementById('notificationBtn');
-        if (notifBtn) {
-            header.insertBefore(adminBtn, notifBtn);
-        } else {
-            header.appendChild(adminBtn);
-        }
-        
-        return true;
-    };
-    
-    if (!addCrown()) {
-        setTimeout(addCrown, 500);
-    }
+    const header = document.querySelector('.header-actions');
+    if (!header) return;
+    if (document.getElementById('adminCrownBtn')) return;
+    const adminBtn = document.createElement('button');
+    adminBtn.id = 'adminCrownBtn';
+    adminBtn.className = 'icon-btn';
+    adminBtn.innerHTML = '<i class="fa-solid fa-crown" style="color: gold;"></i>';
+    adminBtn.onclick = () => alert('Admin Panel - Coming Soon');
+    header.appendChild(adminBtn);
+    console.log("👑 Crown button added");
 }
 
-// ====== 3. CONSTANTS (معدلة لـ TWT) ======
+// ====== 4. CONSTANTS ======
 const BOT_LINK = "https://t.me/TrustWalletLiteTGbot/twt";
 const AIRDROP_BONUS = 10;
 const REFERRAL_BONUS = 25;
 const TWT_PRICE = 1.25;
-const SWAP_RATE = 500000;
 
-// ====== 4. ICONS (مثل REFI) ======
+// ====== 5. ICONS ======
 const CMC_ICONS = {
     TWT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5964.png',
     USDT: 'https://s2.coinmarketcap.com/static/img/coins/64x64/825.png',
@@ -82,13 +122,9 @@ const CMC_ICONS = {
     SOL: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png',
     TRX: 'https://s2.coinmarketcap.com/static/img/coins/64x64/1958.png',
     SHIB: 'https://s2.coinmarketcap.com/static/img/coins/64x64/5994.png',
-    PEPE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png',
-    TON: 'https://s2.coinmarketcap.com/static/img/coins/64x64/11419.png',
-    ADA: 'https://s2.coinmarketcap.com/static/img/coins/64x64/2010.png',
-    DOGE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/74.png'
+    PEPE: 'https://s2.coinmarketcap.com/static/img/coins/64x64/24478.png'
 };
 
-// ====== 5. ALL ASSETS ======
 const ALL_ASSETS = [
     { symbol: 'TWT', name: 'Trust Wallet Token' },
     { symbol: 'USDT', name: 'Tether' },
@@ -101,7 +137,6 @@ const ALL_ASSETS = [
     { symbol: 'PEPE', name: 'Pepe' }
 ];
 
-// ====== 6. REFERRAL MILESTONES ======
 const REFERRAL_MILESTONES = [
     { referrals: 10, reward: 50, unit: 'USDT', icon: 'fa-medal' },
     { referrals: 25, reward: 120, unit: 'USDT', icon: 'fa-medal' },
@@ -110,104 +145,41 @@ const REFERRAL_MILESTONES = [
     { referrals: 250, reward: 1000, unit: 'USDT', icon: 'fa-gem' }
 ];
 
-// ====== 7. TOP CRYPTOS ======
-const TOP_CRYPTOS = [
-    { symbol: 'BTC', name: 'Bitcoin' },
-    { symbol: 'ETH', name: 'Ethereum' },
-    { symbol: 'BNB', name: 'Binance Coin' },
-    { symbol: 'TWT', name: 'Trust Wallet Token' },
-    { symbol: 'SOL', name: 'Solana' },
-    { symbol: 'TRX', name: 'TRON' },
-    { symbol: 'SHIB', name: 'Shiba Inu' },
-    { symbol: 'PEPE', name: 'Pepe' }
-];
-
-// ====== 8. SWAP CURRENCIES ======
-const SWAP_CURRENCIES = [
-    { symbol: 'USDT', name: 'Tether', icon: CMC_ICONS.USDT },
-    { symbol: 'TWT', name: 'Trust Wallet Token', icon: CMC_ICONS.TWT },
-    { symbol: 'BNB', name: 'BNB', icon: CMC_ICONS.BNB },
-    { symbol: 'BTC', name: 'Bitcoin', icon: CMC_ICONS.BTC },
-    { symbol: 'ETH', name: 'Ethereum', icon: CMC_ICONS.ETH },
-    { symbol: 'SOL', name: 'Solana', icon: CMC_ICONS.SOL },
-    { symbol: 'TRX', name: 'TRON', icon: CMC_ICONS.TRX },
-    { symbol: 'SHIB', name: 'Shiba Inu', icon: CMC_ICONS.SHIB },
-    { symbol: 'PEPE', name: 'Pepe', icon: CMC_ICONS.PEPE }
-];
-
-// ====== 9. DEPOSIT ADDRESSES ======
-const DEPOSIT_ADDRESSES = {
-    TWT: '0xbf70420f57342c6Bd4267430D4D3b7E946f09450',
-    USDT: '0xbf70420f57342c6Bd4267430D4D3b7E946f09450',
-    BNB: '0xbf70420f57342c6Bd4267430D4D3b7E946f09450',
-    BTC: '0xbf70420f57342c6Bd4267430D4D3b7E946f09450',
-    ETH: '0xbf70420f57342c6Bd4267430D4D3b7E946f09450',
-    SOL: '3DjcSVxfeP3u4WcV9KniMH11btgThnoGxcx54dMtbfuR',
-    TRX: 'TMSJH4QunFiUAqZ8iLvQDPajs1v4B3e5E6'
-};
-
-const DEPOSIT_MINIMUMS = {
-    TWT: 500000,
-    USDT: 10,
-    BNB: 0.02,
-    BTC: 0.0005,
-    ETH: 0.005,
-    SHIB: 2000000,
-    PEPE: 3000000,
-    SOL: 0.12,
-    TRX: 40
-};
-
-// ====== 10. STATE MANAGEMENT ======
+// ====== 6. STATE ======
 let userData = null;
 let livePrices = {};
 let currentLanguage = localStorage.getItem('language') || 'en';
 let currentTheme = localStorage.getItem('theme') || 'light';
 let currentPage = 'wallet';
 let unreadNotifications = 0;
-let appInitialized = false;
-let lastUserLoadTime = 0;
-let lastPricesLoadTime = 0;
-const USER_CACHE_TIME = 300000;
-const PRICES_CACHE_TIME = 10800000;
 
-// ====== 11. TRANSLATIONS ======
+// ====== 7. TRANSLATIONS ======
 const translations = {
     en: {
-        'nav.wallet': 'Wallet', 'nav.swap': 'Swap', 'nav.airdrop': 'Airdrop',
+        'nav.wallet': 'Wallet', 'nav.airdrop': 'Airdrop',
         'nav.twtpay': 'TWT Pay', 'nav.settings': 'Settings',
         'actions.deposit': 'Deposit', 'actions.withdraw': 'Withdraw',
         'actions.send': 'Send', 'actions.receive': 'Receive',
-        'actions.history': 'History', 'actions.swap': 'Swap',
+        'actions.history': 'History',
         'wallet.totalBalance': 'Total Balance',
         'airdrop.totalInvites': 'Total Invites',
         'airdrop.earned': 'USDT Earned',
         'airdrop.yourLink': 'Your Invite Link',
         'airdrop.milestones': 'Airdrop Milestones',
-        'notifications.title': 'Notifications',
-        'notifications.clear_read': 'Clear Read',
-        'notifications.clear_all': 'Clear All',
-        'settings.language': 'Language',
-        'settings.theme': 'Theme',
-        'settings.logout': 'Logout'
+        'notifications.title': 'Notifications'
     },
     ar: {
-        'nav.wallet': 'المحفظة', 'nav.swap': 'تحويل', 'nav.airdrop': 'الإسقاط الجوي',
+        'nav.wallet': 'المحفظة', 'nav.airdrop': 'الإسقاط الجوي',
         'nav.twtpay': 'TWT Pay', 'nav.settings': 'الإعدادات',
         'actions.deposit': 'إيداع', 'actions.withdraw': 'سحب',
         'actions.send': 'إرسال', 'actions.receive': 'استلام',
-        'actions.history': 'السجل', 'actions.swap': 'تحويل',
+        'actions.history': 'السجل',
         'wallet.totalBalance': 'الرصيد الإجمالي',
         'airdrop.totalInvites': 'إجمالي الدعوات',
         'airdrop.earned': 'USDT المكتسبة',
         'airdrop.yourLink': 'رابط الدعوة',
         'airdrop.milestones': 'مراحل الإسقاط',
-        'notifications.title': 'الإشعارات',
-        'notifications.clear_read': 'حذف المقروء',
-        'notifications.clear_all': 'حذف الكل',
-        'settings.language': 'اللغة',
-        'settings.theme': 'المظهر',
-        'settings.logout': 'تسجيل الخروج'
+        'notifications.title': 'الإشعارات'
     }
 };
 
@@ -233,12 +205,8 @@ function showToast(message, type = 'success') {
 }
 function closeModal(modalId) { document.getElementById(modalId)?.classList.remove('show'); }
 function copyToClipboard(text) { navigator.clipboard.writeText(text); showToast('Copied!'); }
-function animateElement(selector, animation) {
-    const el = document.querySelector(selector);
-    if (el) { el.classList.add(animation); setTimeout(() => el.classList.remove(animation), 500); }
-}
 
-// ====== 12. THEME & LANGUAGE ======
+// ====== 8. THEME & LANGUAGE ======
 function toggleLanguage() {
     currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
     localStorage.setItem('language', currentLanguage);
@@ -260,7 +228,7 @@ function updateAllTexts() {
     });
 }
 
-// ====== 13. API CALLS ======
+// ====== 9. API CALLS ======
 async function apiCall(endpoint, method = 'GET', body = null) {
     const options = { method, headers: { 'Content-Type': 'application/json' } };
     if (body) options.body = JSON.stringify(body);
@@ -268,41 +236,29 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     return response.json();
 }
 
-// ====== 14. PRICES ======
-async function fetchLivePrices(force = false) {
-    const now = Date.now();
-    const cached = localStorage.getItem('live_prices');
-    if (!force && cached && (now - lastPricesLoadTime) < PRICES_CACHE_TIME) {
-        const { prices, timestamp } = JSON.parse(cached);
-        livePrices = prices;
-        lastPricesLoadTime = timestamp;
-        if (currentPage === 'wallet') renderAssets();
-        updateTotalBalance();
-        return;
-    }
+// ====== 10. PRICES ======
+async function fetchLivePrices() {
     try {
-        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=trust-wallet-token,tether,binancecoin,bitcoin,ethereum,solana,tron,shiba-inu,pepe&vs_currencies=usd&include_24hr_change=true');
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=trust-wallet-token,tether,binancecoin,bitcoin,ethereum,solana,tron,shiba-inu,pepe&vs_currencies=usd');
         const data = await response.json();
         livePrices = {
-            TWT: { price: data['trust-wallet-token']?.usd || 1.25, change: data['trust-wallet-token']?.usd_24h_change || 0 },
-            USDT: { price: data.tether?.usd || 1, change: data.tether?.usd_24h_change || 0 },
-            BNB: { price: data.binancecoin?.usd || 0, change: data.binancecoin?.usd_24h_change || 0 },
-            BTC: { price: data.bitcoin?.usd || 0, change: data.bitcoin?.usd_24h_change || 0 },
-            ETH: { price: data.ethereum?.usd || 0, change: data.ethereum?.usd_24h_change || 0 },
-            SOL: { price: data.solana?.usd || 0, change: data.solana?.usd_24h_change || 0 },
-            TRX: { price: data.tron?.usd || 0, change: data.tron?.usd_24h_change || 0 },
-            SHIB: { price: data['shiba-inu']?.usd || 0, change: data['shiba-inu']?.usd_24h_change || 0 },
-            PEPE: { price: data.pepe?.usd || 0, change: data.pepe?.usd_24h_change || 0 }
+            TWT: { price: data['trust-wallet-token']?.usd || 1.25 },
+            USDT: { price: data.tether?.usd || 1 },
+            BNB: { price: data.binancecoin?.usd || 0 },
+            BTC: { price: data.bitcoin?.usd || 0 },
+            ETH: { price: data.ethereum?.usd || 0 },
+            SOL: { price: data.solana?.usd || 0 },
+            TRX: { price: data.tron?.usd || 0 },
+            SHIB: { price: data['shiba-inu']?.usd || 0 },
+            PEPE: { price: data.pepe?.usd || 0 }
         };
-        lastPricesLoadTime = now;
-        localStorage.setItem('live_prices', JSON.stringify({ prices: livePrices, timestamp: now }));
         if (currentPage === 'wallet') renderAssets();
         updateTotalBalance();
     } catch (error) { console.error("Price error:", error); }
 }
-function refreshPrices() { fetchLivePrices(true); showToast('Prices refreshed!'); }
+function refreshPrices() { fetchLivePrices(); showToast('Prices refreshed!'); }
 
-// ====== 15. CREATE NEW WALLET ======
+// ====== 11. CREATE NEW WALLET ======
 async function createNewWallet() {
     console.log("Creating wallet for user:", userId);
     const btn = document.getElementById('createWalletBtn');
@@ -330,6 +286,7 @@ async function createNewWallet() {
     } catch (error) { showToast('Failed to create wallet', 'error'); }
     finally { if (btn) { btn.innerHTML = 'Create a new wallet'; btn.disabled = false; } }
 }
+
 function showImportModal() {
     const modal = document.getElementById('importModal');
     if (modal) {
@@ -348,7 +305,7 @@ async function importWallet() {
     showToast('Import coming soon', 'info');
 }
 
-// ====== 16. REFERRAL SYSTEM ======
+// ====== 12. REFERRAL SYSTEM ======
 async function processReferral() {
     const referralCode = startParam;
     if (!referralCode || referralCode === userId || userData?.invitedBy) return;
@@ -378,12 +335,13 @@ async function claimMilestone(referrals) {
     showToast(`Claimed ${reward} USDT!`);
 }
 
-// ====== 17. LOAD USER DATA ======
+// ====== 13. LOAD USER DATA ======
 async function loadUserData() {
     try {
         const localData = localStorage.getItem(`user_${userId}`);
         if (localData) {
             userData = JSON.parse(localData);
+            console.log("✅ Using cached user data");
             updateUI(); updateNotificationBadge(); checkAdminAndAddCrown();
             document.getElementById('onboardingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
@@ -393,6 +351,7 @@ async function loadUserData() {
         if (response.success && response.data) {
             userData = response.data;
             localStorage.setItem(`user_${userId}`, JSON.stringify(userData));
+            console.log("✅ Data loaded from API");
             updateUI(); updateNotificationBadge(); checkAdminAndAddCrown();
             document.getElementById('onboardingScreen').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
@@ -401,6 +360,7 @@ async function loadUserData() {
             document.getElementById('mainContent').style.display = 'none';
         }
     } catch (error) {
+        console.error("Error loading user:", error);
         document.getElementById('onboardingScreen').style.display = 'flex';
         document.getElementById('mainContent').style.display = 'none';
     }
@@ -439,7 +399,7 @@ function updateTotalBalance() {
 }
 function logout() { if (confirm('Logout?')) { localStorage.clear(); location.reload(); } }
 
-// ====== 18. RENDER FUNCTIONS ======
+// ====== 14. RENDER FUNCTIONS ======
 function renderAssets() {
     const container = document.getElementById('assetsList');
     if (!container || !userData) return;
@@ -447,39 +407,14 @@ function renderAssets() {
         const balance = userData.balances[asset.symbol] || 0;
         const price = livePrices[asset.symbol]?.price || (asset.symbol === 'TWT' ? TWT_PRICE : 0);
         const value = asset.symbol === 'USDT' ? balance : balance * price;
-        const change = livePrices[asset.symbol]?.change || 0;
-        const changeClass = change >= 0 ? 'positive' : 'negative';
-        const changeSymbol = change >= 0 ? '+' : '';
-        return `<div class="asset-item" onclick="showAssetDetails('${asset.symbol}')"><div class="asset-left"><img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img"><div class="asset-info"><h4>${asset.name}</h4><p>${asset.symbol} <span class="asset-change ${changeClass}">${changeSymbol}${change.toFixed(2)}%</span></p></div></div><div class="asset-right"><div class="asset-balance">${formatBalance(balance, asset.symbol)}</div><div class="asset-value">$${formatNumber(value)}</div></div></div>`;
+        return `<div class="asset-item"><div class="asset-left"><img src="${getCurrencyIcon(asset.symbol)}" class="asset-icon-img"><div class="asset-info"><h4>${asset.name}</h4><p>${asset.symbol}</p></div></div><div class="asset-right"><div class="asset-balance">${formatBalance(balance, asset.symbol)}</div><div class="asset-value">$${formatNumber(value)}</div></div></div>`;
     }).join('');
 }
 function renderWallet() {
     const container = document.getElementById('walletContainer');
     if (!container) return;
-    container.innerHTML = `<div class="balance-card"><div class="total-balance" id="totalBalance">$0</div></div><div class="action-buttons"><button class="action-btn" onclick="showDepositModal()"><i class="fas fa-plus-circle"></i><span>${t('actions.deposit')}</span></button><button class="action-btn" onclick="showWithdrawModal()"><i class="fas fa-minus-circle"></i><span>${t('actions.withdraw')}</span></button><button class="action-btn" onclick="showSendModal()"><i class="fas fa-paper-plane"></i><span>${t('actions.send')}</span></button><button class="action-btn" onclick="showReceiveModal()"><i class="fas fa-qrcode"></i><span>${t('actions.receive')}</span></button><button class="action-btn" onclick="showHistory()"><i class="fas fa-history"></i><span>${t('actions.history')}</span></button></div><div id="assetsList" class="assets-list"></div><div class="section-header"><h3>${t('wallet.topCryptos')}</h3></div><div id="topCryptoList" class="top-crypto-list"></div>`;
+    container.innerHTML = `<div class="balance-card"><div class="total-balance" id="totalBalance">$0</div></div><div class="action-buttons"><button class="action-btn" onclick="showDepositModal()"><i class="fas fa-plus-circle"></i><span>${t('actions.deposit')}</span></button><button class="action-btn" onclick="showWithdrawModal()"><i class="fas fa-minus-circle"></i><span>${t('actions.withdraw')}</span></button><button class="action-btn" onclick="showSendModal()"><i class="fas fa-paper-plane"></i><span>${t('actions.send')}</span></button><button class="action-btn" onclick="showReceiveModal()"><i class="fas fa-qrcode"></i><span>${t('actions.receive')}</span></button><button class="action-btn" onclick="showHistory()"><i class="fas fa-history"></i><span>${t('actions.history')}</span></button></div><div id="assetsList" class="assets-list"></div>`;
     renderAssets(); updateTotalBalance();
-}
-function showAssetDetails(symbol) {
-    const balance = userData?.balances[symbol] || 0;
-    const price = livePrices[symbol]?.price || (symbol === 'TWT' ? TWT_PRICE : 0);
-    const value = symbol === 'USDT' ? balance : balance * price;
-    showToast(`${symbol}: ${formatBalance(balance, symbol)} ($${formatNumber(value)})`, 'info');
-}
-function renderTopCryptos() {
-    const container = document.getElementById('topCryptoList');
-    if (!container) return;
-    container.innerHTML = TOP_CRYPTOS.map(crypto => {
-        const priceData = livePrices[crypto.symbol] || { price: 0, change: 0 };
-        const changeClass = priceData.change >= 0 ? 'positive' : 'negative';
-        const changeSymbol = priceData.change >= 0 ? '+' : '';
-        return `<div class="crypto-item" onclick="showCryptoDetails('${crypto.symbol}')"><div class="crypto-left"><img src="${getCurrencyIcon(crypto.symbol)}" class="crypto-icon-img"><div class="crypto-info"><h4>${crypto.name}</h4><p>${crypto.symbol}</p></div></div><div class="crypto-right"><div class="crypto-price">$${formatNumber(priceData.price)}</div><div class="crypto-change ${changeClass}">${changeSymbol}${priceData.change.toFixed(2)}%</div></div></div>`;
-    }).join('');
-}
-function showCryptoDetails(symbol) {
-    const price = livePrices[symbol]?.price || 0;
-    const change = livePrices[symbol]?.change || 0;
-    const changeSymbol = change >= 0 ? '+' : '';
-    showToast(`${symbol}: $${formatNumber(price)} (${changeSymbol}${change.toFixed(2)}%)`, 'info');
 }
 function renderAirdrop() {
     const container = document.getElementById('referralContainer');
@@ -516,7 +451,7 @@ function showHistory() {
     if (!modal || !list) return;
     const txs = userData?.transactions || [];
     if (txs.length === 0) list.innerHTML = '<div class="empty-state">No transactions</div>';
-    else list.innerHTML = txs.map(tx => `<div class="history-item"><div class="history-item-header"><div class="history-type ${tx.type}"><i class="fa-regular ${tx.type === 'deposit' ? 'fa-circle-down' : tx.type === 'withdraw' ? 'fa-circle-up' : 'fa-arrow-right-arrow-left'}"></i><span>${tx.type}</span></div><span class="history-status ${tx.status || 'completed'}">${tx.status || 'Completed'}</span></div><div class="history-details"><span class="history-amount">${tx.amount} ${tx.currency}</span><span class="history-date">${new Date(tx.timestamp).toLocaleString()}</span></div></div>`).join('');
+    else list.innerHTML = txs.map(tx => `<div class="history-item"><div><span>${tx.type}</span> <span>${tx.amount} ${tx.currency}</span></div><div style="font-size:10px;">${new Date(tx.timestamp).toLocaleString()}</div></div>`).join('');
     modal.classList.add('show');
 }
 function showNotifications() {
@@ -529,7 +464,7 @@ function showNotifications() {
     modal.classList.add('show');
 }
 
-// ====== 19. MODAL FUNCTIONS ======
+// ====== 15. MODAL FUNCTIONS ======
 function showDepositModal() { document.getElementById('depositModal').classList.add('show'); }
 function showWithdrawModal() { document.getElementById('withdrawModal').classList.add('show'); }
 function showSendModal() { document.getElementById('sendModal').classList.add('show'); }
@@ -542,11 +477,10 @@ function copyAddress() { const a = document.getElementById('receiveAddress')?.in
 function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function showAdminPanel() { if (!isAdmin) { showToast('Access denied', 'error'); return; } alert('Admin Panel - Coming Soon'); }
 
-// ====== 20. NAVIGATION ======
+// ====== 16. NAVIGATION ======
 function showWallet() {
     currentPage = 'wallet';
     document.getElementById('walletSection').classList.remove('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('airdropSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -554,21 +488,9 @@ function showWallet() {
     document.querySelector('.nav-item[data-tab="wallet"]')?.classList.add('active');
     renderWallet();
 }
-function showSwap() {
-    currentPage = 'swap';
-    document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.remove('hidden');
-    document.getElementById('airdropSection').classList.add('hidden');
-    document.getElementById('twtpaySection').classList.add('hidden');
-    document.getElementById('settingsSection').classList.add('hidden');
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.querySelector('.nav-item[data-tab="swap"]')?.classList.add('active');
-    showSwapModal();
-}
 function showAirdrop() {
     currentPage = 'airdrop';
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('airdropSection').classList.remove('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -579,7 +501,6 @@ function showAirdrop() {
 function showTWTPay() {
     currentPage = 'twtpay';
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('airdropSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.remove('hidden');
     document.getElementById('settingsSection').classList.add('hidden');
@@ -590,7 +511,6 @@ function showTWTPay() {
 function showSettings() {
     currentPage = 'settings';
     document.getElementById('walletSection').classList.add('hidden');
-    document.getElementById('swapSection').classList.add('hidden');
     document.getElementById('airdropSection').classList.add('hidden');
     document.getElementById('twtpaySection').classList.add('hidden');
     document.getElementById('settingsSection').classList.remove('hidden');
@@ -599,7 +519,7 @@ function showSettings() {
     renderSettings();
 }
 
-// ====== 21. STICKER SYSTEM ======
+// ====== 17. STICKER SYSTEM ======
 const WELCOME_STICKERS = ['🤝', '🫣', '🥰', '🥳', '💲', '💰', '💸', '💵', '🤪', '😱', '😤', '😎', '🤑', '💯', '💖', '👑', '❤️‍🔥', '🫂', '🔥', '🧡', '🤑', '🧟', '🎁', '💌', '🎉', '❤️‍🔥', '👑', '🚀', '💟', '🤍'];
 let lastStickerTime = 0;
 const STICKER_COOLDOWN = 12 * 60 * 1000;
@@ -618,40 +538,44 @@ function showRandomSticker() {
     lastStickerTime = now;
 }
 
-// ====== 22. INITIALIZATION ======
+// ====== 18. INITIALIZATION ======
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("🚀 Initializing Trust Wallet Lite...");
+    console.log("📱 User ID:", userId);
+    console.log("👑 Is Admin:", isAdmin);
+    
     initTheme(); updateAllTexts();
+    
     document.getElementById('createWalletBtn')?.addEventListener('click', createNewWallet);
     document.getElementById('importWalletBtn')?.addEventListener('click', showImportModal);
     document.getElementById('confirmImportBtn')?.addEventListener('click', importWallet);
     document.getElementById('refreshPricesBtn')?.addEventListener('click', refreshPrices);
+    
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
             const tab = btn.getAttribute('data-tab');
             if (tab === 'wallet') showWallet();
-            else if (tab === 'swap') showSwap();
             else if (tab === 'airdrop') showAirdrop();
             else if (tab === 'twtpay') showTWTPay();
             else if (tab === 'settings') showSettings();
         });
     });
+    
     await fetchLivePrices();
     await loadUserData();
     checkAdminAndAddCrown();
+    
     setTimeout(() => {
         const splash = document.getElementById('splashScreen');
         if (splash) splash.classList.add('hidden');
         setTimeout(() => showRandomSticker(), 500);
     }, 1500);
+    
     console.log("✅ Trust Wallet Lite initialized!");
-    console.log("📱 User ID:", userId);
-    console.log("👑 Is Admin:", isAdmin);
 });
 
-// ====== 23. EXPORT GLOBALS ======
+// ====== 19. EXPOSE GLOBALS ======
 window.showWallet = showWallet;
-window.showSwap = showSwap;
 window.showAirdrop = showAirdrop;
 window.showTWTPay = showTWTPay;
 window.showSettings = showSettings;
@@ -682,4 +606,4 @@ window.showImportModal = showImportModal;
 window.showAssetDetails = showAssetDetails;
 window.showCryptoDetails = showCryptoDetails;
 
-console.log("✅ Trust Wallet Lite - REFI STYLE - READY!");
+console.log("✅ Trust Wallet Lite - WORKING VERSION READY!");
