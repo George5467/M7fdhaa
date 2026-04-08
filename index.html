@@ -1,126 +1,343 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>Trust Wallet Lite • Secure Crypto Wallet</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <!-- ✅ Telegram WebApp SDK (يجب تحميله أولاً) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <title>Trust Wallet Lite</title>
+    
+    <!-- ✅ Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    
+    <!-- ✅ Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- ✅ ملف CSS منفصل -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- ✅ مراقبة تحميل Telegram (للتشخيص فقط - اختياري) -->
+    <script>
+        window.TWT_START_TIME = performance.now();
+        Object.defineProperty(window, 'Telegram', {
+            set: function(val) {
+                console.log('⏱️ Telegram WebApp loaded after:', (performance.now() - window.TWT_START_TIME).toFixed(2), 'ms');
+                this._telegram = val;
+            },
+            get: function() { return this._telegram; }
+        });
+    </script>
 </head>
 <body>
 
-    <!-- ========== SPLASH SCREEN ========== -->
-    <div id="splashScreen" class="splash-screen">
-        <div class="splash-content">
-            <div class="splash-logo"><i class="fas fa-shield-alt"></i></div>
-            <h1>Trust Wallet Lite</h1>
-            <div class="splash-spinner"></div>
-            <div class="splash-version">v10.0</div>
+    <!-- ====== SPLASH SCREEN ====== -->
+    <div id="splashScreen">
+        <div class="splash-logo">
+            <i class="fas fa-shield-alt"></i>
         </div>
+        <div class="splash-text">Trust Wallet Lite</div>
+        <div class="splash-version">v9.1</div>
     </div>
 
-    <!-- ========== ONBOARDING SCREEN ========== -->
-    <div id="onboardingScreen" class="onboarding-screen" style="display: none;">
-        <div class="onboarding-container">
-            <div class="logo-icon-large"><i class="fas fa-shield-alt"></i></div>
-            <h1>Trust Wallet Lite</h1>
-            <p>The most trusted & secure crypto wallet</p>
-            <div class="onboarding-buttons">
-                <button id="createWalletBtn" class="btn-primary"><i class="fas fa-plus-circle"></i> Create a new wallet</button>
-                <button id="importWalletBtn" class="btn-secondary"><i class="fas fa-arrow-right-to-bracket"></i> Import existing wallet</button>
-            </div>
-            <div class="onboarding-footer"><i class="fas fa-shield-alt"></i><span>Secure & Decentralized</span></div>
-        </div>
-    </div>
-
-    <!-- ========== IMPORT WALLET MODAL (12 Words) ========== -->
-    <div id="importModal" class="modal">
-        <div class="modal-content import-modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-key"></i> Import Wallet</h3>
-                <button class="close-modal" onclick="closeModal('importModal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <p class="modal-desc">Enter your 12-word recovery phrase</p>
-                <div class="words-grid" id="wordsGrid"></div>
-                <div class="warning-box"><i class="fas fa-shield-alt"></i><span>⚠️ Keep your phrase safe. Never share it!</span></div>
-                <button id="confirmImportBtn" class="btn-primary import-btn"><i class="fas fa-arrow-right"></i> Import Wallet</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MAIN APP CONTENT ========== -->
-    <div id="mainContent" class="main-content" style="display: none;">
-        <!-- Header -->
+    <!-- ====== MAIN APP CONTAINER ====== -->
+    <div class="app-container">
+        
+        <!-- ====== HEADER ====== -->
         <div class="app-header">
-            <div class="header-left">
+            <div class="user-info">
                 <div class="user-avatar" id="userAvatar">U</div>
-                <div class="user-info">
-                    <div class="username" id="userName">User</div>
-                    <div class="user-id" id="userIdDisplay">ID: --------</div>
+                <div class="user-details">
+                    <h3 id="userName">Loading...</h3>
+                    <p id="userIdDisplay">ID: ...</p>
                 </div>
             </div>
             <div class="header-actions">
-                <button id="adminCrownBtn" class="icon-btn hidden" onclick="showAdminPanel()"><i class="fa-solid fa-crown" style="color: gold;"></i></button>
-                <button id="notificationBtn" class="icon-btn" onclick="showNotifications()"><i class="fa-regular fa-bell"></i><span class="badge">0</span></button>
-                <button id="refreshPricesBtn" class="icon-btn" onclick="refreshPrices()"><i class="fa-solid fa-rotate-right"></i></button>
-                <button id="languageBtn" class="icon-btn" onclick="toggleLanguage()"><span id="currentLanguageFlag">🇬🇧</span></button>
-                <button id="themeBtn" class="icon-btn" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+                <button class="icon-btn" id="notificationBtn" onclick="showNotifications()">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <button class="icon-btn" onclick="toggleTheme()">
+                    <i class="fa-regular fa-moon"></i>
+                </button>
+                <!-- Admin Crown Button (يضاف ديناميكياً) -->
             </div>
         </div>
 
-        <div id="welcomeSticker" class="welcome-sticker"></div>
-
-        <!-- Tab Contents -->
-        <div id="walletSection" class="tab-content active">
-            <div id="walletContainer"></div>
-        </div>
-        
-        <div id="airdropSection" class="tab-content hidden">
-            <div id="referralContainer"></div>
-        </div>
-        
-        <div id="twtpaySection" class="tab-content hidden">
-            <div id="twtpayContainer"></div>
-        </div>
-        
-        <div id="settingsSection" class="tab-content hidden">
-            <div id="settingsContainer"></div>
+        <!-- ====== ONBOARDING SCREEN ====== -->
+        <div id="onboardingScreen" style="display: flex;">
+            <div class="onboarding-container">
+                <div class="logo-icon-large">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h1>Trust Wallet Lite</h1>
+                <p>Secure, fast, and easy crypto wallet</p>
+                <button class="btn-primary" id="createWalletBtn">
+                    <i class="fas fa-plus-circle"></i> Create a new wallet
+                </button>
+                <button class="btn-secondary" id="importWalletBtn">
+                    <i class="fas fa-download"></i> Import existing wallet
+                </button>
+            </div>
         </div>
 
-        <!-- Bottom Navigation -->
+        <!-- ====== MAIN CONTENT ====== -->
+        <div id="mainContent" style="display: none;">
+            
+            <!-- ====== WALLET SECTION ====== -->
+            <div id="walletSection" class="page-section">
+                <!-- ✅ حاوية المحفظة (يتم بناؤها ديناميكياً) -->
+                <div id="walletContainer"></div>
+                
+                <!-- ✅ قسم أفضل العملات -->
+                <div style="margin-top: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                        <h3 style="font-size: 18px;">Top Cryptocurrencies</h3>
+                        <button class="icon-btn" onclick="refreshPrices()" style="width: 36px; height: 36px;">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                    </div>
+                    <div id="topCryptoList" class="assets-list"></div>
+                </div>
+            </div>
+
+            <!-- ====== AIRDROP SECTION ====== -->
+            <div id="airdropSection" class="page-section hidden">
+                <div id="referralContainer"></div>
+            </div>
+
+            <!-- ====== TWT PAY SECTION ====== -->
+            <div id="twtpaySection" class="page-section hidden">
+                <div id="twtpayContainer"></div>
+            </div>
+
+            <!-- ====== SETTINGS SECTION ====== -->
+            <div id="settingsSection" class="page-section hidden">
+                <div id="settingsContainer"></div>
+            </div>
+
+        </div>
+
+        <!-- ====== BOTTOM NAVIGATION ====== -->
         <div class="bottom-nav">
-            <button class="nav-item active" data-tab="wallet">
-                <i class="fas fa-wallet"></i>
+            <div class="nav-item active" data-tab="wallet" onclick="showWallet()">
+                <i class="fa-regular fa-wallet"></i>
                 <span data-i18n="nav.wallet">Wallet</span>
-            </button>
-            <button class="nav-item" data-tab="airdrop">
-                <i class="fas fa-users"></i>
+            </div>
+            <div class="nav-item" data-tab="airdrop" onclick="showAirdrop()">
+                <i class="fa-regular fa-gift"></i>
                 <span data-i18n="nav.airdrop">Airdrop</span>
-            </button>
-            <button class="nav-item" data-tab="twtpay">
-                <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="nav-item" data-tab="twtpay" onclick="showTWTPay()">
+                <i class="fa-regular fa-credit-card"></i>
                 <span data-i18n="nav.twtpay">TWT Pay</span>
-            </button>
-            <button class="nav-item" data-tab="settings">
-                <i class="fas fa-cog"></i>
+            </div>
+            <div class="nav-item" data-tab="settings" onclick="showSettings()">
+                <i class="fa-regular fa-gear"></i>
                 <span data-i18n="nav.settings">Settings</span>
-            </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ====== MODALS ====== -->
+    
+    <!-- Deposit Modal -->
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="actions.deposit">Deposit</h3>
+                <button class="modal-close" onclick="closeModal('depositModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Currency</label>
+                    <select id="depositCurrency" onchange="updateDepositInfo()">
+                        <option value="TWT">TWT</option>
+                        <option value="USDT">USDT</option>
+                        <option value="BNB">BNB</option>
+                        <option value="BTC">BTC</option>
+                        <option value="ETH">ETH</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="depositAmount" placeholder="Enter amount" step="0.01">
+                </div>
+                <div class="deposit-address-box">
+                    <label>Send to this address:</label>
+                    <div class="address-container">
+                        <code id="depositAddress">0x...</code>
+                        <button class="copy-address-btn" onclick="copyDepositAddress()">
+                            <i class="fa-regular fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Transaction ID (TXID)</label>
+                    <input type="text" id="txnId" placeholder="0x..." oninput="validateTransactionHashInput()">
+                    <small id="hashFormatHint" style="color: var(--text-secondary);"></small>
+                    <div id="hashValidationHint" class="hash-validation-hint" style="display: none;"></div>
+                </div>
+                <button class="btn-primary" id="submitDepositBtn" onclick="submitDeposit()" disabled>
+                    <i class="fas fa-paper-plane"></i> Submit Deposit
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- ========== MODALS ========== -->
-    <div id="depositModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Deposit</h3><button onclick="closeModal('depositModal')">×</button></div><div class="modal-body"><div class="address-box"><code id="depositAddress"></code><button onclick="copyDepositAddress()">Copy</button></div></div></div></div>
-    <div id="withdrawModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Withdraw</h3><button onclick="closeModal('withdrawModal')">×</button></div><div class="modal-body"><input type="number" id="withdrawAmount" placeholder="Amount"><input type="text" id="withdrawAddress" placeholder="Address"><button onclick="submitWithdraw()">Withdraw</button></div></div></div>
-    <div id="sendModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Send</h3><button onclick="closeModal('sendModal')">×</button></div><div class="modal-body"><input type="number" id="sendAmount" placeholder="Amount"><input type="text" id="sendAddress" placeholder="Address"><button onclick="sendTransaction()">Send</button></div></div></div>
-    <div id="receiveModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Receive</h3><button onclick="closeModal('receiveModal')">×</button></div><div class="modal-body"><code id="receiveAddress"></code><button onclick="copyAddress()">Copy</button></div></div></div>
-    <div id="historyModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>History</h3><button onclick="closeModal('historyModal')">×</button></div><div class="modal-body"><div id="historyList"></div></div></div></div>
-    <div id="notificationsModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Notifications</h3><button onclick="closeModal('notificationsModal')">×</button></div><div class="modal-body"><div id="notificationsList"></div></div></div></div>
+    <!-- Withdraw Modal -->
+    <div id="withdrawModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="actions.withdraw">Withdraw</h3>
+                <button class="modal-close" onclick="closeModal('withdrawModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Select Currency</label>
+                    <select id="withdrawCurrency" onchange="checkWithdrawFee()">
+                        <option value="USDT">USDT</option>
+                        <option value="TWT">TWT</option>
+                        <option value="BNB">BNB</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" id="withdrawAmount" placeholder="Enter amount" oninput="checkWithdrawFee()">
+                    <small>Balance: <span id="withdrawBalance">0</span></small>
+                </div>
+                <div class="form-group">
+                    <label>Wallet Address</label>
+                    <input type="text" id="walletAddress" placeholder="0x..." oninput="validateWithdrawAddressInput()">
+                    <div id="withdrawAddressHint" class="address-validation-hint" style="display: none;"></div>
+                </div>
+                <div id="feeWarning" class="fee-warning hidden">
+                    <i class="fa-regular fa-circle-exclamation"></i>
+                    <span id="feeWarningText"></span>
+                </div>
+                <div class="withdraw-summary">
+                    <div><span>You will receive:</span> <span id="receiveAmount_">0</span></div>
+                    <div><span>Network fee:</span> <span id="networkFee">0</span></div>
+                </div>
+                <button class="btn-primary" id="submitWithdrawBtn" onclick="submitWithdraw()" disabled>
+                    <i class="fas fa-paper-plane"></i> Submit Withdrawal
+                </button>
+            </div>
+        </div>
+    </div>
 
-    <!-- Toast -->
-    <div id="toast" class="toast hidden"><i class="fa-regular fa-circle-check"></i><span id="toastMessage"></span></div>
-    <button id="scrollTopBtn" class="scroll-top-btn hidden" onclick="scrollToTop()"><i class="fas fa-arrow-up"></i></button>
+    <!-- Send Modal -->
+    <div id="sendModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="actions.send">Send</h3>
+                <button class="modal-close" onclick="closeModal('sendModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="text-align: center; padding: 40px;">Coming soon...</p>
+            </div>
+        </div>
+    </div>
 
+    <!-- Receive Modal -->
+    <div id="receiveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="actions.receive">Receive</h3>
+                <button class="modal-close" onclick="closeModal('receiveModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p>Your Wallet Address:</p>
+                <div class="address-container" style="margin: 20px 0;">
+                    <code id="receiveAddress" style="font-size: 14px; word-break: break-all;">...</code>
+                    <button class="copy-address-btn" onclick="copyAddress()">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="actions.history">History</h3>
+                <button class="modal-close" onclick="closeModal('historyModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="history-filters">
+                    <button class="history-tab active" onclick="filterHistory('all')">All</button>
+                    <button class="history-tab" onclick="filterHistory('deposit')">Deposits</button>
+                    <button class="history-tab" onclick="filterHistory('withdraw')">Withdrawals</button>
+                </div>
+                <div id="historyList" class="history-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Modal -->
+    <div id="notificationsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="notifications.title">Notifications</h3>
+                <button class="modal-close" onclick="closeModal('notificationsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="notificationsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" class="admin-panel hidden">
+        <div class="admin-header">
+            <h2><i class="fa-solid fa-crown" style="color: gold;"></i> Admin Panel</h2>
+            <button class="modal-close" onclick="closeAdminPanel()">&times;</button>
+        </div>
+        <div class="admin-stats">
+            <div class="admin-stat-card">
+                <span>Total Users</span>
+                <span id="totalUsers">...</span>
+            </div>
+            <div class="admin-stat-card">
+                <span>Pending</span>
+                <span id="pendingCount">0</span>
+            </div>
+            <div class="admin-stat-card">
+                <span>Approved</span>
+                <span id="approvedCount">...</span>
+            </div>
+        </div>
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="showAdminTab('deposits')">Deposits</button>
+            <button class="admin-tab" onclick="showAdminTab('withdrawals')">Withdrawals</button>
+            <button class="admin-tab" onclick="showUsersCount()">Users Count</button>
+        </div>
+        <div id="adminContent" class="admin-content"></div>
+    </div>
+
+    <!-- Toast Message -->
+    <div id="toast" class="toast hidden">
+        <i class="fa-regular fa-circle-check"></i>
+        <span id="toastMessage"></span>
+    </div>
+
+    <!-- Welcome Sticker -->
+    <div id="welcomeSticker" class="welcome-sticker"></div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scrollTopBtn" class="scroll-top-btn" onclick="scrollToTop()">
+        <i class="fa-regular fa-arrow-up"></i>
+    </button>
+
+    <!-- ====== JAVASCRIPT ====== -->
+    <!-- ✅ ملف JavaScript منفصل (كل الكود اللي اشتغلنا عليه) -->
     <script src="app.js"></script>
+
 </body>
 </html>
